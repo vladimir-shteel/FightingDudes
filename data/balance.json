@@ -1,0 +1,17 @@
+{
+  "tickRateMs": 100,
+  "passiveGoldPerSecond": 6,
+  "startingGold": 80,
+  "startingOre": 0,
+  "unitBuyBaseCost": 16,
+  "unitBuyCostStep": 4,
+  "battle": {
+    "waveCooldownSeconds": 9
+  },
+  "castle": {
+    "maxHealth": 1800
+  },
+  "merge": {
+    "maxLevel": 6
+  }
+}

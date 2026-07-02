@@ -1,0 +1,9 @@
+{
+  "baseProductionPerSecond": 0.8,
+  "levels": [
+    { "level": 1, "slots": 1, "upgradeOreCost": 24, "slotProductionMultipliers": [1] },
+    { "level": 2, "slots": 2, "upgradeOreCost": 38, "slotProductionMultipliers": [1, 1.14] },
+    { "level": 3, "slots": 3, "upgradeOreCost": 52, "slotProductionMultipliers": [1, 1.14, 1.28] },
+    { "level": 4, "slots": 4, "upgradeOreCost": 66, "slotProductionMultipliers": [1, 1.14, 1.28, 1.42] }
+  ]
+}

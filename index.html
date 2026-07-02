@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fighting Dudes Prototype</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Russo+One&family=Manrope:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">GitHub Pages Prototype</p>
+        <h1>Fighting Dudes</h1>
+      </div>
+      <div class="resource-bar">
+        <div class="resource-chip">
+          <span class="resource-label">Gold</span>
+          <strong id="goldValue">0</strong>
+        </div>
+        <div class="resource-chip">
+          <span class="resource-label">Ore</span>
+          <strong id="oreValue">0</strong>
+        </div>
+        <div class="resource-chip">
+          <span class="resource-label">Wave</span>
+          <strong id="waveValue">0 / 0</strong>
+        </div>
+      </div>
+    </header>
+
+    <main class="layout-grid">
+      <section class="panel battle-panel">
+        <div class="panel-header">
+          <div>
+            <p class="eyebrow">Top Zone</p>
+            <h2>Battlefield</h2>
+          </div>
+          <div class="battle-stats">
+            <span id="battleSummary">No units deployed</span>
+            <span id="battleTimer">Next wave: -</span>
+          </div>
+        </div>
+
+        <div class="battle-stage">
+          <div class="battle-column">
+            <h3>Our Squad</h3>
+            <div id="battleUnits" class="unit-list battle-list"></div>
+          </div>
+
+          <div class="castle-card">
+            <p class="eyebrow">Enemy Castle</p>
+            <strong id="castleHealth">0 / 0</strong>
+            <div class="progress-shell">
+              <div id="castleHealthBar" class="progress-bar castle-bar"></div>
+            </div>
+            <p id="battleLog" class="battle-log">Deploy a unit through the garrison.</p>
+          </div>
+
+          <div class="battle-column">
+            <h3>Enemy Wave</h3>
+            <div id="enemyUnits" class="unit-list battle-list enemy-list"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="middle-row">
+        <section class="panel mines-panel">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Middle Zone</p>
+              <h2>Mines</h2>
+            </div>
+            <p class="panel-note">Drag units from the reserve into mine slots.</p>
+          </div>
+          <div id="minesGrid" class="mines-grid"></div>
+        </section>
+
+        <section class="panel garrison-panel">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Deployment</p>
+              <h2>Garrison</h2>
+            </div>
+            <p class="panel-note">Choose equipment, then drop a unit here.</p>
+          </div>
+          <div class="gear-picker">
+            <button class="gear-button is-active" data-gear="sword">Sword</button>
+            <button class="gear-button" data-gear="bow">Bow</button>
+            <button class="gear-button" data-gear="armor">Armor</button>
+          </div>
+          <div class="garrison-dropzones">
+            <button id="buyGearButton" class="primary-button">Buy Selected Gear</button>
+            <div id="garrisonDropzone" class="garrison-dropzone">
+              Drop a unit from reserve or mine
+            </div>
+          </div>
+          <div id="gearInfo" class="info-card"></div>
+        </section>
+      </section>
+
+      <section class="panel reserve-panel">
+        <div class="panel-header">
+          <div>
+            <p class="eyebrow">Bottom Zone</p>
+            <h2>Reserve</h2>
+          </div>
+          <div class="reserve-actions">
+            <button id="buyUnitButton" class="primary-button">Buy Unit</button>
+            <button id="massMergeButton" class="secondary-button">Mass Merge</button>
+            <button id="restartButton" class="ghost-button">Restart</button>
+          </div>
+        </div>
+        <div class="reserve-note">
+          Buy cost: <span id="buyCostValue">0</span> gold.
+          Merge two identical levels into one higher-level unit.
+        </div>
+        <div id="reserveZone" class="reserve-zone"></div>
+      </section>
+    </main>
+  </div>
+
+  <script type="module" src="./js/main.js"></script>
+</body>
+</html>

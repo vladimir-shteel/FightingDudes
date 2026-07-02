@@ -1,0 +1,481 @@
+:root {
+  --bg: #0b1020;
+  --bg-soft: #121a33;
+  --panel: rgba(14, 22, 46, 0.88);
+  --panel-border: rgba(123, 157, 255, 0.2);
+  --text: #edf3ff;
+  --muted: #8fa4cf;
+  --gold: #ffd166;
+  --ore: #7bdff2;
+  --accent: #ff7a59;
+  --accent-soft: #ffb577;
+  --good: #7ae582;
+  --bad: #ff5d73;
+  --shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: "Manrope", sans-serif;
+  color: var(--text);
+  background:
+    radial-gradient(circle at top, rgba(123, 157, 255, 0.22), transparent 36%),
+    radial-gradient(circle at bottom, rgba(255, 122, 89, 0.18), transparent 30%),
+    linear-gradient(180deg, #040712 0%, #0a1020 45%, #101a32 100%);
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+  border: 0;
+}
+
+.app-shell {
+  width: min(1420px, calc(100vw - 24px));
+  margin: 0 auto;
+  padding: 16px 0 24px;
+}
+
+.topbar,
+.panel,
+.resource-chip,
+.unit-card,
+.mine-card,
+.castle-card,
+.garrison-dropzone,
+.info-card {
+  backdrop-filter: blur(10px);
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  padding: 18px 22px;
+  border: 1px solid var(--panel-border);
+  border-radius: 28px;
+  background: rgba(9, 15, 32, 0.85);
+  box-shadow: var(--shadow);
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  font-family: "Russo One", sans-serif;
+  letter-spacing: 0.02em;
+}
+
+h1 {
+  font-size: clamp(28px, 4vw, 42px);
+}
+
+h2 {
+  font-size: 22px;
+}
+
+h3 {
+  font-size: 16px;
+}
+
+.eyebrow {
+  margin: 0 0 6px;
+  color: var(--muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+}
+
+.layout-grid {
+  display: grid;
+  gap: 18px;
+  margin-top: 18px;
+}
+
+.middle-row {
+  display: grid;
+  grid-template-columns: 2.1fr 1fr;
+  gap: 18px;
+}
+
+.panel {
+  border: 1px solid var(--panel-border);
+  border-radius: 28px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  padding: 18px;
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.resource-bar,
+.reserve-actions,
+.battle-stats,
+.gear-picker {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.resource-chip {
+  min-width: 108px;
+  padding: 10px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.resource-label {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.panel-note,
+.reserve-note,
+.battle-stats,
+.battle-log,
+.info-card {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.battle-stage {
+  display: grid;
+  grid-template-columns: 1.2fr 0.9fr 1.2fr;
+  gap: 14px;
+  align-items: stretch;
+}
+
+.battle-column {
+  min-height: 240px;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.unit-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-content: flex-start;
+  min-height: 160px;
+  margin-top: 12px;
+}
+
+.battle-list {
+  min-height: 196px;
+}
+
+.castle-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 10px;
+  padding: 18px;
+  border: 1px solid rgba(255, 209, 102, 0.18);
+  border-radius: 24px;
+  background:
+    linear-gradient(180deg, rgba(255, 122, 89, 0.16), rgba(255, 122, 89, 0.04)),
+    rgba(255, 255, 255, 0.04);
+}
+
+.progress-shell {
+  width: 100%;
+  height: 12px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.progress-bar {
+  height: 100%;
+  border-radius: inherit;
+  transition: width 160ms linear;
+}
+
+.castle-bar {
+  background: linear-gradient(90deg, #ffb577, #ff5d73);
+}
+
+.mines-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.mine-card {
+  border: 1px solid rgba(123, 223, 242, 0.18);
+  border-radius: 22px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.mine-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.mine-stats {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.tag {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.mine-slots {
+  display: grid;
+  gap: 10px;
+}
+
+.slot {
+  min-height: 82px;
+  border: 1px dashed rgba(255, 255, 255, 0.18);
+  border-radius: 18px;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.14);
+}
+
+.slot.is-open {
+  border-color: rgba(122, 229, 130, 0.28);
+}
+
+.slot.is-locked {
+  opacity: 0.54;
+}
+
+.slot-placeholder {
+  display: flex;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.primary-button,
+.secondary-button,
+.ghost-button,
+.gear-button {
+  padding: 11px 16px;
+  border-radius: 16px;
+  transition: transform 120ms ease, opacity 120ms ease, background 120ms ease;
+}
+
+.primary-button:hover,
+.secondary-button:hover,
+.ghost-button:hover,
+.gear-button:hover {
+  transform: translateY(-1px);
+}
+
+.primary-button {
+  color: #09101f;
+  background: linear-gradient(135deg, var(--gold), var(--accent-soft));
+  font-weight: 800;
+}
+
+.secondary-button {
+  color: var(--text);
+  background: rgba(123, 223, 242, 0.16);
+}
+
+.ghost-button,
+.gear-button {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.gear-button.is-active {
+  background: rgba(255, 209, 102, 0.2);
+  outline: 1px solid rgba(255, 209, 102, 0.34);
+}
+
+.garrison-dropzones {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.garrison-dropzone {
+  min-height: 108px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 12px;
+  border: 1px dashed rgba(255, 255, 255, 0.22);
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at top, rgba(255, 209, 102, 0.18), transparent 60%),
+    rgba(255, 255, 255, 0.03);
+}
+
+.info-card {
+  min-height: 88px;
+  margin-top: 12px;
+  padding: 14px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.reserve-zone {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
+  gap: 12px;
+}
+
+.unit-card {
+  position: relative;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, rgba(123, 157, 255, 0.16), rgba(123, 157, 255, 0.04)),
+    rgba(255, 255, 255, 0.04);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.unit-card[draggable="true"] {
+  cursor: grab;
+}
+
+.unit-card.reserve-card {
+  animation: pop-in 180ms ease;
+}
+
+.unit-card.enemy-card {
+  background:
+    linear-gradient(180deg, rgba(255, 93, 115, 0.16), rgba(255, 93, 115, 0.04)),
+    rgba(255, 255, 255, 0.04);
+}
+
+.unit-card.battle-card {
+  min-width: 128px;
+}
+
+.unit-level {
+  display: inline-flex;
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 12px;
+  color: var(--gold);
+}
+
+.unit-name {
+  margin: 10px 0 6px;
+  font-weight: 800;
+}
+
+.unit-meta,
+.unit-gear {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.unit-actions {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.micro-button {
+  padding: 7px 10px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  font-size: 12px;
+}
+
+.micro-button.warn {
+  background: rgba(255, 93, 115, 0.12);
+}
+
+.drop-hover {
+  outline: 1px solid rgba(255, 209, 102, 0.5);
+  background-color: rgba(255, 209, 102, 0.08);
+}
+
+.state-win .castle-card {
+  border-color: rgba(122, 229, 130, 0.35);
+}
+
+.state-win .battle-log {
+  color: var(--good);
+}
+
+.state-lose .battle-log {
+  color: var(--bad);
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (max-width: 1100px) {
+  .middle-row,
+  .battle-stage {
+    grid-template-columns: 1fr;
+  }
+
+  .topbar,
+  .panel-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+@media (max-width: 720px) {
+  .app-shell {
+    width: min(100vw - 12px, 100%);
+    padding-top: 8px;
+  }
+
+  .panel,
+  .topbar {
+    border-radius: 22px;
+    padding: 14px;
+  }
+
+  .mines-grid,
+  .reserve-zone {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "sword": {
+    "label": "Sword",
+    "oreCost": 18,
+    "attackMultiplier": 1.5,
+    "healthBonus": 0,
+    "attackSpeedMultiplier": 1,
+    "attackType": "melee"
+  },
+  "bow": {
+    "label": "Bow",
+    "oreCost": 22,
+    "attackMultiplier": 1.25,
+    "healthBonus": 0,
+    "attackSpeedMultiplier": 1.35,
+    "attackType": "ranged"
+  },
+  "armor": {
+    "label": "Armor",
+    "oreCost": 20,
+    "attackMultiplier": 1,
+    "healthBonus": 22,
+    "attackSpeedMultiplier": 0.92,
+    "attackType": "tank"
+  }
+}
