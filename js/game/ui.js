@@ -25,7 +25,7 @@ function createUnitCard(unit, options = {}) {
   card.innerHTML = `
     <span class="unit-level">Lvl ${level}</span>
     <div class="unit-name">${unit.name}</div>
-    <span class="unit-meta">ATK ${Math.round(attack)} • HP ${Math.round(health)}</span>
+    <span class="unit-meta">ATK ${Math.round(attack)} | HP ${Math.round(health)}</span>
     <span class="unit-gear">${gearText}</span>
   `;
 
@@ -58,6 +58,13 @@ function makeDropTarget(element, onDropUnit) {
   });
 }
 
+function appendTokenHealth(card, currentHealth, maxHealth) {
+  const hp = document.createElement("div");
+  hp.className = "token-health";
+  hp.innerHTML = `<div class="token-health-bar" style="width:${(Math.max(0, currentHealth) / maxHealth) * 100}%"></div>`;
+  card.append(hp);
+}
+
 export function mountUI(state, onStateChanged) {
   const elements = {
     goldValue: document.querySelector("#goldValue"),
@@ -73,6 +80,7 @@ export function mountUI(state, onStateChanged) {
     minesGrid: document.querySelector("#minesGrid"),
     enemyUnits: document.querySelector("#enemyUnits"),
     battleUnits: document.querySelector("#battleUnits"),
+    laneMarkers: document.querySelector("#laneMarkers"),
     garrisonDropzone: document.querySelector("#garrisonDropzone"),
     gearInfo: document.querySelector("#gearInfo"),
     buyUnitButton: document.querySelector("#buyUnitButton"),
@@ -80,6 +88,14 @@ export function mountUI(state, onStateChanged) {
     restartButton: document.querySelector("#restartButton"),
     buyGearButton: document.querySelector("#buyGearButton")
   };
+
+  elements.laneMarkers.innerHTML = "";
+  for (let lane = 1; lane < CONFIG.battle.laneCount; lane += 1) {
+    const marker = document.createElement("div");
+    marker.className = "lane-marker";
+    marker.style.top = `${(lane / CONFIG.battle.laneCount) * 100}%`;
+    elements.laneMarkers.append(marker);
+  }
 
   let mergeSelection = [];
 
@@ -182,7 +198,8 @@ export function mountUI(state, onStateChanged) {
       card.className = "mine-card";
 
       const upgradeCost = getMineUpgradeCost(mine);
-      const stats = `
+      const openSlots = getMineLevelData(mine.level)?.slots ?? 0;
+      card.innerHTML = `
         <div class="mine-head">
           <div>
             <h3>${mine.name}</h3>
@@ -193,18 +210,17 @@ export function mountUI(state, onStateChanged) {
           </button>
         </div>
         <div class="mine-stats">
-          <span class="tag">Open slots: ${(getMineLevelData(mine.level)?.slots ?? 0)} / ${getMineMaxLevel()}</span>
-          <span class="tag">Rate: ${mine.workerIds.slice(0, getMineLevelData(mine.level)?.slots ?? 0).filter(Boolean).length} workers</span>
+          <span class="tag">Open slots: ${openSlots} / ${getMineMaxLevel()}</span>
+          <span class="tag">Rate: ${mine.workerIds.slice(0, openSlots).filter(Boolean).length} workers</span>
         </div>
       `;
-      card.innerHTML = stats;
 
       const slots = document.createElement("div");
       slots.className = "mine-slots";
 
       for (let index = 0; index < getMineMaxLevel(); index += 1) {
         const slot = document.createElement("div");
-        const isOpen = index < (getMineLevelData(mine.level)?.slots ?? 0);
+        const isOpen = index < openSlots;
         slot.className = `slot ${isOpen ? "is-open" : "is-locked"}`;
 
         const worker = mine.workerIds[index];
@@ -221,6 +237,7 @@ export function mountUI(state, onStateChanged) {
           const slotShell = document.createElement("div");
           slotShell.className = "slot is-open";
           const workerCard = createUnitCard(worker, { origin: "reserve", draggable: true, showActions: true });
+
           const backButton = document.createElement("button");
           backButton.className = "micro-button";
           backButton.textContent = "Return to reserve";
@@ -269,20 +286,32 @@ export function mountUI(state, onStateChanged) {
     elements.battleUnits.innerHTML = "";
     for (const unit of state.battleUnits) {
       const card = createUnitCard(unit, { origin: "battle" });
+      card.classList.add("battle-token");
+      card.classList.toggle("is-engaged", unit.state === "engaged");
+      card.style.left = `${unit.x}%`;
+      card.style.top = `${((unit.lane + 0.5) / CONFIG.battle.laneCount) * 100}%`;
+
       const meta = document.createElement("span");
       meta.className = "unit-meta";
-      meta.textContent = `Target: ${unit.targetHint} • HP ${Math.max(0, Math.round(unit.health))}`;
+      meta.textContent = `Target: ${unit.targetHint} | HP ${Math.max(0, Math.round(unit.health))}`;
       card.append(meta);
+      appendTokenHealth(card, unit.health, unit.maxHealth);
       elements.battleUnits.append(card);
     }
 
     elements.enemyUnits.innerHTML = "";
     for (const enemy of state.enemies) {
       const card = createUnitCard(enemy, { origin: "enemy" });
+      card.classList.add("battle-token");
+      card.classList.toggle("is-engaged", enemy.state === "engaged");
+      card.style.left = `${enemy.x}%`;
+      card.style.top = `${((enemy.lane + 0.5) / CONFIG.battle.laneCount) * 100}%`;
+
       const meta = document.createElement("span");
       meta.className = "unit-meta";
-      meta.textContent = `ATK ${Math.round(enemy.attack)} • HP ${Math.max(0, Math.round(enemy.health))}`;
+      meta.textContent = `ATK ${Math.round(enemy.attack)} | HP ${Math.max(0, Math.round(enemy.health))}`;
       card.append(meta);
+      appendTokenHealth(card, enemy.health, enemy.maxHealth);
       elements.enemyUnits.append(card);
     }
   }
@@ -293,7 +322,8 @@ export function mountUI(state, onStateChanged) {
     elements.oreValue.textContent = formatNumber(state.resources.ore);
     elements.waveValue.textContent = `${state.battle.nextWaveIndex} / ${CONFIG.waves.length}`;
     elements.buyCostValue.textContent = formatNumber(getUnitBuyCost(state));
-    elements.battleSummary.textContent = `${summary.friendlyCount} allies • ${summary.enemyCount} enemies • power ${Math.round(summary.squadPower)}`;
+    elements.battleSummary.textContent =
+      `${summary.friendlyCount} allies | ${summary.enemyCount} enemies | power ${Math.round(summary.squadPower)}`;
 
     if (state.battle.status === "cooldown" && !state.game.isOver) {
       elements.battleTimer.textContent = `Next wave: ${Math.ceil(state.battle.waveCooldownRemaining)}s`;

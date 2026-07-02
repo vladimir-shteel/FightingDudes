@@ -19,6 +19,10 @@
 - `battleUnits` contains deployed units only. Units moved here cannot return.
 - `enemies` is the current active wave on the battlefield.
 - `castle` stores enemy castle health and is the final battle objective.
+- The battlefield now uses lane-based positions:
+  - allies spawn on the left and move right
+  - enemies spawn near the castle on the right and move left
+  - units queue behind allies in their lane and stop when enemies block the path
 - `resources` currently has two currencies:
   - `gold` for buying fresh units
   - `ore` for mine progression and battle gear
@@ -40,9 +44,11 @@
 - `battleSystem`
   - Grants passive gold income
   - Manages wave cooldowns and wave spawning
-  - Runs ally/enemy attack ticks
-  - Switches allies to enemy priority when enemies are alive
-  - Returns to castle damage after waves are cleared
+  - Updates lane movement and spacing between units
+  - Makes allied units march left-to-right toward the castle
+  - Makes enemies march from the castle side toward the player line
+  - Runs contact-based attacks when units meet in a lane
+  - Returns to castle damage after the last wave is gone
 
 ## Extension Points
 

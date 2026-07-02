@@ -3,6 +3,21 @@ import { createBattleUnit } from "../factories.js";
 import { removeUnitFromReserve, returnUnitToReserve } from "./reserveSystem.js";
 import { removeUnitFromMine, restoreUnitToMine } from "./mineSystem.js";
 
+function chooseDeploymentLane(state) {
+  let bestLane = 0;
+  let bestCount = Number.POSITIVE_INFINITY;
+
+  for (let lane = 0; lane < CONFIG.battle.laneCount; lane += 1) {
+    const count = state.battleUnits.filter((unit) => unit.lane === lane).length;
+    if (count < bestCount) {
+      bestCount = count;
+      bestLane = lane;
+    }
+  }
+
+  return bestLane;
+}
+
 export function deployUnitToBattle(state, unitId) {
   const gearKey = state.ui.selectedGearKey;
   const gear = CONFIG.equipment[gearKey];
@@ -36,7 +51,10 @@ export function deployUnitToBattle(state, unitId) {
   }
 
   state.resources.ore -= gear.oreCost;
-  state.battleUnits.push(createBattleUnit(sourceUnit, gearKey));
+  const battleUnit = createBattleUnit(sourceUnit, gearKey);
+  battleUnit.lane = chooseDeploymentLane(state);
+  battleUnit.x = CONFIG.battle.allySpawnX;
+  state.battleUnits.push(battleUnit);
   state.battle.log = `${sourceUnit.name} joined the battlefield with ${gear.label}.`;
 
   if (state.battle.status === "idle") {

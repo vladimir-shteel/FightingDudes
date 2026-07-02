@@ -6,7 +6,17 @@
   "unitBuyBaseCost": 16,
   "unitBuyCostStep": 4,
   "battle": {
-    "waveCooldownSeconds": 9
+    "waveCooldownSeconds": 9,
+    "laneCount": 3,
+    "fieldWidth": 100,
+    "allySpawnX": 8,
+    "enemySpawnX": 78,
+    "castleX": 92,
+    "unitRadius": 4.5,
+    "allyMoveSpeed": 8,
+    "enemyMoveSpeed": 5.5,
+    "contactRange": 9,
+    "castleAttackRange": 12
   },
   "castle": {
     "maxHealth": 1800

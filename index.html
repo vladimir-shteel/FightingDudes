@@ -46,23 +46,26 @@
         </div>
 
         <div class="battle-stage">
-          <div class="battle-column">
-            <h3>Our Squad</h3>
-            <div id="battleUnits" class="unit-list battle-list"></div>
-          </div>
-
-          <div class="castle-card">
-            <p class="eyebrow">Enemy Castle</p>
-            <strong id="castleHealth">0 / 0</strong>
-            <div class="progress-shell">
-              <div id="castleHealthBar" class="progress-bar castle-bar"></div>
+          <div class="battlefield-wrap">
+            <div id="battlefield" class="battlefield">
+              <div class="battlefield-overlay">
+                <div class="battlefield-caption">
+                  <h3>Advance To The Castle</h3>
+                  <p>Units appear on the left, march right, queue inside lanes and stop when enemies block the path.</p>
+                </div>
+              </div>
+              <div id="laneMarkers" class="lane-markers"></div>
+              <div id="battleUnits" class="battle-actors battle-allies"></div>
+              <div id="enemyUnits" class="battle-actors battle-enemies"></div>
+              <div id="castleSprite" class="castle-sprite">
+                <p class="eyebrow">Enemy Castle</p>
+                <strong id="castleHealth">0 / 0</strong>
+                <div class="progress-shell">
+                  <div id="castleHealthBar" class="progress-bar castle-bar"></div>
+                </div>
+              </div>
             </div>
             <p id="battleLog" class="battle-log">Deploy a unit through the garrison.</p>
-          </div>
-
-          <div class="battle-column">
-            <h3>Enemy Wave</h3>
-            <div id="enemyUnits" class="unit-list battle-list enemy-list"></div>
           </div>
         </div>
       </section>

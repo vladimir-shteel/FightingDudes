@@ -40,8 +40,14 @@ export function createBattleUnit(unit, gearKey) {
     attackType: gear.attackType,
     attack: unit.baseAttack * gear.attackMultiplier,
     attackSpeed: unit.baseAttackSpeed * gear.attackSpeedMultiplier,
+    moveSpeed: CONFIG.battle.allyMoveSpeed,
+    attackRange: gear.attackType === "ranged" ? CONFIG.battle.contactRange + 4 : CONFIG.battle.contactRange,
     maxHealth,
     health: maxHealth,
+    x: CONFIG.battle.allySpawnX,
+    lane: 0,
+    radius: CONFIG.battle.unitRadius,
+    state: "marching",
     lastAttackAt: 0,
     targetHint: "castle"
   };
@@ -51,10 +57,17 @@ export function createEnemy(definition) {
   return {
     id: generateId("enemy"),
     name: definition.name,
+    level: definition.level ?? 1,
     maxHealth: definition.health,
     health: definition.health,
     attack: definition.attack,
     attackSpeed: definition.attackSpeed,
+    moveSpeed: definition.moveSpeed ?? CONFIG.battle.enemyMoveSpeed,
+    attackRange: definition.attackRange ?? CONFIG.battle.contactRange,
+    x: CONFIG.battle.enemySpawnX,
+    lane: 0,
+    radius: CONFIG.battle.unitRadius,
+    state: "marching",
     lastAttackAt: 0
   };
 }

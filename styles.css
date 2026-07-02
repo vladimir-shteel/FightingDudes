@@ -46,7 +46,7 @@ button {
 .resource-chip,
 .unit-card,
 .mine-card,
-.castle-card,
+.castle-sprite,
 .garrison-dropzone,
 .info-card {
   backdrop-filter: blur(10px);
@@ -156,44 +156,92 @@ h3 {
 }
 
 .battle-stage {
+  display: block;
+}
+
+.battlefield-wrap {
   display: grid;
-  grid-template-columns: 1.2fr 0.9fr 1.2fr;
-  gap: 14px;
-  align-items: stretch;
+  gap: 12px;
 }
 
-.battle-column {
-  min-height: 240px;
-  padding: 14px;
+.battlefield {
+  position: relative;
+  min-height: 360px;
+  overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 22px;
-  background: rgba(255, 255, 255, 0.03);
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(123, 157, 255, 0.16), transparent 26%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01)),
+    linear-gradient(180deg, #17253c 0%, #16253a 54%, #1d2f25 55%, #213729 100%);
 }
 
-.unit-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  align-content: flex-start;
-  min-height: 160px;
-  margin-top: 12px;
+.battlefield::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 88% 18%, rgba(255, 122, 89, 0.16), transparent 20%),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: auto, 48px 48px;
+  pointer-events: none;
 }
 
-.battle-list {
-  min-height: 196px;
-}
-
-.castle-card {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 10px;
+.battlefield-overlay {
+  position: absolute;
+  inset: 0;
   padding: 18px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.battlefield-caption {
+  max-width: 320px;
+  padding: 12px 14px;
+  border-radius: 18px;
+  background: rgba(7, 11, 24, 0.48);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.battlefield-caption p {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.lane-markers {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.lane-marker {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.08);
+}
+
+.battle-actors {
+  position: absolute;
+  inset: 0;
+}
+
+.castle-sprite {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 126px;
+  padding: 18px 14px;
   border: 1px solid rgba(255, 209, 102, 0.18);
   border-radius: 24px;
   background:
     linear-gradient(180deg, rgba(255, 122, 89, 0.16), rgba(255, 122, 89, 0.04)),
-    rgba(255, 255, 255, 0.04);
+    rgba(12, 18, 30, 0.78);
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.3);
+  z-index: 3;
 }
 
 .progress-shell {
@@ -382,6 +430,52 @@ h3 {
   min-width: 128px;
 }
 
+.battle-token {
+  position: absolute;
+  width: 92px;
+  padding: 10px 10px 8px;
+  border-radius: 18px;
+  transform: translate(-50%, -50%);
+  transition: left 120ms linear, top 120ms linear, transform 120ms linear, box-shadow 120ms linear;
+  z-index: 2;
+}
+
+.battle-token .unit-name {
+  margin: 8px 0 4px;
+  font-size: 13px;
+}
+
+.battle-token .unit-meta,
+.battle-token .unit-gear {
+  font-size: 11px;
+}
+
+.battle-token.is-engaged {
+  transform: translate(-50%, -50%) scale(1.02);
+  box-shadow: 0 0 0 1px rgba(255, 209, 102, 0.18), 0 12px 24px rgba(0, 0, 0, 0.26);
+}
+
+.battle-token.enemy-card {
+  z-index: 4;
+}
+
+.battle-token .token-health {
+  margin-top: 7px;
+  height: 5px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.battle-token .token-health-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #7ae582, #ffd166);
+}
+
+.battle-token.enemy-card .token-health-bar {
+  background: linear-gradient(90deg, #ff5d73, #ffb577);
+}
+
 .unit-level {
   display: inline-flex;
   padding: 5px 8px;
@@ -426,7 +520,7 @@ h3 {
   background-color: rgba(255, 209, 102, 0.08);
 }
 
-.state-win .castle-card {
+.state-win .castle-sprite {
   border-color: rgba(122, 229, 130, 0.35);
 }
 
@@ -450,8 +544,7 @@ h3 {
 }
 
 @media (max-width: 1100px) {
-  .middle-row,
-  .battle-stage {
+  .middle-row {
     grid-template-columns: 1fr;
   }
 
@@ -477,5 +570,14 @@ h3 {
   .mines-grid,
   .reserve-zone {
     grid-template-columns: 1fr;
+  }
+
+  .battlefield {
+    min-height: 420px;
+  }
+
+  .castle-sprite {
+    width: 104px;
+    right: 8px;
   }
 }
