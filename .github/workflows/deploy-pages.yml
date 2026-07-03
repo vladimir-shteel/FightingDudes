@@ -18,16 +18,6 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    env:
-      PREVIEW_BRANCHES: |
-        codex/experimental-03-formation-rows
-        codex/experimental-07-terrain-zones
-        codex/experimental-09-destructible-props
-        codex/experimental-10-merge-specializations
-        codex/experimental-13-between-wave-events
-        codex/experimental-14-caravan-merchant
-        codex/experimental-15-weather-day-night
-        codex/experimental-20-speed-controls
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -58,24 +48,20 @@ jobs:
           git fetch --no-tags --prune origin '+refs/heads/*:refs/remotes/origin/*'
 
           preview_links=""
-          while IFS= read -r branch; do
-            if [[ -z "$branch" ]]; then
+          while IFS= read -r remote_ref; do
+            if [[ -z "$remote_ref" ]]; then
               continue
             fi
 
-            if ! git rev-parse --verify --quiet "origin/${branch}" >/dev/null; then
-              echo "Skipping missing preview branch: ${branch}"
-              continue
-            fi
-
+            branch="${remote_ref#origin/}"
             slug="${branch##*/}"
             target="_site/previews/${slug}"
             mkdir -p "$target"
-            git archive --format=tar "origin/${branch}" | tar -x -C "$target"
+            git archive --format=tar "${remote_ref}" | tar -x -C "$target"
             rm -rf "${target}/.github"
 
             preview_links="${preview_links}<li><a href=\"./${slug}/\">${slug}</a></li>"
-          done <<< "$PREVIEW_BRANCHES"
+          done < <(git for-each-ref --format='%(refname:short)' 'refs/remotes/origin/codex/experimental-*' | sort)
 
           cat > _site/previews/index.html <<HTML
           <!doctype html>
