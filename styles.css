@@ -597,6 +597,7 @@ h3 {
   box-shadow: none;
   z-index: 3;
   overflow: visible;
+  container-type: inline-size;
 }
 
 .castle-sprite::before {
@@ -623,15 +624,16 @@ h3 {
   position: relative;
   z-index: 1;
   width: max-content;
-  max-width: 100%;
+  max-width: none;
   margin: -6px auto 8px;
   padding: 5px 10px;
   border: 3px solid rgba(114, 63, 28, 0.16);
   border-radius: 999px;
   background: rgba(255, 248, 229, 0.95);
   color: var(--text);
-  font-size: 18px;
+  font-size: clamp(9px, 10cqi, 18px);
   line-height: 1;
+  white-space: nowrap;
 }
 
 .castle-sprite .eyebrow {
@@ -774,13 +776,36 @@ h3 {
 }
 
 .mine-head .secondary-button {
-  flex: 0 1 138px;
-  min-width: 124px;
-  max-width: 142px;
-  white-space: normal;
+  flex: 0 1 auto;
+  min-width: 0;
+  white-space: nowrap;
   text-align: center;
   line-height: 1.1;
-  overflow-wrap: anywhere;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-cost {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(255, 248, 229, 0.72);
+  color: #6d460b;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.btn-cost-icon {
+  width: 12px;
+  height: 12px;
+}
+
+.btn-cost-icon.resource-icon-emoji {
+  font-size: 11px;
 }
 
 .mine-title h3 {
@@ -1223,20 +1248,16 @@ h3 {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 28px;
-  padding: 5px 10px;
+  min-width: 26px;
+  min-height: 22px;
+  padding: 3px 8px;
   border-radius: 999px;
-  background: #fff;
-  border: 3px solid rgba(114, 63, 28, 0.16);
-  font-size: 12px;
+  background: linear-gradient(180deg, #ffe38b 0%, #ffcd45 100%);
+  border: 2px solid rgba(115, 63, 28, 0.28);
+  color: #6a4207;
+  font-size: 11px;
   font-weight: 800;
   line-height: 1;
-}
-
-.unit-level-badge {
-  min-width: 30px;
-  background: #c6ecff;
-  color: #205e95;
 }
 
 .unit-character {
@@ -1333,33 +1354,30 @@ h3 {
 }
 
 .mine-passive {
-  flex: 0 0 auto;
   display: inline-flex;
-  flex-direction: column;
   align-items: center;
-  gap: 4px;
-  padding: 5px 5px 6px;
-  border-radius: 14px;
+  gap: 5px;
+  padding: 3px 8px 3px 6px;
+  border-radius: 999px;
   background: rgba(30, 18, 8, 0.34);
-  border: 2px solid rgba(255, 233, 176, 0.28);
-  box-shadow: inset 0 -2px 0 rgba(255, 248, 229, 0.08);
+  border: 1px solid rgba(255, 233, 176, 0.28);
   pointer-events: none;
 }
 
 .mine-passive-icon {
-  width: 14px;
-  height: 14px;
+  width: 12px;
+  height: 12px;
   flex: 0 0 auto;
 }
 
 .mine-passive-icon.resource-icon-emoji {
-  font-size: 13px;
+  font-size: 11px;
 }
 
 .mine-passive-bar {
   position: relative;
-  width: 10px;
-  height: 44px;
+  width: 36px;
+  height: 6px;
   border-radius: 999px;
   overflow: hidden;
   background: rgba(74, 46, 22, 0.42);
@@ -1369,13 +1387,13 @@ h3 {
 .mine-passive-fill {
   position: absolute;
   left: 0;
-  right: 0;
+  top: 0;
   bottom: 0;
-  width: 100%;
-  height: 0%;
+  height: 100%;
+  width: 0%;
   border-radius: inherit;
-  background: linear-gradient(180deg, #ffe38b 0%, #ffcd45 100%);
-  transition: height 120ms linear;
+  background: linear-gradient(90deg, #ffe38b 0%, #ffcd45 100%);
+  transition: width 120ms linear;
 }
 
 .mine-passive-fill.is-resetting {
@@ -1478,12 +1496,13 @@ h3 {
   transform: translate(-50%, -60%);
   transition: left 120ms linear, top 120ms linear, filter 120ms linear;
   z-index: 2;
+  container-type: inline-size;
 }
 
 .battle-token .unit-badges {
   position: absolute;
   left: 50%;
-  top: -8px;
+  top: 4px;
   width: 86px;
   transform: translateX(-50%);
 }
@@ -1534,31 +1553,28 @@ h3 {
   display: block;
   margin: -1px auto 0;
   width: max-content;
-  max-width: 96px;
-  padding: 4px 7px;
+  max-width: 100%;
+  padding: 2px 7px;
   border-radius: 999px;
-  background: rgba(255, 248, 229, 0.92);
-  border: 2px solid rgba(114, 63, 28, 0.14);
-  color: var(--text);
-  font-size: 10px;
-  font-weight: 700;
+  border: 2px solid rgba(114, 63, 28, 0.2);
+  background: rgba(255, 248, 229, 0.94);
+  color: #2a1608;
+  font-size: clamp(8px, 16cqi, 12px);
+  font-weight: 800;
+  line-height: 1;
   text-align: center;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .battle-token .token-health {
-  position: absolute;
-  left: 50%;
-  top: 12px;
-  width: 48px;
-  height: 10px;
-  transform: translateX(-50%);
+  display: block;
+  margin: 3px auto 0;
+  width: 62%;
+  height: 4px;
   border-radius: 999px;
   overflow: hidden;
-  background: rgba(74, 48, 24, 0.22);
-  border: 2px solid rgba(115, 63, 28, 0.14);
+  background: rgba(74, 48, 24, 0.34);
+  border: 1px solid rgba(115, 63, 28, 0.18);
 }
 
 .battle-token .token-health-bar {
@@ -1802,28 +1818,122 @@ h3 {
     padding-top: 6px;
   }
 
-  .panel,
-  .topbar {
+  .panel {
     border-radius: 24px;
     padding: 12px;
   }
 
+  .topbar {
+    top: 4px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: 20px;
+  }
+
+  .topbar > div:first-child {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .topbar .eyebrow {
+    display: none;
+  }
+
+  .topbar h1 {
+    font-size: 20px;
+    line-height: 1;
+  }
+
+  .resource-bar {
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+
+  .resource-list {
+    gap: 4px;
+    flex-wrap: wrap;
+    flex: 1 1 auto;
+  }
+
+  .resource-chip {
+    min-width: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 8px;
+    border-radius: 12px;
+    border-width: 2px;
+  }
+
+  .resource-chip-top {
+    margin-bottom: 0;
+    gap: 4px;
+  }
+
+  .resource-chip[data-resource-chip] .resource-label {
+    display: none;
+  }
+
+  .resource-chip strong {
+    min-width: 0;
+    font-size: 13px;
+  }
+
+  .resource-icon {
+    width: 14px;
+    height: 14px;
+  }
+
+  .resource-icon-emoji {
+    font-size: 12px;
+  }
+
+  .selection-chip {
+    min-width: 0;
+    max-width: 100%;
+    padding: 4px 8px;
+  }
+
+  .selection-chip .resource-label {
+    display: inline-block;
+    margin-bottom: 0;
+    font-size: 8px;
+  }
+
+  .selection-chip .resource-chip-top {
+    gap: 5px;
+  }
+
+  .selection-chip strong {
+    display: inline-block;
+    font-size: 11px;
+  }
+
+  .selection-hint {
+    display: none;
+  }
+
   .middle-row {
-    grid-template-columns: minmax(0, 7fr) minmax(160px, 3fr);
-    gap: 12px;
-    padding-top: 40px;
+    grid-template-columns: minmax(0, 1fr) 138px;
+    grid-template-areas: "mines garrison";
+    gap: 8px;
+    padding-top: 30px;
   }
 
   .middle-row::before {
     left: 8px;
     right: 8px;
-    height: 30px;
+    height: 24px;
   }
 
   .middle-row::after {
     left: 8px;
     right: 8px;
-    top: 20px;
+    top: 16px;
   }
 
   .mines-grid {
@@ -1832,84 +1942,352 @@ h3 {
   }
 
   .reserve-zone {
-    grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(58px, 1fr));
+    gap: 5px;
+  }
+
+  .battle-panel {
+    padding: 8px;
+  }
+
+  .battle-panel .panel-header h2 {
+    font-size: 16px;
+  }
+
+  .battle-panel .eyebrow {
+    display: none;
+  }
+
+  .battle-stats {
+    gap: 4px;
+    font-size: 10px;
+  }
+
+  .battle-stats span {
+    min-width: 0;
+  }
+
+  .battle-log {
+    padding: 5px 8px;
+    font-size: 10px;
+    line-height: 1.2;
+    border-radius: 12px;
   }
 
   .battlefield {
-    min-height: 500px;
+    min-height: 240px;
+    border-radius: 22px;
+    border-width: 3px;
+  }
+
+  .battlefield-overlay {
+    padding: 8px;
+  }
+
+  .battlefield-caption {
+    max-width: 62%;
+    padding: 6px 8px;
+    border-width: 2px;
+    border-radius: 12px;
+  }
+
+  .battlefield-caption h3 {
+    font-size: 11px;
+  }
+
+  .battlefield-caption p {
+    display: none;
   }
 
   .castle-sprite {
-    width: 132px;
-    right: 10px;
+    width: 78px;
+    min-height: 108px;
+    right: 6px;
+    padding: 6px 8px 10px;
+  }
+
+  .castle-icon {
+    height: 74px;
+    font-size: 62px;
+  }
+
+  .castle-sprite strong {
+    margin: -3px auto 4px;
+    padding: 3px 7px;
+    border-width: 2px;
+  }
+
+  .castle-sprite .eyebrow {
+    top: -14px;
+    padding: 3px 6px;
+    font-size: 8px;
+    border-width: 2px;
+    display: inline-block;
+  }
+
+  .progress-shell {
+    height: 8px;
+    border-width: 2px;
   }
 
   .battle-token {
-    width: 82px;
+    width: 56px;
   }
 
-  .resource-chip {
-    min-width: 84px;
+  .battle-token .unit-character {
+    height: 54px;
   }
 
-  .selection-chip {
-    min-width: 148px;
-    max-width: 100%;
+  .battle-token .unit-icon {
+    min-width: 38px;
+    height: 38px;
+    bottom: 4px;
+  }
+
+  .battle-token .unit-icon-main {
+    font-size: 30px;
+  }
+
+  .battle-token .unit-icon-gear {
+    font-size: 14px;
+    right: -1px;
+    bottom: -1px;
+  }
+
+  .battle-token .unit-shadow {
+    width: 36px;
+    height: 10px;
+  }
+
+  .battle-token .unit-level-badge {
+    min-width: 18px;
+    min-height: 16px;
+    padding: 1px 5px;
+    font-size: 8px;
+  }
+
+  .battle-token .unit-badges {
+    top: 2px;
+    width: 56px;
+  }
+
+  .battle-token .battle-caption {
+    padding: 2px 5px;
+    border-width: 1px;
+  }
+
+  .battle-token .token-health {
+    margin-top: 2px;
+    height: 3px;
   }
 
   .mine-head {
-    gap: 6px;
+    gap: 4px;
+    margin-bottom: 4px;
+    flex-wrap: wrap;
+    row-gap: 4px;
   }
 
   .mine-head .secondary-button {
-    flex: 0 1 96px;
-    min-width: 88px;
-    max-width: 104px;
-    padding: 7px 8px;
+    flex: 1 0 100%;
+    order: 2;
+    padding: 4px 8px;
     font-size: 10px;
+    border-radius: 10px;
+    box-shadow: 0 4px 0 rgba(121, 74, 15, 0.24);
+    gap: 4px;
+    justify-content: center;
+  }
+
+  .btn-cost {
+    padding: 1px 4px;
+    font-size: 9px;
+    gap: 2px;
+  }
+
+  .btn-cost-icon {
+    width: 9px;
+    height: 9px;
+  }
+
+  .btn-cost-icon.resource-icon-emoji {
+    font-size: 9px;
   }
 
   .mine-card {
-    padding: 7px;
+    padding: 6px;
+    border-radius: 20px;
   }
 
   .mine-stats {
-    gap: 6px;
+    gap: 4px;
+    margin-bottom: 4px;
   }
 
   .tag {
-    padding: 4px 6px;
-    font-size: 10px;
+    padding: 2px 5px;
+    font-size: 9px;
+  }
+
+  .mine-slots {
+    gap: 4px;
   }
 
   .slot {
-    min-height: 54px;
-    padding: 5px;
+    min-height: 40px;
+    padding: 3px;
+    border-radius: 12px;
+    border-width: 2px;
   }
 
   .slot-placeholder {
-    font-size: 10px;
+    font-size: 9px;
+    line-height: 1.15;
+  }
+
+  .slot-filled {
+    padding: 2px 2px 4px;
+  }
+
+  .slot-bonus {
+    top: 2px;
+    right: 3px;
+    padding: 1px 4px;
+    font-size: 8px;
+    border-width: 1px;
+  }
+
+  .mine-title-wrap {
+    padding: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .mine-title {
+    gap: 6px;
+  }
+
+  .mine-title-text {
+    min-width: 0;
+    flex: 1 1 auto;
   }
 
   .mine-title h3 {
-    font-size: 13px;
-  }
-
-  .mine-resource-icon {
-    width: 40px;
-    height: 40px;
-  }
-
-  .mine-resource-icon.resource-icon-emoji {
-    font-size: 34px;
-  }
-
-  .mine-passive-bar {
-    min-height: 26px;
+    font-size: 11px;
+    line-height: 1.1;
+    white-space: normal;
+    overflow-wrap: break-word;
+    word-break: break-word;
   }
 
   .mine-title-wrap .eyebrow {
-    font-size: 8px;
+    display: none;
+  }
+
+  .mine-resource-icon {
+    width: 22px;
+    height: 22px;
+  }
+
+  .mine-resource-icon.resource-icon-emoji {
+    font-size: 20px;
+  }
+
+  .mine-passive {
+    padding: 2px 6px 2px 4px;
+    gap: 3px;
+  }
+
+  .mine-passive-icon {
+    width: 10px;
+    height: 10px;
+  }
+
+  .mine-passive-icon.resource-icon-emoji {
+    font-size: 9px;
+  }
+
+  .mine-passive-bar {
+    width: 28px;
+    height: 5px;
+  }
+
+  .compact-card {
+    padding-top: 7px;
+  }
+
+  .compact-card .unit-character {
+    height: 30px;
+  }
+
+  .compact-card .unit-shadow {
+    width: 22px;
+    height: 6px;
+    bottom: 2px;
+  }
+
+  .compact-card .unit-icon {
+    min-width: 30px;
+    height: 30px;
+    bottom: 2px;
+  }
+
+  .compact-card .unit-icon-main {
+    font-size: 22px;
+  }
+
+  .compact-card .unit-icon-gear {
+    font-size: 12px;
+    right: -4px;
+    bottom: -2px;
+  }
+
+  .compact-card .unit-level-badge {
+    min-width: 16px;
+    min-height: 14px;
+    padding: 1px 5px;
+    font-size: 9px;
+  }
+
+  .compact-card .unit-badges {
+    top: 2px;
+    width: auto;
+    transform: none;
+  }
+
+  .slot-filled .compact-card .unit-badges {
+    left: 1px;
+    right: auto;
+    justify-content: flex-start;
+  }
+
+  .reserve-zone .compact-card .unit-badges {
+    left: auto;
+    right: 3px;
+    justify-content: flex-end;
+  }
+
+  .compact-card .compact-caption {
+    display: none;
+  }
+
+  .slot-progress {
+    gap: 3px;
+    margin-top: 2px;
+  }
+
+  .slot-progress-bar {
+    height: 5px;
+  }
+
+  .slot-progress-icon {
+    width: 10px;
+    height: 10px;
+  }
+
+  .slot-progress-icon.resource-icon-emoji {
+    font-size: 9px;
   }
 
   .mine-title-wrap {
@@ -1931,52 +2309,142 @@ h3 {
   }
 
   .garrison-panel {
-    clip-path: polygon(0 0, 100% 0, 100% 94%, 64% 100%, 0 100%);
-    padding: 10px;
+    clip-path: none;
+    padding: 6px;
+    border-radius: 16px;
+  }
+
+  .garrison-panel .panel-header {
+    margin-bottom: 6px;
+    gap: 4px;
+  }
+
+  .garrison-panel .panel-header h2 {
+    font-size: 14px;
   }
 
   .garrison-panel .panel-note {
-    max-width: none;
-    text-align: left;
-    font-size: 11px;
+    display: none;
   }
 
   .garrison-stage {
-    padding: 8px;
-    border-radius: 18px 18px 14px 14px;
+    padding: 5px;
+    border-radius: 12px;
+  }
+
+  .garrison-panel .resource-label {
+    font-size: 8px;
+    letter-spacing: 0.1em;
   }
 
   .gear-grid {
     grid-template-columns: 1fr;
-    gap: 6px;
+    gap: 4px;
+  }
+
+  .gear-select-wrap {
+    gap: 3px;
   }
 
   .gear-select {
-    padding: 8px 10px;
-    font-size: 12px;
+    padding: 4px 6px;
+    font-size: 10px;
+    border-width: 2px;
+    border-radius: 10px;
   }
 
-  .button-cost,
-  .gear-cost-pill,
+  .gear-cost-line {
+    min-height: 0;
+    gap: 3px;
+  }
+
+  .gear-cost-pill {
+    padding: 2px 5px;
+    font-size: 9px;
+    gap: 3px;
+    border-width: 1px;
+  }
+
+  .gear-cost-icon {
+    width: 10px;
+    height: 10px;
+  }
+
+  .gear-cost-icon.resource-icon-emoji {
+    font-size: 9px;
+  }
+
+  .gear-total-cost {
+    margin-top: 4px;
+    padding: 4px 6px;
+    border-radius: 10px;
+  }
+
   .gear-total-label,
   .gear-cost-free {
-    font-size: 10px;
+    font-size: 9px;
+  }
+
+  .garrison-dropzones {
+    margin-top: 5px;
+    gap: 5px;
   }
 
   .garrison-dropzone {
-    min-height: 74px;
-    padding: 8px;
-    font-size: 11px;
+    min-height: 48px;
+    padding: 5px;
+    font-size: 9px;
+    line-height: 1.15;
+    border-radius: 12px;
+    border-width: 2px;
+  }
+
+  .garrison-dropzone::before,
+  .garrison-dropzone::after {
+    display: none;
   }
 
   .info-card {
-    min-height: 54px;
-    padding: 8px 10px;
-    font-size: 10px;
+    display: none;
+  }
+
+  .reserve-panel {
+    padding: 8px;
+  }
+
+  .reserve-panel .panel-header h2 {
+    font-size: 16px;
+  }
+
+  .reserve-note {
+    display: none;
+  }
+
+  .reserve-actions {
+    gap: 5px;
+    flex-wrap: nowrap;
+  }
+
+  .reserve-actions .primary-button,
+  .reserve-actions .secondary-button,
+  .reserve-actions .ghost-button {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 6px 8px;
+    font-size: 11px;
+    border-radius: 12px;
+    box-shadow: 0 4px 0 rgba(107, 145, 27, 0.22);
+    white-space: nowrap;
+  }
+
+  .reserve-actions .button-cost {
+    margin-left: 4px;
+    padding: 2px 5px;
+    font-size: 9px;
   }
 }
 
-@media (orientation: portrait) {
+@media (orientation: portrait) and (min-width: 721px) {
   .middle-row {
     grid-template-columns: minmax(0, 7fr) minmax(150px, 3fr);
     gap: 10px;

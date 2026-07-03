@@ -348,6 +348,19 @@ export function mountUI(state, onStateChanged) {
     }
 
     const sourceRect = source.getBoundingClientRect();
+    const viewportW = window.innerWidth || document.documentElement.clientWidth;
+    const viewportH = window.innerHeight || document.documentElement.clientHeight;
+    const isSourceVisible =
+      sourceRect.bottom > 0 &&
+      sourceRect.right > 0 &&
+      sourceRect.top < viewportH &&
+      sourceRect.left < viewportW;
+
+    if (isSourceVisible) {
+      existing?.remove();
+      return;
+    }
+
     const targetRect = elements.selectedUnitChip.getBoundingClientRect();
     const startX = sourceRect.left + sourceRect.width / 2;
     const startY = sourceRect.top + sourceRect.height / 2;
@@ -514,24 +527,12 @@ export function mountUI(state, onStateChanged) {
         : 0;
       const showPassive = mine.isUnlocked && (CONFIG.passiveGoldPerSecondPerUnlockedMine ?? 0) > 0;
       const actionLabel = !mine.isUnlocked
-        ? `Unlock (${formatNumber(mine.unlockCost)} ${getResourceLabel(mine.unlockCurrency)})`
+        ? `Unlock <span class="btn-cost">${formatNumber(mine.unlockCost)}${getResourceIconMarkup(mine.unlockCurrency, "btn-cost-icon")}</span>`
         : upgradeCost === null
           ? "Max Level"
-          : `Upgrade (${formatNumber(upgradeCost)} ${getResourceLabel(upgradeCurrency)})`;
+          : `Upgrade <span class="btn-cost">${formatNumber(upgradeCost)}${getResourceIconMarkup(upgradeCurrency, "btn-cost-icon")}</span>`;
       card.innerHTML = `
         <div class="mine-head">
-          ${showPassive ? `
-            <div class="mine-passive" data-mine-passive="${mine.id}" title="Passive gold trickle">
-              ${getResourceIconMarkup("gold", "mine-passive-icon")}
-              <div class="mine-passive-bar">
-                <div
-                  class="mine-passive-fill"
-                  data-mine-passive-fill="${mine.id}"
-                  style="height:${passiveProgress * 100}%"
-                ></div>
-              </div>
-            </div>
-          ` : ""}
           <div class="mine-title-wrap">
             <div class="mine-title">
               ${getResourceIconMarkup(mine.resourceKey, "mine-resource-icon")}
@@ -546,10 +547,19 @@ export function mountUI(state, onStateChanged) {
           </button>
         </div>
         <div class="mine-stats">
-          <span class="tag">${mine.isUnlocked ? "Unlocked" : "Locked"}</span>
-          <span class="tag">Level ${mine.level}</span>
-          <span class="tag">Open slots: ${openSlots} / ${getMineMaxLevel()}</span>
-          <span class="tag">Workers: ${mine.workerIds.slice(0, openSlots).filter(Boolean).length}</span>
+          ${showPassive ? `
+            <div class="mine-passive" data-mine-passive="${mine.id}" title="Passive gold trickle">
+              ${getResourceIconMarkup("gold", "mine-passive-icon")}
+              <div class="mine-passive-bar">
+                <div
+                  class="mine-passive-fill"
+                  data-mine-passive-fill="${mine.id}"
+                  style="width:${passiveProgress * 100}%"
+                ></div>
+              </div>
+            </div>
+          ` : ""}
+          <span class="tag">Lv ${mine.level}</span>
         </div>
       `;
 
@@ -569,11 +579,11 @@ export function mountUI(state, onStateChanged) {
 
         const worker = mine.workerIds[index];
         if (!mine.isUnlocked) {
-          slot.innerHTML = '<div class="slot-placeholder">Unlock mine first</div>';
+          slot.innerHTML = '<div class="slot-placeholder">Locked</div>';
         } else if (!isOpen) {
-          slot.innerHTML = '<div class="slot-placeholder">Locked slot</div>';
+          slot.innerHTML = '<div class="slot-placeholder">Locked</div>';
         } else if (!worker) {
-          slot.innerHTML = `${slotBadge}<div class="slot-placeholder">Drop reserve unit here</div>`;
+          slot.innerHTML = `${slotBadge}<div class="slot-placeholder">Tap to place</div>`;
           slot.classList.toggle("actionable-target", selected?.source === "reserve" || selected?.source === "mine");
           slot.addEventListener("click", () => {
             const selected = getSelectedUnitContext();
@@ -671,7 +681,7 @@ export function mountUI(state, onStateChanged) {
 
   function renderBattle() {
     const castleRatio = state.castle.health / state.castle.maxHealth;
-    elements.castleHealth.textContent = `${formatNumber(state.castle.health)} / ${formatNumber(state.castle.maxHealth)}`;
+    elements.castleHealth.textContent = `${formatNumber(state.castle.health)}/${formatNumber(state.castle.maxHealth)}`;
     elements.castleHealthBar.style.width = `${castleRatio * 100}%`;
     elements.battleLog.textContent = state.battle.log;
     elements.castleSprite.classList.toggle("is-hit", (state.castle.hitUntil ?? 0) > performance.now() / 1000);
@@ -688,7 +698,7 @@ export function mountUI(state, onStateChanged) {
 
       const meta = document.createElement("span");
       meta.className = "battle-caption";
-      meta.textContent = `${unit.name} | HP ${Math.max(0, Math.round(unit.health))}`;
+      meta.textContent = `${Math.max(0, Math.round(unit.health))}`;
       card.append(meta);
       appendTokenHealth(card, unit.health, unit.maxHealth);
       elements.battleUnits.append(card);
@@ -706,7 +716,9 @@ export function mountUI(state, onStateChanged) {
 
       const meta = document.createElement("span");
       meta.className = "battle-caption";
-      meta.textContent = `${enemy.state === "retreating" ? "Retreating" : enemy.name} | HP ${Math.max(0, Math.round(enemy.health))}`;
+      meta.textContent = enemy.state === "retreating"
+        ? `Ret ${Math.max(0, Math.round(enemy.health))}`
+        : `${Math.max(0, Math.round(enemy.health))}`;
       card.append(meta);
       appendTokenHealth(card, enemy.health, enemy.maxHealth);
       elements.enemyUnits.append(card);
@@ -810,7 +822,7 @@ export function mountUI(state, onStateChanged) {
         } else {
           passiveFill.classList.remove("is-resetting");
         }
-        passiveFill.style.height = `${passiveProgress * 100}%`;
+        passiveFill.style.width = `${passiveProgress * 100}%`;
         mineProgressCache.set(cacheKey, passiveProgress);
         if (isPassiveReset) {
           requestAnimationFrame(() => passiveFill.classList.remove("is-resetting"));
@@ -866,7 +878,7 @@ export function mountUI(state, onStateChanged) {
     elements.gearInfo.textContent =
       `Weapon: ${selectedWeapon.label} (${formatCosts(selectedWeapon.costs) || "free"}) | ` +
       `ATK x${selectedWeapon.attackMultiplier} | speed x${selectedWeapon.attackSpeedMultiplier} | ` +
-      `range ${(CONFIG.battle.baseAttackReach ?? 0) + (selectedWeapon.attackRangeBonus ?? selectedWeapon.attackRange ?? 0)}. ` +
+      `range ${Math.round(((CONFIG.battle.baseAttackReach ?? 0) + (selectedWeapon.attackRangeBonus ?? selectedWeapon.attackRange ?? 0)) * 10) / 10}. ` +
       `Armor: ${selectedArmor.label} (${formatCosts(selectedArmor.costs) || "free"}) | HP +${selectedArmor.healthBonus}.`;
   }
 
