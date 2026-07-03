@@ -756,8 +756,11 @@ export function mountUI(state, onStateChanged) {
           button.type = "button";
           button.className = "formation-button";
           button.textContent = rowConfig.label;
-          button.disabled = unit.formationRow === rowKey;
-          button.addEventListener("click", () => {
+          button.dataset.active = unit.formationRow === rowKey ? "true" : "false";
+          button.setAttribute("aria-pressed", unit.formationRow === rowKey ? "true" : "false");
+          button.addEventListener("click", (event) => {
+            event.preventDefault();
+            event.stopPropagation();
             const result = setBridgeheadFormationRow(state, unit.id, rowKey);
             state.battle.log = result.reason;
             onStateChanged();
