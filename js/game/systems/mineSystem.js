@@ -2,6 +2,7 @@ import { CONFIG, getMineLevelData, getMineMaxLevel } from "../config.js";
 import { clamp } from "../utils.js";
 import { createReserveUnit } from "../factories.js";
 import { removeUnitFromReserve, returnUnitToReserve } from "./reserveSystem.js";
+import { getMineProductionMultiplier } from "./eventsSystem.js";
 
 export function getMineUpgradeCost(mine) {
   const nextLevelData = getMineLevelData(mine.level + 1);
@@ -217,6 +218,7 @@ export function mergeReserveUnitIntoMineUnit(state, reserveUnitId, mineId, slotI
 export function tickMineProduction(state, deltaSeconds) {
   const passivePerMine = CONFIG.passiveGoldPerSecondPerUnlockedMine ?? 0;
   const passiveInterval = Math.max(0.001, CONFIG.passiveGoldPayoutIntervalSeconds ?? 1);
+  const eventMultiplier = getMineProductionMultiplier(state);
 
   for (const mine of state.mines) {
     if (!mine.isUnlocked) {
@@ -266,9 +268,9 @@ export function tickMineProduction(state, deltaSeconds) {
       mine.workerProgress[index] = 0;
       const slotMultiplier = mineLevelData.slotProductionMultipliers[index] ?? 1;
       const resourceAmount =
-        CONFIG.mine.baseProductionPerSecond * worker.level * slotMultiplier * payoutSeconds;
+        CONFIG.mine.baseProductionPerSecond * worker.level * slotMultiplier * payoutSeconds * eventMultiplier;
       const goldAmount =
-        (CONFIG.mine.goldPerSecondPerWorkerLevel ?? 0) * worker.level * slotMultiplier * payoutSeconds;
+        (CONFIG.mine.goldPerSecondPerWorkerLevel ?? 0) * worker.level * slotMultiplier * payoutSeconds * eventMultiplier;
 
       state.resources[mine.resourceKey] = clamp(
         state.resources[mine.resourceKey] + resourceAmount,

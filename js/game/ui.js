@@ -286,6 +286,10 @@ export function mountUI(state, onStateChanged) {
   elements.weaponSelect.value = state.ui.selectedWeaponKey;
   elements.armorSelect.value = state.ui.selectedArmorKey;
 
+  const eventPanel = document.createElement("div");
+  eventPanel.className = "event-panel";
+  elements.battleLog.insertAdjacentElement("afterend", eventPanel);
+
   const mineProgressCache = new Map();
 
   function getSelectedUnitContext() {
@@ -784,6 +788,13 @@ export function mountUI(state, onStateChanged) {
     } else {
       elements.battleTimer.textContent = "Next wave: -";
     }
+
+    const activeEvents = state.activeEvents ?? [];
+    eventPanel.innerHTML = activeEvents.length > 0
+      ? activeEvents.map((event) => `<span class="event-chip">${event.label}</span>`).join("")
+      : (state.eventHistory?.[0]
+        ? `<span class="event-chip event-chip-muted">Last: ${state.eventHistory[0].label}</span>`
+        : "");
   }
 
   function renderSelectedUnitMeta() {

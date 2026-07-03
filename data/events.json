@@ -1,0 +1,35 @@
+{
+  "cooldownRollChance": 1,
+  "events": [
+    {
+      "key": "festival",
+      "label": "Festival",
+      "description": "Mines work harder until the next wave.",
+      "weight": 3,
+      "durationSeconds": 45,
+      "mineProductionMultiplier": 1.5
+    },
+    {
+      "key": "merchant",
+      "label": "Wandering Merchant",
+      "description": "A trader leaves a small gold advance.",
+      "weight": 2,
+      "resourceGrant": { "gold": 35 }
+    },
+    {
+      "key": "prospectors",
+      "label": "Prospectors",
+      "description": "Scouts share spare ore and wood.",
+      "weight": 2,
+      "resourceGrant": { "ore": 20, "wood": 20 }
+    },
+    {
+      "key": "mine_collapse",
+      "label": "Mine Collapse",
+      "description": "Production slows down for a short time.",
+      "weight": 2,
+      "durationSeconds": 35,
+      "mineProductionMultiplier": 0.75
+    }
+  ]
+}

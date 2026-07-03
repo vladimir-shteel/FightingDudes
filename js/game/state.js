@@ -31,6 +31,8 @@ export function createInitialState() {
     enemies: [],
     resourceBursts: [],
     battleEffects: [],
+    activeEvents: [],
+    eventHistory: [],
     castle: {
       maxHealth: CONFIG.castle.maxHealth,
       health: CONFIG.castle.maxHealth,
