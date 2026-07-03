@@ -2,6 +2,7 @@ import { CONFIG } from "../config.js";
 import { createEnemy } from "../factories.js";
 import { clamp, generateId, sum } from "../utils.js";
 import { initBattlePhysics, stepBattlePhysics } from "../physics/battlePhysics.js";
+import { maybeOpenMerchant } from "./merchantSystem.js";
 
 function getAttackInterval(actor) {
   return 1 / actor.attackSpeed;
@@ -372,6 +373,7 @@ export function tickBattle(state, deltaSeconds, nowSeconds) {
       state.battle.status = "cooldown";
       state.battle.waveCooldownRemaining = CONFIG.battle.waveCooldownSeconds;
       state.battle.log = "Wave cleared. Next wave is preparing.";
+      maybeOpenMerchant(state, (clearedWaveIndex ?? 0) + 1);
     }
     if (clearedWaveIndex !== null) {
       clearWaveProgress(state, clearedWaveIndex);

@@ -25,6 +25,7 @@ import {
 } from "./systems/mineSystem.js";
 import { sendBridgeheadToBattle, stageUnitOnBridgehead } from "./systems/garrisonSystem.js";
 import { getBattleSummary } from "./systems/battleSystem.js";
+import { acceptMerchantOffer } from "./systems/merchantSystem.js";
 
 function getResourceIconMarkup(resourceKey, extraClass = "") {
   const icon = getResourceIcon(resourceKey);
@@ -132,6 +133,15 @@ function renderCostMarkup(costs) {
   }
 
   return entries.map(([resourceKey, amount]) => `
+    <span class="gear-cost-pill gear-cost-${resourceKey}">
+      ${getResourceIconMarkup(resourceKey, "gear-cost-icon")}
+      <span>${formatNumber(amount)}</span>
+    </span>
+  `).join("");
+}
+
+function renderResourceSetMarkup(resources) {
+  return Object.entries(resources ?? {}).map(([resourceKey, amount]) => `
     <span class="gear-cost-pill gear-cost-${resourceKey}">
       ${getResourceIconMarkup(resourceKey, "gear-cost-icon")}
       <span>${formatNumber(amount)}</span>
@@ -285,6 +295,10 @@ export function mountUI(state, onStateChanged) {
 
   elements.weaponSelect.value = state.ui.selectedWeaponKey;
   elements.armorSelect.value = state.ui.selectedArmorKey;
+
+  const merchantPanel = document.createElement("div");
+  merchantPanel.className = "merchant-panel";
+  elements.garrisonDropzone.insertAdjacentElement("afterend", merchantPanel);
 
   const mineProgressCache = new Map();
 
@@ -911,6 +925,36 @@ export function mountUI(state, onStateChanged) {
       `Armor: ${selectedArmor.label} (${formatCosts(selectedArmor.costs) || "free"}) | HP +${selectedArmor.healthBonus}.`;
   }
 
+  function renderMerchant() {
+    merchantPanel.hidden = !state.merchant.isActive;
+    merchantPanel.innerHTML = "";
+    if (!state.merchant.isActive) {
+      return;
+    }
+
+    const title = document.createElement("div");
+    title.className = "merchant-title";
+    title.textContent = `Caravan - wave ${state.merchant.lastArrivalWave}`;
+    merchantPanel.append(title);
+
+    for (const offer of state.merchant.offers) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "merchant-offer";
+      button.innerHTML = `
+        <span>${renderResourceSetMarkup(offer.pay)}</span>
+        <strong>-></strong>
+        <span>${renderResourceSetMarkup(offer.receive)}</span>
+      `;
+      button.addEventListener("click", () => {
+        const result = acceptMerchantOffer(state, offer.key);
+        state.battle.log = result.reason;
+        onStateChanged();
+      });
+      merchantPanel.append(button);
+    }
+  }
+
   function flushResourceBursts() {
     const handled = new Set(state.ui.handledResourceBurstIds);
 
@@ -972,7 +1016,9 @@ export function mountUI(state, onStateChanged) {
     renderSelectedUnitMeta();
     renderActionHints();
     renderGearMeta();
+    renderMerchant();
     renderBridgehead();
+    renderMerchant();
     elements.cheatPanel.hidden = !state.ui.isCheatsOpen;
     renderVictoryState();
   }

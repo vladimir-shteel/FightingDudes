@@ -31,6 +31,11 @@ export function createInitialState() {
     enemies: [],
     resourceBursts: [],
     battleEffects: [],
+    merchant: {
+      isActive: false,
+      lastArrivalWave: 0,
+      offers: []
+    },
     castle: {
       maxHealth: CONFIG.castle.maxHealth,
       health: CONFIG.castle.maxHealth,

@@ -1,0 +1,12 @@
+{
+  "arrivalEveryWaves": 2,
+  "offerCount": 3,
+  "rateJitter": 0.25,
+  "offers": [
+    { "key": "wood_to_iron", "pay": { "wood": 50 }, "receive": { "iron": 30 } },
+    { "key": "crystal_to_gold", "pay": { "crystal": 20 }, "receive": { "gold": 40 } },
+    { "key": "ore_to_wood", "pay": { "ore": 45 }, "receive": { "wood": 35 } },
+    { "key": "gold_to_crystal", "pay": { "gold": 55 }, "receive": { "crystal": 18 } },
+    { "key": "iron_to_ore", "pay": { "iron": 24 }, "receive": { "ore": 42 } }
+  ]
+}

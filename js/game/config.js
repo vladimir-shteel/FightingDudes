@@ -18,6 +18,11 @@ export const CONFIG = {
     maxLevel: 1
   },
   equipment: {},
+  merchant: {
+    arrivalEveryWaves: 2,
+    offerCount: 3,
+    offers: []
+  },
   waves: [],
   unitLevels: [],
   mine: {
@@ -40,16 +45,18 @@ async function fetchJson(fileName) {
 }
 
 export async function initConfig() {
-  const [balance, equipment, waves, unitLevels, mineLevels] = await Promise.all([
+  const [balance, equipment, waves, unitLevels, mineLevels, merchant] = await Promise.all([
     fetchJson("balance.json"),
     fetchJson("equipment.json"),
     fetchJson("waves.json"),
     fetchJson("unit-levels.json"),
-    fetchJson("mine-levels.json")
+    fetchJson("mine-levels.json"),
+    fetchJson("merchant.json")
   ]);
 
   Object.assign(CONFIG, balance, {
     equipment,
+    merchant,
     waves,
     unitLevels: unitLevels.levels,
     mine: mineLevels
