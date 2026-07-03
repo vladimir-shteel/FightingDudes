@@ -2,11 +2,12 @@ import { CONFIG, getBattlePropConfig } from "../config.js";
 import { clamp, generateId } from "../utils.js";
 
 function seededRatio(seed) {
-  let hash = 0;
+  let hash = 2166136261;
   for (let index = 0; index < seed.length; index += 1) {
-    hash = ((hash << 5) - hash + seed.charCodeAt(index)) | 0;
+    hash ^= seed.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
   }
-  return (Math.abs(hash) % 10000) / 10000;
+  return ((hash >>> 0) % 10000) / 10000;
 }
 
 function weightedType(seed) {
@@ -32,8 +33,16 @@ export function createBattlePropsForWave(waveIndex) {
   return Array.from({ length: count }, (_, index) => {
     const type = weightedType(`type:${waveIndex}:${index}`);
     const config = getBattlePropConfig(type);
-    const xRatio = seededRatio(`x:${waveIndex}:${index}`);
-    const yRatio = seededRatio(`y:${waveIndex}:${index}`);
+    const columns = Math.ceil(Math.sqrt(count));
+    const rows = Math.ceil(count / columns);
+    const column = index % columns;
+    const row = Math.floor(index / columns);
+    const cellX = (column + 0.5) / columns;
+    const cellY = (row + 0.5) / rows;
+    const jitterX = (seededRatio(`jitter-x:${waveIndex}:${index}`) - 0.5) / columns * 0.75;
+    const jitterY = (seededRatio(`jitter-y:${waveIndex}:${index}`) - 0.5) / rows * 0.75;
+    const xRatio = clamp(cellX + jitterX, 0, 1);
+    const yRatio = clamp(cellY + jitterY, 0, 1);
     const minX = spawn.minX ?? 20;
     const maxX = spawn.maxX ?? 62;
     const minY = spawn.minY ?? 4;
@@ -53,6 +62,31 @@ export function createBattlePropsForWave(waveIndex) {
       hitUntil: 0
     };
   });
+}
+
+export function createAdditionalBattlePropsForWave(state, waveIndex) {
+  const existingProps = [...state.battleProps];
+  const props = createBattlePropsForWave(waveIndex);
+
+  for (const prop of props) {
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const nearestDistance = existingProps.reduce((nearest, existing) => {
+        const distance = Math.hypot((existing.x ?? 0) - prop.x, (existing.y ?? 0) - prop.y);
+        return Math.min(nearest, distance);
+      }, Number.POSITIVE_INFINITY);
+
+      if (nearestDistance >= Math.max(7, prop.radius * 1.5)) {
+        break;
+      }
+
+      prop.x = clamp(prop.x + (seededRatio(`repel-x:${waveIndex}:${prop.id}:${attempt}`) - 0.5) * 14, 0, CONFIG.battle.fieldWidth);
+      prop.y = clamp(prop.y + (seededRatio(`repel-y:${waveIndex}:${prop.id}:${attempt}`) - 0.5) * 10, 0, CONFIG.battle.fieldHeight);
+    }
+
+    existingProps.push(prop);
+  }
+
+  return props;
 }
 
 function applyExplosion(state, prop, config, nowSeconds) {

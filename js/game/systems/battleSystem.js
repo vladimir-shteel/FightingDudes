@@ -2,7 +2,7 @@ import { CONFIG } from "../config.js";
 import { createEnemy } from "../factories.js";
 import { clamp, generateId, sum } from "../utils.js";
 import { initBattlePhysics, stepBattlePhysics } from "../physics/battlePhysics.js";
-import { cleanupDestroyedProps, createBattlePropsForWave } from "./battlePropSystem.js";
+import { cleanupDestroyedProps, createAdditionalBattlePropsForWave } from "./battlePropSystem.js";
 
 function getAttackInterval(actor) {
   return 1 / actor.attackSpeed;
@@ -298,7 +298,10 @@ function spawnWave(state, waveIndex, message) {
   }
 
   state.enemies = enemies;
-  state.battleProps = createBattlePropsForWave(waveIndex);
+  state.battleProps = [
+    ...state.battleProps,
+    ...createAdditionalBattlePropsForWave(state, waveIndex)
+  ];
   state.battle.activeWaveIndex = waveIndex;
   state.battle.status = "fighting";
   state.battle.log = message;
@@ -386,7 +389,6 @@ export function tickBattle(state, deltaSeconds, nowSeconds) {
     if (clearedWaveIndex !== null) {
       clearWaveProgress(state, clearedWaveIndex);
     }
-    state.battleProps = [];
     state.battle.activeWaveIndex = null;
   } else if (state.enemies.length === 0 && state.battle.status === "retreating") {
     state.battle.log = "The wave hid in the castle. Deploy a new ally to bring them back out.";
