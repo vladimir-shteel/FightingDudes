@@ -1,6 +1,7 @@
 import {
   CONFIG,
   getArmorConfig,
+  getFormationRowConfig,
   getMineLevelData,
   getMineMaxLevel,
   getResourceIcon,
@@ -23,7 +24,7 @@ import {
   unlockMine,
   upgradeMine
 } from "./systems/mineSystem.js";
-import { sendBridgeheadToBattle, stageUnitOnBridgehead } from "./systems/garrisonSystem.js";
+import { sendBridgeheadToBattle, setBridgeheadFormationRow, stageUnitOnBridgehead } from "./systems/garrisonSystem.js";
 import { getBattleSummary } from "./systems/battleSystem.js";
 
 function getResourceIconMarkup(resourceKey, extraClass = "") {
@@ -54,6 +55,7 @@ function createUnitCard(unit, options = {}) {
   const level = unit.level ?? 1;
   const visualGear = unit.weaponKey ?? (origin === "enemy" ? "enemy" : "worker");
   const armorText = armor?.label ?? "No armor";
+  const row = unit.formationRow ? getFormationRowConfig(unit.formationRow) : null;
   const icon = unit.icon ?? "🚧";
   const weaponIcon = unit.weaponIcon ?? weapon?.icon ?? "";
 
@@ -76,6 +78,7 @@ function createUnitCard(unit, options = {}) {
       <div class="unit-name">${unit.name}</div>
       <span class="unit-meta">ATK ${Math.round(attack)} | HP ${Math.round(health)}</span>
       <span class="unit-gear">${armorText}</span>
+      ${row ? `<span class="unit-gear formation-label">${row.label}</span>` : ""}
     </div>
     ${compact ? `<span class="compact-caption">ATK ${Math.round(attack)} | HP ${Math.round(health)}</span>` : ""}
   `;
@@ -746,6 +749,22 @@ export function mountUI(state, onStateChanged) {
       const unit = state.bridgeheadUnits[index];
       if (unit) {
         slot.append(createUnitCard(unit, { origin: "battle", compact: true }));
+        const controls = document.createElement("div");
+        controls.className = "formation-controls";
+        for (const [rowKey, rowConfig] of Object.entries(CONFIG.formation.rows ?? {})) {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "formation-button";
+          button.textContent = rowConfig.label;
+          button.disabled = unit.formationRow === rowKey;
+          button.addEventListener("click", () => {
+            const result = setBridgeheadFormationRow(state, unit.id, rowKey);
+            state.battle.log = result.reason;
+            onStateChanged();
+          });
+          controls.append(button);
+        }
+        slot.append(controls);
       } else {
         slot.innerHTML = '<span class="slot-placeholder">Empty</span>';
       }

@@ -1,4 +1,4 @@
-import { CONFIG, getArmorConfig, getUnitLevelData, getWeaponConfig } from "./config.js";
+import { CONFIG, getArmorConfig, getFormationRowConfig, getUnitLevelData, getWeaponConfig } from "./config.js";
 import { generateId } from "./utils.js";
 
 export function createReserveUnit(level = 1) {
@@ -36,15 +36,19 @@ export function createMine(index) {
   };
 }
 
-export function createBattleUnit(unit, weaponKey, armorKey) {
+export function createBattleUnit(unit, weaponKey, armorKey, formationRow = CONFIG.formation.defaultRow ?? "front") {
   const weapon = getWeaponConfig(weaponKey);
   const armor = getArmorConfig(armorKey);
+  const rowConfig = getFormationRowConfig(formationRow);
   const maxHealth = unit.baseHealth + (armor?.healthBonus ?? 0);
   const defaultAttackRangeBonus = weapon.attackType === "ranged"
     ? CONFIG.battle.rangedAttackRangeBonus
     : CONFIG.battle.meleeAttackRangeBonus;
   const attackRangeBonus = weapon.attackRangeBonus ?? weapon.attackRange ?? defaultAttackRangeBonus ?? 0;
   const attackRange = (CONFIG.battle.baseAttackReach ?? 0) + attackRangeBonus;
+  const rowDamageMultiplier = weapon.attackType === "ranged"
+    ? rowConfig?.rangedDamageMultiplier ?? rowConfig?.damageMultiplier ?? 1
+    : rowConfig?.damageMultiplier ?? 1;
 
   return {
     id: generateId("battle"),
@@ -53,18 +57,20 @@ export function createBattleUnit(unit, weaponKey, armorKey) {
     level: unit.level,
     weaponKey,
     armorKey,
+    formationRow,
     icon: unit.icon,
     weaponIcon: weapon.icon ?? "",
     armorIcon: armor?.icon ?? "",
     attackType: weapon.attackType,
-    attack: unit.baseAttack * weapon.attackMultiplier,
+    baseEquippedAttack: unit.baseAttack * weapon.attackMultiplier,
+    attack: unit.baseAttack * weapon.attackMultiplier * rowDamageMultiplier,
     attackSpeed: unit.baseAttackSpeed * weapon.attackSpeedMultiplier,
     moveSpeed: CONFIG.battle.allyMoveSpeed,
     attackRange,
     attackRangeBonus,
     maxHealth,
     health: maxHealth,
-    x: CONFIG.battle.allySpawnX,
+    x: rowConfig?.spawnX ?? CONFIG.battle.allySpawnX,
     y: CONFIG.battle.fieldHeight / 2,
     radius: CONFIG.battle.unitRadius,
     physicsRadius: CONFIG.battle.physicsRadius,

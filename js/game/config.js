@@ -18,6 +18,10 @@ export const CONFIG = {
     maxLevel: 1
   },
   equipment: {},
+  formation: {
+    defaultRow: "front",
+    rows: {}
+  },
   waves: [],
   unitLevels: [],
   mine: {
@@ -40,16 +44,18 @@ async function fetchJson(fileName) {
 }
 
 export async function initConfig() {
-  const [balance, equipment, waves, unitLevels, mineLevels] = await Promise.all([
+  const [balance, equipment, waves, unitLevels, mineLevels, formation] = await Promise.all([
     fetchJson("balance.json"),
     fetchJson("equipment.json"),
     fetchJson("waves.json"),
     fetchJson("unit-levels.json"),
-    fetchJson("mine-levels.json")
+    fetchJson("mine-levels.json"),
+    fetchJson("formation.json")
   ]);
 
   Object.assign(CONFIG, balance, {
     equipment,
+    formation,
     waves,
     unitLevels: unitLevels.levels,
     mine: mineLevels
@@ -94,4 +100,8 @@ export function getWeaponConfig(key) {
 
 export function getArmorConfig(key) {
   return CONFIG.equipment.armors?.[key] ?? null;
+}
+
+export function getFormationRowConfig(rowKey) {
+  return CONFIG.formation.rows?.[rowKey] ?? CONFIG.formation.rows?.[CONFIG.formation.defaultRow] ?? null;
 }

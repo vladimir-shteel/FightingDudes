@@ -1,0 +1,15 @@
+{
+  "defaultRow": "front",
+  "rows": {
+    "front": {
+      "label": "Front",
+      "spawnX": 10,
+      "damageMultiplier": 1
+    },
+    "back": {
+      "label": "Back",
+      "spawnX": 5,
+      "rangedDamageMultiplier": 1.18
+    }
+  }
+}

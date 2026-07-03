@@ -1,4 +1,4 @@
-import { CONFIG, getArmorConfig, getResourceLabel, getWeaponConfig } from "../config.js";
+import { CONFIG, getArmorConfig, getFormationRowConfig, getResourceLabel, getWeaponConfig } from "../config.js";
 import { createBattleUnit } from "../factories.js";
 import { removeUnitFromReserve, returnUnitToReserve } from "./reserveSystem.js";
 import { removeUnitFromMine, restoreUnitToMine } from "./mineSystem.js";
@@ -9,7 +9,7 @@ function assignBattlePosition(state, unit, indexOffset = 0) {
   const spread = Math.max(1, CONFIG.battle.fieldHeight - padding * 2);
   const wave = index % 5;
   const ratio = wave / 4;
-  unit.x = CONFIG.battle.allySpawnX;
+  unit.x = getFormationRowConfig(unit.formationRow)?.spawnX ?? CONFIG.battle.allySpawnX;
   unit.y = padding + spread * ratio;
 }
 
@@ -92,13 +92,33 @@ export function stageUnitOnBridgehead(state, unitId) {
   }
 
   spendCosts(state, combinedCosts);
-  const battleUnit = createBattleUnit(sourceUnit, weaponKey, armorKey);
+  const battleUnit = createBattleUnit(sourceUnit, weaponKey, armorKey, CONFIG.formation.defaultRow ?? "front");
   battleUnit.state = "ready";
   battleUnit.targetHint = "bridgehead";
   state.bridgeheadUnits.push(battleUnit);
   state.battle.log =
     `${sourceUnit.name} is ready on the bridgehead with ${weapon.label} and ${armor.label}.`;
 
+  return { ok: true, reason: state.battle.log };
+}
+
+export function setBridgeheadFormationRow(state, unitId, formationRow) {
+  const unit = state.bridgeheadUnits.find((item) => item.id === unitId);
+  if (!unit) {
+    return { ok: false, reason: "Unit is no longer on the bridgehead." };
+  }
+
+  const rowConfig = getFormationRowConfig(formationRow);
+  if (!rowConfig) {
+    return { ok: false, reason: "Unknown formation row." };
+  }
+
+  unit.formationRow = formationRow;
+  const damageMultiplier = unit.attackType === "ranged"
+    ? rowConfig.rangedDamageMultiplier ?? rowConfig.damageMultiplier ?? 1
+    : rowConfig.damageMultiplier ?? 1;
+  unit.attack = (unit.baseEquippedAttack ?? unit.attack) * damageMultiplier;
+  state.battle.log = `${unit.name} moved to ${rowConfig.label}.`;
   return { ok: true, reason: state.battle.log };
 }
 
