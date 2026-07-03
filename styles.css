@@ -1310,9 +1310,10 @@ h3 {
 
 .unit-badges {
   display: flex;
+  flex-direction: column;
   justify-content: flex-start;
-  align-items: flex-start;
-  gap: 3px;
+  align-items: center;
+  gap: 2px;
 }
 
 .unit-level-badge {
@@ -1334,13 +1335,13 @@ h3 {
 .unit-class-badge {
   display: inline-grid;
   place-items: center;
-  min-width: 24px;
-  min-height: 22px;
-  padding: 2px 5px;
+  min-width: 20px;
+  min-height: 20px;
+  padding: 1px 4px;
   border-radius: 999px;
   border: 2px solid rgba(115, 63, 28, 0.22);
   background: rgba(255, 248, 229, 0.94);
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1;
 }
 
