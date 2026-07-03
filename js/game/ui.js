@@ -459,6 +459,13 @@ export function mountUI(state, onStateChanged) {
       return;
     }
 
+    if (state.battle.status !== "cooldown" && state.battle.status !== "idle") {
+      state.ui.pendingTerrainZoneType = null;
+      state.battle.log = "Terrain can only be prepared between waves.";
+      onStateChanged();
+      return;
+    }
+
     const rect = elements.battlefield.getBoundingClientRect();
     const x = ((event.clientX - rect.left) / rect.width) * CONFIG.battle.fieldWidth;
     const y = ((event.clientY - rect.top) / rect.height) * CONFIG.battle.fieldHeight;
@@ -759,18 +766,28 @@ export function mountUI(state, onStateChanged) {
 
   function renderTerrainZones() {
     terrainToolbar.innerHTML = "";
+    const canPrepareTerrain = (state.battle.status === "cooldown" || state.battle.status === "idle") && !state.game.isOver;
+    if (!canPrepareTerrain && state.ui.pendingTerrainZoneType) {
+      state.ui.pendingTerrainZoneType = null;
+    }
+
     for (const [type, zoneConfig] of Object.entries(CONFIG.terrainZones.types ?? {})) {
       const button = document.createElement("button");
       button.type = "button";
       button.className = "terrain-button";
       button.dataset.active = state.ui.pendingTerrainZoneType === type ? "true" : "false";
       const cooldown = state.terrainZoneCooldowns[type] ?? 0;
-      button.disabled = cooldown > 0 || state.game.isOver;
+      button.disabled = !canPrepareTerrain || cooldown > 0;
       button.innerHTML = `
         <span>${zoneConfig.label}</span>
-        <small>${cooldown > 0 ? `${Math.ceil(cooldown)}s` : formatCosts(zoneConfig.costs)}</small>
+        <small>${!canPrepareTerrain ? "Between waves" : cooldown > 0 ? `${Math.ceil(cooldown)}s` : formatCosts(zoneConfig.costs)}</small>
       `;
-      button.addEventListener("click", () => {
+      button.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        if (!canPrepareTerrain || cooldown > 0) {
+          return;
+        }
         state.ui.pendingTerrainZoneType = state.ui.pendingTerrainZoneType === type ? null : type;
         state.battle.log = state.ui.pendingTerrainZoneType
           ? `Click the battlefield to place ${zoneConfig.label}.`
