@@ -246,6 +246,15 @@ export function mountUI(state, onStateChanged) {
     fxLayer: document.querySelector("#fxLayer")
   };
 
+  const specializationPopover = document.createElement("div");
+  specializationPopover.className = "specialization-popover";
+  specializationPopover.hidden = true;
+  specializationPopover.addEventListener("click", (event) => {
+    event.stopPropagation();
+  });
+  document.body.append(specializationPopover);
+  elements.specializationPopover = specializationPopover;
+
   const resourceOrder = [
     "gold",
     ...CONFIG.mine.resourceTypes.map((resourceType) => resourceType.key)
@@ -348,36 +357,96 @@ export function mountUI(state, onStateChanged) {
     state.battle.log = `${unit.name} became ${specialization.label}.`;
   }
 
-  function appendSpecializationChoice(card, unit) {
-    if (state.ui.specializationChoiceUnitId !== unit.id || !canChooseSpecialization(unit)) {
+  function renderSpecializationPopover() {
+    const popover = elements.specializationPopover;
+    const unitId = state.ui.specializationChoiceUnitId;
+
+    if (!unitId) {
+      hideSpecializationPopover();
       return;
     }
 
-    const chooser = document.createElement("div");
-    chooser.className = "specialization-choice";
-    chooser.innerHTML = `<div class="specialization-choice-title">Choose Class</div>`;
-    chooser.addEventListener("click", (event) => {
-      event.stopPropagation();
-    });
-
-    for (const [key, specialization] of Object.entries(CONFIG.specializations.options ?? {})) {
-      const button = document.createElement("button");
-      button.type = "button";
-      button.className = "specialization-choice-button";
-      button.innerHTML = `
-        <span class="specialization-choice-icon">${specialization.icon ?? ""}</span>
-        <span>${specialization.label}</span>
-      `;
-      button.addEventListener("click", (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        assignSpecialization(unit, key);
-        onStateChanged();
-      });
-      chooser.append(button);
+    const selected = getSelectedUnitContext();
+    const unit = selected?.unit?.id === unitId ? selected.unit : null;
+    if (!unit || !canChooseSpecialization(unit)) {
+      state.ui.specializationChoiceUnitId = null;
+      hideSpecializationPopover();
+      return;
     }
 
-    card.append(chooser);
+    const source = document.querySelector(`.unit-card[data-unit-id="${unit.id}"]`);
+    if (!source) {
+      hideSpecializationPopover();
+      return;
+    }
+
+    if (popover.dataset.unitId !== unit.id) {
+      popover.dataset.unitId = unit.id;
+      popover.innerHTML = "";
+      const title = document.createElement("div");
+      title.className = "specialization-popover-title";
+      title.textContent = `Choose class · ${unit.name} Lv${unit.level}`;
+      popover.append(title);
+      const list = document.createElement("div");
+      list.className = "specialization-popover-list";
+      for (const [key, specialization] of Object.entries(CONFIG.specializations.options ?? {})) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "specialization-popover-button";
+        button.innerHTML = `
+          <span class="specialization-popover-icon">${specialization.icon ?? ""}</span>
+          <span class="specialization-popover-label">${specialization.label}</span>
+        `;
+        button.addEventListener("click", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          assignSpecialization(unit, key);
+          onStateChanged();
+        });
+        list.append(button);
+      }
+      popover.append(list);
+    }
+
+    popover.hidden = false;
+    popover.style.visibility = "hidden";
+    popover.style.top = "0px";
+    popover.style.left = "0px";
+
+    const sourceRect = source.getBoundingClientRect();
+    const popRect = popover.getBoundingClientRect();
+    const viewportW = window.innerWidth || document.documentElement.clientWidth;
+    const viewportH = window.innerHeight || document.documentElement.clientHeight;
+    const margin = 8;
+
+    let placement = "top";
+    let top = sourceRect.top - popRect.height - margin;
+    if (top < margin) {
+      top = sourceRect.bottom + margin;
+      placement = "bottom";
+      if (top + popRect.height > viewportH - margin) {
+        top = Math.max(margin, viewportH - popRect.height - margin);
+      }
+    }
+
+    let left = sourceRect.left + sourceRect.width / 2 - popRect.width / 2;
+    left = Math.max(margin, Math.min(left, viewportW - popRect.width - margin));
+
+    const anchorX = sourceRect.left + sourceRect.width / 2 - left;
+    popover.style.setProperty("--anchor-x", `${anchorX}px`);
+    popover.dataset.placement = placement;
+    popover.style.top = `${top}px`;
+    popover.style.left = `${left}px`;
+    popover.style.visibility = "";
+  }
+
+  function hideSpecializationPopover() {
+    const popover = elements.specializationPopover;
+    if (!popover.hidden) {
+      popover.hidden = true;
+    }
+    popover.dataset.unitId = "";
+    popover.innerHTML = "";
   }
 
   function canDeploySelectedUnit() {
@@ -554,7 +623,6 @@ export function mountUI(state, onStateChanged) {
         card.classList.add("actionable-target");
       }
 
-      appendSpecializationChoice(card, unit);
       elements.reserveZone.append(card);
     }
 
@@ -747,7 +815,6 @@ export function mountUI(state, onStateChanged) {
           ) {
             slotShell.classList.add("actionable-target");
           }
-          appendSpecializationChoice(workerCard, worker);
           slots.append(slotShell);
           continue;
         }
@@ -1068,6 +1135,7 @@ export function mountUI(state, onStateChanged) {
     renderBattle();
     renderBridgehead();
     updateSelectionTether();
+    renderSpecializationPopover();
     flushResourceBursts();
     flushBattleEffects();
   }
@@ -1081,6 +1149,7 @@ export function mountUI(state, onStateChanged) {
     renderActionHints();
     renderVictoryState();
     updateSelectionTether();
+    renderSpecializationPopover();
     flushResourceBursts();
     flushBattleEffects();
   }

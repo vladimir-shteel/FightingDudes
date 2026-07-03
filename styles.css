@@ -1583,6 +1583,101 @@ h3 {
   background: rgba(255, 248, 229, 0.96);
 }
 
+.specialization-popover[hidden] {
+  display: none;
+}
+
+.specialization-popover {
+  position: fixed;
+  z-index: 200;
+  min-width: 200px;
+  max-width: min(280px, calc(100vw - 16px));
+  padding: 10px 12px 12px;
+  border: 2px solid rgba(115, 63, 28, 0.28);
+  border-radius: 16px;
+  background: rgba(255, 248, 229, 0.98);
+  box-shadow: 0 14px 32px rgba(41, 22, 8, 0.28);
+  display: grid;
+  gap: 8px;
+  --anchor-x: 50%;
+  animation: specialization-popover-in 120ms ease-out;
+}
+
+.specialization-popover::after {
+  content: "";
+  position: absolute;
+  left: var(--anchor-x);
+  width: 14px;
+  height: 14px;
+  transform: translateX(-50%) rotate(45deg);
+  background: rgba(255, 248, 229, 0.98);
+  border: 2px solid rgba(115, 63, 28, 0.28);
+}
+
+.specialization-popover[data-placement="top"]::after {
+  bottom: -8px;
+  border-top: 0;
+  border-left: 0;
+}
+
+.specialization-popover[data-placement="bottom"]::after {
+  top: -8px;
+  border-bottom: 0;
+  border-right: 0;
+}
+
+.specialization-popover-title {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.specialization-popover-list {
+  display: grid;
+  gap: 6px;
+}
+
+.specialization-popover-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  padding: 6px 10px;
+  border: 1px solid rgba(115, 63, 28, 0.22);
+  border-radius: 999px;
+  background: rgba(239, 159, 30, 0.18);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 120ms ease, transform 120ms ease;
+}
+
+.specialization-popover-button:hover,
+.specialization-popover-button:focus-visible {
+  background: rgba(239, 159, 30, 0.32);
+  transform: translateY(-1px);
+  outline: none;
+}
+
+.specialization-popover-icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.specialization-popover-label {
+  flex: 1;
+  text-align: left;
+}
+
+@keyframes specialization-popover-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 .specialization-choice-title {
   color: var(--muted);
   font-size: 9px;
@@ -1631,6 +1726,9 @@ h3 {
   top: 4px;
   width: 86px;
   transform: translateX(-50%);
+  flex-direction: row-reverse;
+  justify-content: center;
+  gap: 4px;
 }
 
 .compact-card .unit-badges {
