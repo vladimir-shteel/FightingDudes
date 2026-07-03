@@ -1,6 +1,25 @@
 import { CONFIG } from "../config.js";
 import { createReserveUnit } from "../factories.js";
 
+function getSpecializationKey(unit) {
+  return unit?.specializationKey ?? null;
+}
+
+export function canMergeUnits(left, right) {
+  return Boolean(left && right) &&
+    left.level === right.level &&
+    left.level < CONFIG.merge.maxLevel &&
+    getSpecializationKey(left) === getSpecializationKey(right);
+}
+
+export function createMergedUnit(left, right) {
+  if (!canMergeUnits(left, right)) {
+    return null;
+  }
+
+  return createReserveUnit(left.level + 1, getSpecializationKey(left));
+}
+
 function getBaseUnitEquivalent(unit) {
   return Math.pow(2, Math.max(0, (unit?.level ?? 1) - 1));
 }
@@ -61,11 +80,11 @@ export function mergeReservePair(state, firstUnitId, secondUnitId) {
     return { ok: false, reason: "This unit has reached max merge level." };
   }
 
-  const nextLevel = first.level + 1;
-  const specializationKey = nextLevel >= (CONFIG.specializations.thresholdLevel ?? Number.POSITIVE_INFINITY)
-    ? state.ui.selectedSpecializationKey ?? CONFIG.specializations.defaultKey
-    : null;
-  const higherLevelUnit = createReserveUnit(nextLevel, specializationKey);
+  if (!canMergeUnits(first, second)) {
+    return { ok: false, reason: "Only units with the same class can merge." };
+  }
+
+  const higherLevelUnit = createMergedUnit(first, second);
   const keptUnits = state.reserveUnits.filter(
     (unit) => unit.id !== firstUnitId && unit.id !== secondUnitId
   );
@@ -83,10 +102,11 @@ export function massMergeReserve(state) {
   while (true) {
     const groups = new Map();
     for (const unit of state.reserveUnits) {
-      if (!groups.has(unit.level)) {
-        groups.set(unit.level, []);
+      const groupKey = `${unit.level}:${unit.specializationKey ?? "none"}`;
+      if (!groups.has(groupKey)) {
+        groups.set(groupKey, []);
       }
-      groups.get(unit.level).push(unit.id);
+      groups.get(groupKey).push(unit.id);
     }
 
     const mergeableLevel = [...groups.entries()].find(([, unitIds]) => unitIds.length >= 2)?.[0];

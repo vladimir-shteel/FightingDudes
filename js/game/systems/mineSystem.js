@@ -1,7 +1,6 @@
 import { CONFIG, getMineLevelData, getMineMaxLevel } from "../config.js";
 import { clamp } from "../utils.js";
-import { createReserveUnit } from "../factories.js";
-import { removeUnitFromReserve, returnUnitToReserve } from "./reserveSystem.js";
+import { canMergeUnits, createMergedUnit, removeUnitFromReserve, returnUnitToReserve } from "./reserveSystem.js";
 
 export function getMineUpgradeCost(mine) {
   const nextLevelData = getMineLevelData(mine.level + 1);
@@ -139,10 +138,10 @@ export function moveMineUnitToMineSlot(state, fromMineId, fromSlotIndex, toMineI
     return { ok: true, reason: `${unit.name} moved to ${toMine.name}.` };
   }
 
-  if (unit.level === targetUnit.level && unit.level < CONFIG.merge.maxLevel) {
+  if (canMergeUnits(unit, targetUnit)) {
     fromMine.workerIds[fromSlotIndex] = null;
     fromMine.workerProgress[fromSlotIndex] = 0;
-    toMine.workerIds[toSlotIndex] = createReserveUnit(unit.level + 1);
+    toMine.workerIds[toSlotIndex] = createMergedUnit(unit, targetUnit);
     toMine.workerProgress[toSlotIndex] = 0;
     return { ok: true, reason: `Merged into level ${unit.level + 1} worker.` };
   }
@@ -208,8 +207,12 @@ export function mergeReserveUnitIntoMineUnit(state, reserveUnitId, mineId, slotI
     return { ok: false, reason: "This unit has reached max merge level." };
   }
 
+  if (!canMergeUnits(reserveUnit, mineUnit)) {
+    return { ok: false, reason: "Only units with the same class can merge." };
+  }
+
   removeUnitFromReserve(state, reserveUnitId);
-  mine.workerIds[slotIndex] = createReserveUnit(mineUnit.level + 1);
+  mine.workerIds[slotIndex] = createMergedUnit(reserveUnit, mineUnit);
   mine.workerProgress[slotIndex] = 0;
   return { ok: true, reason: `Merged into level ${mineUnit.level + 1} worker.` };
 }

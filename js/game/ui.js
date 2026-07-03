@@ -5,6 +5,7 @@ import {
   getMineMaxLevel,
   getResourceIcon,
   getResourceLabel,
+  getSpecializationConfig,
   getWeaponConfig
 } from "./config.js";
 import { formatNumber } from "./utils.js";
@@ -56,10 +57,6 @@ function createUnitCard(unit, options = {}) {
   const armorText = armor?.label ?? "No armor";
   const icon = unit.icon ?? "🚧";
   const weaponIcon = unit.weaponIcon ?? weapon?.icon ?? "";
-  const specialization = unit.specializationLabel
-    ? `<span class="unit-specialization">${unit.specializationIcon ?? ""} ${unit.specializationLabel}</span>`
-    : "";
-
   card.dataset.gear = visualGear;
   card.dataset.level = String(level);
   card.dataset.hit = unit.hitUntil && unit.hitUntil > performance.now() / 1000 ? "true" : "false";
@@ -67,6 +64,7 @@ function createUnitCard(unit, options = {}) {
   card.innerHTML = `
     <div class="unit-badges">
       <span class="unit-level-badge">${level}</span>
+      ${unit.specializationIcon ? `<span class="unit-class-badge" title="${unit.specializationLabel}">${unit.specializationIcon}</span>` : ""}
     </div>
     <div class="unit-character" aria-hidden="true">
       <div class="unit-icon">
@@ -78,7 +76,6 @@ function createUnitCard(unit, options = {}) {
     <div class="unit-ui">
       <div class="unit-name">${unit.name}</div>
       <span class="unit-meta">ATK ${Math.round(attack)} | HP ${Math.round(health)}</span>
-      ${specialization}
       <span class="unit-gear">${armorText}</span>
     </div>
     ${compact ? `<span class="compact-caption">ATK ${Math.round(attack)} | HP ${Math.round(health)}</span>` : ""}
@@ -290,27 +287,6 @@ export function mountUI(state, onStateChanged) {
   elements.weaponSelect.value = state.ui.selectedWeaponKey;
   elements.armorSelect.value = state.ui.selectedArmorKey;
 
-  const specializationPanel = document.createElement("div");
-  specializationPanel.className = "specialization-panel";
-  specializationPanel.innerHTML = `
-    <label class="resource-label" for="specializationSelect">Merge Class</label>
-    <select id="specializationSelect" class="gear-select"></select>
-  `;
-  elements.reservePanel.insertBefore(specializationPanel, elements.reserveZone);
-  const specializationSelect = specializationPanel.querySelector("#specializationSelect");
-  for (const [key, specialization] of Object.entries(CONFIG.specializations.options ?? {})) {
-    const option = document.createElement("option");
-    option.value = key;
-    option.textContent = `${specialization.icon ?? ""} ${specialization.label}`;
-    specializationSelect.append(option);
-  }
-  specializationSelect.value = state.ui.selectedSpecializationKey ?? CONFIG.specializations.defaultKey;
-  specializationSelect.addEventListener("change", () => {
-    state.ui.selectedSpecializationKey = specializationSelect.value;
-    state.battle.log = `Merge specialization: ${CONFIG.specializations.options[specializationSelect.value]?.label}.`;
-    onStateChanged();
-  });
-
   const mineProgressCache = new Map();
 
   function getSelectedUnitContext() {
@@ -339,10 +315,69 @@ export function mountUI(state, onStateChanged) {
 
   function clearSelectedUnit() {
     state.ui.selectedUnitId = null;
+    state.ui.specializationChoiceUnitId = null;
   }
 
   function selectUnit(unitId) {
     state.ui.selectedUnitId = unitId;
+    state.ui.specializationChoiceUnitId = null;
+  }
+
+  function canChooseSpecialization(unit) {
+    return (unit?.level ?? 1) >= (CONFIG.specializations.thresholdLevel ?? Number.POSITIVE_INFINITY) &&
+      !unit.specializationKey;
+  }
+
+  function openSpecializationChoice(unit) {
+    if (canChooseSpecialization(unit)) {
+      state.ui.specializationChoiceUnitId = unit.id;
+      state.battle.log = `Choose a class for ${unit.name} Lv${unit.level}.`;
+    }
+  }
+
+  function assignSpecialization(unit, specializationKey) {
+    const specialization = getSpecializationConfig(specializationKey);
+    if (!unit || !specialization) {
+      return;
+    }
+
+    unit.specializationKey = specializationKey;
+    unit.specializationLabel = specialization.label;
+    unit.specializationIcon = specialization.icon ?? "";
+    state.ui.specializationChoiceUnitId = null;
+    state.battle.log = `${unit.name} became ${specialization.label}.`;
+  }
+
+  function appendSpecializationChoice(card, unit) {
+    if (state.ui.specializationChoiceUnitId !== unit.id || !canChooseSpecialization(unit)) {
+      return;
+    }
+
+    const chooser = document.createElement("div");
+    chooser.className = "specialization-choice";
+    chooser.innerHTML = `<div class="specialization-choice-title">Choose Class</div>`;
+    chooser.addEventListener("click", (event) => {
+      event.stopPropagation();
+    });
+
+    for (const [key, specialization] of Object.entries(CONFIG.specializations.options ?? {})) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "specialization-choice-button";
+      button.innerHTML = `
+        <span class="specialization-choice-icon">${specialization.icon ?? ""}</span>
+        <span>${specialization.label}</span>
+      `;
+      button.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        assignSpecialization(unit, key);
+        onStateChanged();
+      });
+      chooser.append(button);
+    }
+
+    card.append(chooser);
   }
 
   function canDeploySelectedUnit() {
@@ -483,7 +518,11 @@ export function mountUI(state, onStateChanged) {
         const currentSelection = getSelectedUnitContext();
 
         if (currentSelection?.unit.id === unit.id) {
-          clearSelectedUnit();
+          if (canChooseSpecialization(unit)) {
+            openSpecializationChoice(unit);
+          } else {
+            clearSelectedUnit();
+          }
           onStateChanged();
           return;
         }
@@ -501,15 +540,21 @@ export function mountUI(state, onStateChanged) {
         }
 
         selectUnit(unit.id);
+        openSpecializationChoice(unit);
         onStateChanged();
       });
 
       if (selected?.unit.id === unit.id) {
         card.classList.add("selection-source");
-      } else if (selected?.source === "reserve" && selected.unit.level === unit.level) {
+      } else if (
+        selected?.source === "reserve" &&
+        selected.unit.level === unit.level &&
+        (selected.unit.specializationKey ?? null) === (unit.specializationKey ?? null)
+      ) {
         card.classList.add("actionable-target");
       }
 
+      appendSpecializationChoice(card, unit);
       elements.reserveZone.append(card);
     }
 
@@ -650,7 +695,11 @@ export function mountUI(state, onStateChanged) {
             const selected = getSelectedUnitContext();
 
             if (selected?.unit.id === worker.id) {
-              clearSelectedUnit();
+              if (canChooseSpecialization(worker)) {
+                openSpecializationChoice(worker);
+              } else {
+                clearSelectedUnit();
+              }
               onStateChanged();
               return;
             }
@@ -680,6 +729,7 @@ export function mountUI(state, onStateChanged) {
             }
 
             selectUnit(worker.id);
+            openSpecializationChoice(worker);
             onStateChanged();
           });
           slotShell.append(workerCard);
@@ -690,11 +740,14 @@ export function mountUI(state, onStateChanged) {
           if (selected?.unit.id === worker.id) {
             slotShell.classList.add("selection-source");
           } else if (
-            (selected?.source === "reserve" && selected.unit.level === worker.level) ||
+            (selected?.source === "reserve" &&
+              selected.unit.level === worker.level &&
+              (selected.unit.specializationKey ?? null) === (worker.specializationKey ?? null)) ||
             selected?.source === "mine"
           ) {
             slotShell.classList.add("actionable-target");
           }
+          appendSpecializationChoice(workerCard, worker);
           slots.append(slotShell);
           continue;
         }
@@ -920,7 +973,6 @@ export function mountUI(state, onStateChanged) {
   function renderGearMeta() {
     elements.weaponSelect.value = state.ui.selectedWeaponKey;
     elements.armorSelect.value = state.ui.selectedArmorKey;
-    specializationSelect.value = state.ui.selectedSpecializationKey ?? CONFIG.specializations.defaultKey;
     const selectedWeapon = getWeaponConfig(state.ui.selectedWeaponKey);
     const selectedArmor = getArmorConfig(state.ui.selectedArmorKey);
     const totalCosts = getCombinedCosts(selectedWeapon, selectedArmor);
