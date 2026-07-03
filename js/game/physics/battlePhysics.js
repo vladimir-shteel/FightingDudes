@@ -8,6 +8,7 @@ const CATEGORY_WALL = 0x0008;
 let world = null;
 let allyBodies = new Map();
 let enemyBodies = new Map();
+let propBodies = new Map();
 let initializedConfigKey = "";
 
 function getSteeringConfig() {
@@ -143,9 +144,45 @@ function syncBodySet(entities, bodyMap, kind) {
   }
 }
 
+function createPropBody(prop) {
+  const body = world.createBody({
+    type: "static",
+    position: planck.Vec2(prop.x ?? 0, prop.y ?? 0)
+  });
+
+  body.createFixture({
+    shape: planck.Circle(Math.max(0.25, prop.physicsRadius ?? CONFIG.battle.physicsRadius ?? 0.3)),
+    density: 1,
+    friction: 0.05,
+    restitution: 0,
+    filterCategoryBits: CATEGORY_WALL,
+    filterMaskBits: CATEGORY_ALLY | CATEGORY_ENEMY
+  });
+  body.setUserData({ kind: "prop", id: prop.id });
+  return body;
+}
+
+function syncPropBodies(props) {
+  const solidIds = new Set(props.filter((prop) => prop.solid).map((prop) => prop.id));
+
+  for (const [id, body] of propBodies.entries()) {
+    if (!solidIds.has(id)) {
+      world.destroyBody(body);
+      propBodies.delete(id);
+    }
+  }
+
+  for (const prop of props) {
+    if (prop.solid && !propBodies.has(prop.id)) {
+      propBodies.set(prop.id, createPropBody(prop));
+    }
+  }
+}
+
 function syncPhysicsEntities(state) {
   syncBodySet(state.battleUnits, allyBodies, "ally");
   syncBodySet(state.enemies, enemyBodies, "enemy");
+  syncPropBodies(state.battleProps ?? []);
 }
 
 function getDesiredTargetPoint(actor, target) {
@@ -335,6 +372,7 @@ export function initBattlePhysics() {
   });
   allyBodies = new Map();
   enemyBodies = new Map();
+  propBodies = new Map();
   initializedConfigKey = configKey;
 
   buildArena();

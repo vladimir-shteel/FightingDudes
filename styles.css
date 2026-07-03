@@ -1569,6 +1569,49 @@ h3 {
   container-type: inline-size;
 }
 
+.battle-prop {
+  position: absolute;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  transform: translate(-50%, -50%);
+  border: 2px solid rgba(255, 255, 255, 0.34);
+  background: rgba(33, 26, 20, 0.78);
+  color: var(--text);
+  font-family: "Russo One", sans-serif;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.22);
+}
+
+.battle-prop span {
+  font-size: 18px;
+}
+
+.battle-prop small {
+  position: absolute;
+  right: 3px;
+  bottom: 2px;
+  font-size: 9px;
+  color: var(--muted);
+}
+
+.battle-prop.is-hit {
+  filter: brightness(1.45);
+}
+
+.battle-prop-barrel {
+  border-color: rgba(255, 117, 88, 0.68);
+}
+
+.battle-prop-logWall {
+  border-color: rgba(116, 78, 42, 0.78);
+}
+
+.battle-prop-chest {
+  border-color: rgba(255, 219, 96, 0.78);
+}
+
 .battle-token .unit-badges {
   position: absolute;
   left: 50%;
@@ -1733,6 +1776,17 @@ h3 {
   z-index: 21;
 }
 
+.prop-blast {
+  position: fixed;
+  z-index: 70;
+  pointer-events: none;
+  transform: translate(-50%, -50%) scale(0.2);
+  border-radius: 50%;
+  border: 3px solid rgba(255, 234, 128, 0.9);
+  background: rgba(255, 94, 48, 0.2);
+  animation: prop-blast 360ms ease-out forwards;
+}
+
 .drop-hover {
   outline: 3px solid rgba(212, 255, 85, 0.72);
   background-color: rgba(212, 255, 85, 0.12);
@@ -1866,6 +1920,13 @@ h3 {
   100% {
     opacity: 0;
     filter: brightness(0.95);
+  }
+}
+
+@keyframes prop-blast {
+  to {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1);
   }
 }
 

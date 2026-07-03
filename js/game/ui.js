@@ -695,6 +695,21 @@ export function mountUI(state, onStateChanged) {
     elements.battleLog.textContent = state.battle.log;
     elements.castleSprite.classList.toggle("is-hit", (state.castle.hitUntil ?? 0) > performance.now() / 1000);
 
+    elements.battlefield.querySelectorAll(".battle-prop").forEach((node) => node.remove());
+    for (const prop of state.battleProps ?? []) {
+      const propNode = document.createElement("div");
+      propNode.className = `battle-prop battle-prop-${prop.type}`;
+      propNode.classList.toggle("is-hit", (prop.hitUntil ?? 0) > performance.now() / 1000);
+      propNode.style.left = `${prop.x}%`;
+      propNode.style.top = `${((prop.y ?? (CONFIG.battle.fieldHeight / 2)) / CONFIG.battle.fieldHeight) * 100}%`;
+      propNode.innerHTML = `
+        <span>${prop.icon}</span>
+        <small>${Math.max(0, Math.round(prop.health))}</small>
+      `;
+      appendTokenHealth(propNode, prop.health, prop.maxHealth);
+      elements.battlefield.append(propNode);
+    }
+
     elements.battleUnits.innerHTML = "";
     for (const unit of state.battleUnits) {
       const card = createUnitCard(unit, { origin: "battle" });
@@ -947,6 +962,18 @@ export function mountUI(state, onStateChanged) {
     window.setTimeout(() => line.remove(), 220);
   }
 
+  function playPropBlastEffect(effect) {
+    const rect = elements.battlefield.getBoundingClientRect();
+    const blast = document.createElement("div");
+    blast.className = "prop-blast";
+    blast.style.left = `${rect.left + (effect.x / CONFIG.battle.fieldWidth) * rect.width}px`;
+    blast.style.top = `${rect.top + (effect.y / CONFIG.battle.fieldHeight) * rect.height}px`;
+    blast.style.width = `${(effect.radius / CONFIG.battle.fieldWidth) * rect.width * 2}px`;
+    blast.style.height = `${(effect.radius / CONFIG.battle.fieldHeight) * rect.height * 2}px`;
+    elements.fxLayer.append(blast);
+    window.setTimeout(() => blast.remove(), 360);
+  }
+
   function flushBattleEffects() {
     const handled = new Set(state.ui.handledBattleEffectIds);
 
@@ -957,6 +984,8 @@ export function mountUI(state, onStateChanged) {
       handled.add(effect.id);
       if (effect.type === "ranged-line") {
         playRangedAttackEffect(effect);
+      } else if (effect.type === "prop-blast") {
+        playPropBlastEffect(effect);
       }
     }
 

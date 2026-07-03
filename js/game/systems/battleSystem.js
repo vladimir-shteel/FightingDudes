@@ -2,6 +2,7 @@ import { CONFIG } from "../config.js";
 import { createEnemy } from "../factories.js";
 import { clamp, generateId, sum } from "../utils.js";
 import { initBattlePhysics, stepBattlePhysics } from "../physics/battlePhysics.js";
+import { cleanupDestroyedProps, createBattlePropsForWave } from "./battlePropSystem.js";
 
 function getAttackInterval(actor) {
   return 1 / actor.attackSpeed;
@@ -139,10 +140,13 @@ function createWaveEnemies(state, waveIndex) {
 
 function assignTargets(state) {
   for (const unit of state.battleUnits) {
-    const targetEnemy = chooseTarget(unit, state.enemies.filter((enemy) => !enemy.isRetreating));
-    if (targetEnemy) {
-      unit.targetId = targetEnemy.id;
-      unit.targetHint = targetEnemy.name;
+    const target = chooseTarget(unit, [
+      ...state.enemies.filter((enemy) => !enemy.isRetreating),
+      ...state.battleProps
+    ]);
+    if (target) {
+      unit.targetId = target.id;
+      unit.targetHint = target.name;
     } else {
       unit.targetId = null;
       unit.targetHint = "castle";
@@ -156,9 +160,9 @@ function assignTargets(state) {
       continue;
     }
 
-    const targetUnit = chooseTarget(enemy, state.battleUnits);
-    enemy.targetId = targetUnit?.id ?? null;
-    enemy.targetHint = targetUnit?.name ?? "advance";
+    const target = chooseTarget(enemy, [...state.battleUnits, ...state.battleProps]);
+    enemy.targetId = target?.id ?? null;
+    enemy.targetHint = target?.name ?? "advance";
   }
 }
 
@@ -166,16 +170,18 @@ function applyFriendlyAttacks(state, nowSeconds) {
   for (const unit of state.battleUnits) {
     const attackInterval = getAttackInterval(unit);
     const targetEnemy = state.enemies.find((enemy) => enemy.id === unit.targetId && !enemy.isRetreating) ?? null;
+    const targetProp = state.battleProps.find((prop) => prop.id === unit.targetId) ?? null;
+    const target = targetEnemy ?? targetProp;
 
-    if (targetEnemy) {
-      const targetDistance = getBodyGap(unit, targetEnemy);
+    if (target) {
+      const targetDistance = getBodyGap(unit, target);
       const attackRange = getAttackRange(unit);
       if (targetDistance <= attackRange && nowSeconds - unit.lastAttackAt >= attackInterval) {
         unit.state = "engaged";
-        targetEnemy.health -= unit.attack;
+        target.health -= unit.attack;
         unit.lastAttackAt = nowSeconds;
-        markHit(targetEnemy, nowSeconds);
-        pushRangedAttackEffect(state, unit, targetEnemy, nowSeconds);
+        markHit(target, nowSeconds);
+        pushRangedAttackEffect(state, unit, target, nowSeconds);
       } else {
         unit.state = targetDistance <= attackRange ? "ready" : "marching";
       }
@@ -210,19 +216,21 @@ function applyEnemyAttacks(state, nowSeconds) {
 
     const attackInterval = getAttackInterval(enemy);
     const targetUnit = state.battleUnits.find((unit) => unit.id === enemy.targetId) ?? null;
+    const targetProp = state.battleProps.find((prop) => prop.id === enemy.targetId) ?? null;
+    const target = targetUnit ?? targetProp;
 
-    if (!targetUnit) {
+    if (!target) {
       enemy.state = "marching";
       continue;
     }
 
-    const targetDistance = getBodyGap(enemy, targetUnit);
+    const targetDistance = getBodyGap(enemy, target);
     const attackRange = getAttackRange(enemy);
     if (targetDistance <= attackRange && nowSeconds - enemy.lastAttackAt >= attackInterval) {
-      targetUnit.health -= enemy.attack;
+      target.health -= enemy.attack;
       enemy.state = "engaged";
       enemy.lastAttackAt = nowSeconds;
-      markHit(targetUnit, nowSeconds);
+      markHit(target, nowSeconds);
     } else {
       enemy.state = targetDistance <= attackRange ? "ready" : "marching";
     }
@@ -290,6 +298,7 @@ function spawnWave(state, waveIndex, message) {
   }
 
   state.enemies = enemies;
+  state.battleProps = createBattlePropsForWave(waveIndex);
   state.battle.activeWaveIndex = waveIndex;
   state.battle.status = "fighting";
   state.battle.log = message;
@@ -355,6 +364,7 @@ export function tickBattle(state, deltaSeconds, nowSeconds) {
   stepBattlePhysics(state, deltaSeconds);
   applyFriendlyAttacks(state, nowSeconds);
   applyEnemyAttacks(state, nowSeconds);
+  cleanupDestroyedProps(state, nowSeconds);
   cleanupDefeated(state);
 
   if (state.battleUnits.length === 0 && state.enemies.some((enemy) => !enemy.isRetreating)) {
@@ -376,6 +386,7 @@ export function tickBattle(state, deltaSeconds, nowSeconds) {
     if (clearedWaveIndex !== null) {
       clearWaveProgress(state, clearedWaveIndex);
     }
+    state.battleProps = [];
     state.battle.activeWaveIndex = null;
   } else if (state.enemies.length === 0 && state.battle.status === "retreating") {
     state.battle.log = "The wave hid in the castle. Deploy a new ally to bring them back out.";

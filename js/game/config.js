@@ -18,6 +18,11 @@ export const CONFIG = {
     maxLevel: 1
   },
   equipment: {},
+  battleProps: {
+    types: {},
+    perWave: { min: 0, max: 0 },
+    spawn: {}
+  },
   waves: [],
   unitLevels: [],
   mine: {
@@ -40,16 +45,18 @@ async function fetchJson(fileName) {
 }
 
 export async function initConfig() {
-  const [balance, equipment, waves, unitLevels, mineLevels] = await Promise.all([
+  const [balance, equipment, waves, unitLevels, mineLevels, battleProps] = await Promise.all([
     fetchJson("balance.json"),
     fetchJson("equipment.json"),
     fetchJson("waves.json"),
     fetchJson("unit-levels.json"),
-    fetchJson("mine-levels.json")
+    fetchJson("mine-levels.json"),
+    fetchJson("battle-props.json")
   ]);
 
   Object.assign(CONFIG, balance, {
     equipment,
+    battleProps,
     waves,
     unitLevels: unitLevels.levels,
     mine: mineLevels
@@ -94,4 +101,8 @@ export function getWeaponConfig(key) {
 
 export function getArmorConfig(key) {
   return CONFIG.equipment.armors?.[key] ?? null;
+}
+
+export function getBattlePropConfig(type) {
+  return CONFIG.battleProps.types?.[type] ?? null;
 }

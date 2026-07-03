@@ -29,6 +29,7 @@ export function createInitialState() {
     bridgeheadUnits: [],
     battleUnits: [],
     enemies: [],
+    battleProps: [],
     resourceBursts: [],
     battleEffects: [],
     castle: {

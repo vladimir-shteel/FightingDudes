@@ -1,0 +1,43 @@
+{
+  "perWave": {
+    "min": 2,
+    "max": 4
+  },
+  "spawn": {
+    "minX": 24,
+    "maxX": 62,
+    "minY": 5,
+    "maxY": 25
+  },
+  "types": {
+    "barrel": {
+      "label": "Barrel",
+      "icon": "!",
+      "health": 24,
+      "radius": 3.6,
+      "weight": 3,
+      "explosionDamage": 28,
+      "explosionRadius": 9
+    },
+    "logWall": {
+      "label": "Log Wall",
+      "icon": "#",
+      "health": 70,
+      "radius": 4.8,
+      "weight": 2,
+      "solid": true
+    },
+    "chest": {
+      "label": "Chest",
+      "icon": "$",
+      "health": 1,
+      "radius": 3.2,
+      "weight": 2,
+      "resourceDrop": {
+        "gold": [12, 24],
+        "wood": [8, 18],
+        "iron": [4, 10]
+      }
+    }
+  }
+}
