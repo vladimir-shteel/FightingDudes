@@ -11,24 +11,30 @@
 </head>
 <body>
   <div class="app-shell">
+    <div id="fxLayer" class="fx-layer" aria-hidden="true"></div>
     <header class="topbar">
       <div>
         <p class="eyebrow">GitHub Pages Prototype</p>
-        <h1>Fighting Dudes</h1>
+        <h1 id="gameTitle" title="Press E for cheats">Fighting Dudes</h1>
       </div>
       <div class="resource-bar">
-        <div class="resource-chip">
-          <span class="resource-label">Gold</span>
-          <strong id="goldValue">0</strong>
+        <div id="selectedUnitChip" class="resource-chip selection-chip is-empty">
+          <div class="resource-chip-top">
+            <span class="resource-icon selection-icon" aria-hidden="true"></span>
+            <span class="resource-label">Selected</span>
+          </div>
+          <strong id="selectedUnitValue">None</strong>
+          <span id="selectedUnitHint" class="selection-hint">Tap a unit to choose it.</span>
         </div>
-        <div class="resource-chip">
-          <span class="resource-label">Ore</span>
-          <strong id="oreValue">0</strong>
-        </div>
+        <div id="resourceList" class="resource-list"></div>
         <div class="resource-chip">
           <span class="resource-label">Wave</span>
           <strong id="waveValue">0 / 0</strong>
         </div>
+      </div>
+      <div id="cheatPanel" class="cheat-panel" hidden>
+        <span class="resource-label">Cheats</span>
+        <button id="grantResourcesButton" class="secondary-button" type="button">+1000 resources</button>
       </div>
     </header>
 
@@ -51,17 +57,25 @@
               <div class="battlefield-overlay">
                 <div class="battlefield-caption">
                   <h3>Advance To The Castle</h3>
-                  <p>Units appear on the left, march right, queue inside lanes and stop when enemies block the path.</p>
+                  <p>Units spawn on the left, look for targets, close in to attack range and hold position while fighting.</p>
                 </div>
               </div>
-              <div id="laneMarkers" class="lane-markers"></div>
               <div id="battleUnits" class="battle-actors battle-allies"></div>
               <div id="enemyUnits" class="battle-actors battle-enemies"></div>
               <div id="castleSprite" class="castle-sprite">
                 <p class="eyebrow">Enemy Castle</p>
+                <div class="castle-icon" aria-hidden="true">🏰</div>
                 <strong id="castleHealth">0 / 0</strong>
                 <div class="progress-shell">
                   <div id="castleHealthBar" class="progress-bar castle-bar"></div>
+                </div>
+              </div>
+              <div id="victoryOverlay" class="victory-overlay" hidden>
+                <div class="victory-card">
+                  <p class="eyebrow">Victory</p>
+                  <h2>Castle Destroyed</h2>
+                  <p>All waves are cleared. Your dudes can finally take a break.</p>
+                  <button id="victoryRestartButton" class="primary-button" type="button">Start Again</button>
                 </div>
               </div>
             </div>
@@ -88,20 +102,29 @@
               <p class="eyebrow">Deployment</p>
               <h2>Garrison</h2>
             </div>
-            <p class="panel-note">Choose equipment, then drop a unit here.</p>
+            <p class="panel-note">Choose equipment, then drop or send a unit here.</p>
           </div>
-          <div class="gear-picker">
-            <button class="gear-button is-active" data-gear="sword">Sword</button>
-            <button class="gear-button" data-gear="bow">Bow</button>
-            <button class="gear-button" data-gear="armor">Armor</button>
+          <div class="garrison-stage">
+          <div class="gear-grid">
+            <div class="gear-select-wrap">
+              <label class="resource-label" for="weaponSelect">Weapon</label>
+              <select id="weaponSelect" class="gear-select"></select>
+              <div id="weaponCostInfo" class="gear-cost-line"></div>
+            </div>
+            <div class="gear-select-wrap">
+              <label class="resource-label" for="armorSelect">Armor</label>
+              <select id="armorSelect" class="gear-select"></select>
+              <div id="armorCostInfo" class="gear-cost-line"></div>
+            </div>
           </div>
+          <div id="gearTotalCostInfo" class="gear-total-cost"></div>
           <div class="garrison-dropzones">
-            <button id="buyGearButton" class="primary-button">Buy Selected Gear</button>
             <div id="garrisonDropzone" class="garrison-dropzone">
               Drop a unit from reserve or mine
             </div>
           </div>
           <div id="gearInfo" class="info-card"></div>
+          </div>
         </section>
       </section>
 
@@ -118,7 +141,6 @@
           </div>
         </div>
         <div class="reserve-note">
-          Buy cost: <span id="buyCostValue">0</span> gold.
           Merge two identical levels into one higher-level unit.
         </div>
         <div id="reserveZone" class="reserve-zone"></div>

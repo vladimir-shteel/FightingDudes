@@ -1,134 +1,287 @@
 import { CONFIG } from "../config.js";
 import { createEnemy } from "../factories.js";
-import { clamp, sum } from "../utils.js";
+import { generateId, sum } from "../utils.js";
+import { initBattlePhysics, stepBattlePhysics } from "../physics/battlePhysics.js";
 
 function getAttackInterval(actor) {
   return 1 / actor.attackSpeed;
 }
 
-function removeDefeated(list) {
-  return list.filter((item) => item.health > 0);
+function getDistance(left, right) {
+  return Math.hypot((left.x ?? 0) - (right.x ?? 0), (left.y ?? 0) - (right.y ?? 0));
 }
 
-function getLaneActors(list, lane) {
-  return list.filter((actor) => actor.lane === lane && actor.health > 0);
+function getBodyGap(left, right) {
+  const leftRadius = left.physicsRadius ?? CONFIG.battle.physicsRadius ?? 0;
+  const rightRadius = right.physicsRadius ?? CONFIG.battle.physicsRadius ?? 0;
+  return Math.max(0, getDistance(left, right) - leftRadius - rightRadius);
 }
 
-function findNearestEnemyAhead(unit, enemies) {
-  return enemies
-    .filter((enemy) => enemy.x >= unit.x)
-    .sort((left, right) => left.x - right.x)[0] ?? null;
+function getAttackRange(actor) {
+  return (actor.attackRange ?? ((CONFIG.battle.baseAttackReach ?? 0) + (actor.attackRangeBonus ?? 0))) +
+    (CONFIG.battle.attackRangeTolerance ?? 0);
 }
 
-function findNearestAllyAhead(enemy, allies) {
-  return allies
-    .filter((ally) => ally.x <= enemy.x)
-    .sort((left, right) => right.x - left.x)[0] ?? null;
+function getCastleDistance(actor) {
+  return Math.max(
+    0,
+    Math.hypot((actor.x ?? 0) - CONFIG.battle.castleX, (actor.y ?? 0) - CONFIG.battle.castleY) -
+      CONFIG.battle.castleRadius -
+      (actor.physicsRadius ?? CONFIG.battle.physicsRadius ?? 0)
+  );
 }
 
-function resolveFriendlyMovement(state, deltaSeconds) {
-  for (let lane = 0; lane < CONFIG.battle.laneCount; lane += 1) {
-    const allies = getLaneActors(state.battleUnits, lane).sort((left, right) => right.x - left.x);
-    const enemies = getLaneActors(state.enemies, lane);
+function chooseClosestTarget(actor, targets) {
+  if (targets.length === 0) {
+    return null;
+  }
 
-    for (const ally of allies) {
-      const spacing = ally.radius * 2 + 1.2;
-      const enemyAhead = findNearestEnemyAhead(ally, enemies);
-      const allyAhead = allies.find((other) => other.id !== ally.id && other.x > ally.x) ?? null;
-      const desiredX = ally.x + ally.moveSpeed * deltaSeconds;
-      let maxX = CONFIG.battle.castleX - CONFIG.battle.castleAttackRange;
+  let bestTarget = null;
+  let bestDistance = Number.POSITIVE_INFINITY;
 
-      if (enemyAhead) {
-        maxX = Math.min(maxX, enemyAhead.x - CONFIG.battle.contactRange);
-      }
-
-      if (allyAhead) {
-        maxX = Math.min(maxX, allyAhead.x - spacing);
-      }
-
-      ally.x = clamp(Math.min(desiredX, maxX), CONFIG.battle.allySpawnX, CONFIG.battle.castleX);
-      ally.state = enemyAhead && enemyAhead.x - ally.x <= ally.attackRange ? "engaged" : "marching";
-      ally.targetHint = enemyAhead ? enemyAhead.name : "castle";
+  for (const target of targets) {
+    const distance = getDistance(actor, target);
+    if (distance < bestDistance) {
+      bestDistance = distance;
+      bestTarget = target;
     }
+  }
+
+  return bestTarget;
+}
+
+function keepCurrentTarget(actor, targets) {
+  const currentTarget = targets.find((target) => target.id === actor.targetId) ?? null;
+  if (!currentTarget) {
+    return null;
+  }
+
+  const currentDistance = getDistance(actor, currentTarget);
+  const leashDistance = getAttackRange(actor) + (CONFIG.battle.targetLeashDistance ?? 8);
+  return currentDistance <= leashDistance ? currentTarget : null;
+}
+
+function chooseTarget(actor, targets) {
+  return keepCurrentTarget(actor, targets) ?? chooseClosestTarget(actor, targets);
+}
+
+function markHit(target, nowSeconds) {
+  target.hitUntil = nowSeconds + 0.16;
+}
+
+function pushRangedAttackEffect(state, attacker, target, nowSeconds) {
+  if (attacker.attackType !== "ranged") {
+    return;
+  }
+
+  state.battleEffects.push({
+    id: generateId("shot"),
+    type: "ranged-line",
+    createdAt: nowSeconds,
+    fromX: attacker.x ?? 0,
+    fromY: attacker.y ?? CONFIG.battle.fieldHeight / 2,
+    toX: target.x ?? CONFIG.battle.castleX,
+    toY: target.y ?? CONFIG.battle.castleY
+  });
+
+  if (state.battleEffects.length > 80) {
+    state.battleEffects = state.battleEffects.slice(-80);
   }
 }
 
-function resolveEnemyMovement(state, deltaSeconds) {
-  for (let lane = 0; lane < CONFIG.battle.laneCount; lane += 1) {
-    const enemies = getLaneActors(state.enemies, lane).sort((left, right) => left.x - right.x);
-    const allies = getLaneActors(state.battleUnits, lane);
+function getSpawnY(index, total) {
+  const padding = 3.5;
+  const usableHeight = Math.max(1, CONFIG.battle.fieldHeight - padding * 2);
+  const ratio = total <= 1 ? 0.5 : index / (total - 1);
+  return padding + usableHeight * ratio;
+}
 
-    for (const enemy of enemies) {
-      const spacing = enemy.radius * 2 + 1.2;
-      const allyAhead = findNearestAllyAhead(enemy, allies);
-      const enemyAhead = enemies.find((other) => other.id !== enemy.id && other.x < enemy.x) ?? null;
-      const desiredX = enemy.x - enemy.moveSpeed * deltaSeconds;
-      let minX = CONFIG.battle.allySpawnX;
+function getDefeatedEnemyIndexes(state, waveIndex) {
+  const defeated = state.battle.waveProgress.defeatedEnemyIndexesByWave[waveIndex] ?? [];
+  return new Set(defeated);
+}
 
-      if (allyAhead) {
-        minX = Math.max(minX, allyAhead.x + CONFIG.battle.contactRange);
-      }
+function markWaveEnemyDefeated(state, enemy) {
+  if (enemy.waveIndex === undefined || enemy.waveEnemyIndex === undefined) {
+    return;
+  }
 
-      if (enemyAhead) {
-        minX = Math.max(minX, enemyAhead.x + spacing);
-      }
+  const progress = state.battle.waveProgress.defeatedEnemyIndexesByWave;
+  const defeated = new Set(progress[enemy.waveIndex] ?? []);
+  defeated.add(enemy.waveEnemyIndex);
+  progress[enemy.waveIndex] = [...defeated].sort((left, right) => left - right);
+}
 
-      enemy.x = clamp(Math.max(desiredX, minX), CONFIG.battle.allySpawnX, CONFIG.battle.enemySpawnX + 12);
-      enemy.state = allyAhead && enemy.x - allyAhead.x <= enemy.attackRange ? "engaged" : "marching";
+function clearWaveProgress(state, waveIndex) {
+  delete state.battle.waveProgress.defeatedEnemyIndexesByWave[waveIndex];
+}
+
+function createWaveEnemies(state, waveIndex) {
+  const waveDefinition = CONFIG.waves[waveIndex];
+  if (!waveDefinition) {
+    return [];
+  }
+
+  const defeatedIndexes = getDefeatedEnemyIndexes(state, waveIndex);
+  const survivors = waveDefinition
+    .map((definition, index) => ({ definition, index }))
+    .filter((item) => !defeatedIndexes.has(item.index));
+
+  return survivors.map((item, spawnIndex) => {
+    const enemy = createEnemy(item.definition);
+    enemy.waveIndex = waveIndex;
+    enemy.waveEnemyIndex = item.index;
+    enemy.x = CONFIG.battle.enemySpawnX + Math.floor(spawnIndex / 2) * 1.8;
+    enemy.y = getSpawnY(spawnIndex, survivors.length);
+    return enemy;
+  });
+}
+
+function assignTargets(state) {
+  for (const unit of state.battleUnits) {
+    const targetEnemy = chooseTarget(unit, state.enemies.filter((enemy) => !enemy.isRetreating));
+    if (targetEnemy) {
+      unit.targetId = targetEnemy.id;
+      unit.targetHint = targetEnemy.name;
+    } else {
+      unit.targetId = null;
+      unit.targetHint = "castle";
     }
+  }
+
+  for (const enemy of state.enemies) {
+    if (enemy.isRetreating) {
+      enemy.targetId = null;
+      enemy.targetHint = "castle";
+      continue;
+    }
+
+    const targetUnit = chooseTarget(enemy, state.battleUnits);
+    enemy.targetId = targetUnit?.id ?? null;
+    enemy.targetHint = targetUnit?.name ?? "advance";
   }
 }
 
 function applyFriendlyAttacks(state, nowSeconds) {
   for (const unit of state.battleUnits) {
-    const targetEnemy = findNearestEnemyAhead(unit, getLaneActors(state.enemies, unit.lane));
     const attackInterval = getAttackInterval(unit);
+    const targetEnemy = state.enemies.find((enemy) => enemy.id === unit.targetId && !enemy.isRetreating) ?? null;
 
-    if (nowSeconds - unit.lastAttackAt < attackInterval) {
+    if (targetEnemy) {
+      const targetDistance = getBodyGap(unit, targetEnemy);
+      const attackRange = getAttackRange(unit);
+      if (targetDistance <= attackRange && nowSeconds - unit.lastAttackAt >= attackInterval) {
+        unit.state = "engaged";
+        targetEnemy.health -= unit.attack;
+        unit.lastAttackAt = nowSeconds;
+        markHit(targetEnemy, nowSeconds);
+        pushRangedAttackEffect(state, unit, targetEnemy, nowSeconds);
+      } else {
+        unit.state = targetDistance <= attackRange ? "ready" : "marching";
+      }
       continue;
     }
 
-    if (targetEnemy && targetEnemy.x - unit.x <= unit.attackRange) {
-      unit.targetHint = targetEnemy.name;
-      targetEnemy.health -= unit.attack;
-      unit.state = "engaged";
-      unit.lastAttackAt = nowSeconds;
-      continue;
-    }
-
+    const distanceToCastle = getCastleDistance(unit);
+    const castleAttackRange = getAttackRange(unit) + (CONFIG.battle.castleAttackRangeBonus ?? 0);
     if (
-      state.enemies.length === 0 &&
+      state.enemies.filter((enemy) => !enemy.isRetreating).length === 0 &&
       state.castle.health > 0 &&
-      CONFIG.battle.castleX - unit.x <= CONFIG.battle.castleAttackRange
+      distanceToCastle <= castleAttackRange &&
+      nowSeconds - unit.lastAttackAt >= attackInterval
     ) {
-      unit.targetHint = "castle";
-      state.castle.health -= unit.attack;
       unit.state = "engaged";
+      state.castle.health -= unit.attack;
       unit.lastAttackAt = nowSeconds;
+      state.castle.hitUntil = nowSeconds + 0.16;
+      pushRangedAttackEffect(state, unit, state.castle, nowSeconds);
+    } else {
+      unit.state = distanceToCastle <= castleAttackRange ? "ready" : "marching";
     }
   }
 }
 
 function applyEnemyAttacks(state, nowSeconds) {
   for (const enemy of state.enemies) {
-    const targetUnit = findNearestAllyAhead(enemy, getLaneActors(state.battleUnits, enemy.lane));
-    const attackInterval = getAttackInterval(enemy);
-
-    if (!targetUnit || nowSeconds - enemy.lastAttackAt < attackInterval) {
+    if (enemy.isRetreating) {
+      enemy.state = "retreating";
       continue;
     }
 
-    if (enemy.x - targetUnit.x <= enemy.attackRange) {
+    const attackInterval = getAttackInterval(enemy);
+    const targetUnit = state.battleUnits.find((unit) => unit.id === enemy.targetId) ?? null;
+
+    if (!targetUnit) {
+      enemy.state = "marching";
+      continue;
+    }
+
+    const targetDistance = getBodyGap(enemy, targetUnit);
+    const attackRange = getAttackRange(enemy);
+    if (targetDistance <= attackRange && nowSeconds - enemy.lastAttackAt >= attackInterval) {
       targetUnit.health -= enemy.attack;
       enemy.state = "engaged";
       enemy.lastAttackAt = nowSeconds;
+      markHit(targetUnit, nowSeconds);
+    } else {
+      enemy.state = targetDistance <= attackRange ? "ready" : "marching";
     }
   }
 }
 
-export function tickPassiveGold(state, deltaSeconds) {
-  state.resources.gold += CONFIG.passiveGoldPerSecond * deltaSeconds;
+function startEnemyRetreat(state) {
+  if (state.enemies.length === 0 || state.battle.status === "retreating") {
+    return;
+  }
+
+  state.battle.retreatWaveIndex = state.battle.activeWaveIndex;
+  state.battle.status = "retreating";
+  state.battle.log = "Your last ally fell. The wave is retreating back to the castle.";
+  for (const enemy of state.enemies) {
+    enemy.isRetreating = true;
+    enemy.targetId = null;
+    enemy.targetHint = "castle";
+    enemy.state = "retreating";
+  }
 }
+
+function removeExitedRetreatingEnemies(state) {
+  state.enemies = state.enemies.filter((enemy) => {
+    if (!enemy.isRetreating) {
+      return true;
+    }
+
+    return getCastleDistance(enemy) > Math.max(1.2, CONFIG.battle.castleRadius * 0.35);
+  });
+}
+
+function cleanupDefeated(state) {
+  state.battleUnits = state.battleUnits.filter((unit) => unit.health > 0);
+  state.enemies = state.enemies.filter((enemy) => {
+    if (enemy.health > 0) {
+      return true;
+    }
+
+    markWaveEnemyDefeated(state, enemy);
+    return false;
+  });
+  removeExitedRetreatingEnemies(state);
+}
+
+function spawnWave(state, waveIndex, message) {
+  const enemies = createWaveEnemies(state, waveIndex);
+  if (enemies.length === 0) {
+    return false;
+  }
+
+  state.enemies = enemies;
+  state.battle.activeWaveIndex = waveIndex;
+  state.battle.status = "fighting";
+  state.battle.log = message;
+  return true;
+}
+
+export function tickPassiveGold() {}
 
 export function spawnNextWave(state) {
   const waveDefinition = CONFIG.waves[state.battle.nextWaveIndex];
@@ -136,24 +289,42 @@ export function spawnNextWave(state) {
     return false;
   }
 
-  state.enemies = waveDefinition.map((definition, index) => {
-    const enemy = createEnemy(definition);
-    enemy.lane = definition.lane ?? index % CONFIG.battle.laneCount;
-    enemy.x = CONFIG.battle.enemySpawnX + Math.floor(index / CONFIG.battle.laneCount) * 4;
-    return enemy;
-  });
-  state.battle.status = "fighting";
-  state.battle.log = `Wave ${state.battle.nextWaveIndex + 1} is attacking.`;
-  state.battle.nextWaveIndex += 1;
-  return true;
+  const didSpawn = spawnWave(
+    state,
+    state.battle.nextWaveIndex,
+    `Wave ${state.battle.nextWaveIndex + 1} is attacking.`
+  );
+  if (didSpawn) {
+    state.battle.nextWaveIndex += 1;
+    state.battle.retreatWaveIndex = null;
+  }
+  return didSpawn;
 }
 
 export function tickBattle(state, deltaSeconds, nowSeconds) {
+  initBattlePhysics();
+
   if (state.game.isOver) {
     return;
   }
 
-  if (state.battleUnits.length > 0 && state.battle.nextWaveIndex < CONFIG.waves.length && state.enemies.length === 0) {
+  if (state.battle.retreatWaveIndex !== null && state.battleUnits.length > 0 && state.enemies.length === 0) {
+    const respawnIndex = state.battle.retreatWaveIndex;
+    state.battle.retreatWaveIndex = null;
+    const didRespawn = spawnWave(state, respawnIndex, `Wave ${respawnIndex + 1} marches out again.`);
+    if (!didRespawn) {
+      clearWaveProgress(state, respawnIndex);
+      state.battle.activeWaveIndex = null;
+      state.battle.status = state.battle.nextWaveIndex >= CONFIG.waves.length ? "siege" : "cooldown";
+      state.battle.waveCooldownRemaining = CONFIG.battle.waveCooldownSeconds;
+      state.battle.log = "The last survivors of that wave were already defeated.";
+    }
+  } else if (
+    state.battleUnits.length > 0 &&
+    state.battle.nextWaveIndex < CONFIG.waves.length &&
+    state.enemies.length === 0 &&
+    state.battle.retreatWaveIndex === null
+  ) {
     if (state.battle.status !== "cooldown") {
       state.battle.status = "cooldown";
       state.battle.waveCooldownRemaining = CONFIG.battle.waveCooldownSeconds;
@@ -165,16 +336,20 @@ export function tickBattle(state, deltaSeconds, nowSeconds) {
     }
   }
 
-  resolveFriendlyMovement(state, deltaSeconds);
-  resolveEnemyMovement(state, deltaSeconds);
+  assignTargets(state);
+  stepBattlePhysics(state, deltaSeconds);
   applyFriendlyAttacks(state, nowSeconds);
   applyEnemyAttacks(state, nowSeconds);
+  cleanupDefeated(state);
 
-  state.enemies = removeDefeated(state.enemies);
-  state.battleUnits = removeDefeated(state.battleUnits);
-  state.castle.health = clamp(state.castle.health, 0, state.castle.maxHealth);
+  if (state.battleUnits.length === 0 && state.enemies.some((enemy) => !enemy.isRetreating)) {
+    startEnemyRetreat(state);
+  }
+
+  state.castle.health = Math.max(0, Math.min(state.castle.maxHealth, state.castle.health));
 
   if (state.enemies.length === 0 && state.battle.status === "fighting") {
+    const clearedWaveIndex = state.battle.activeWaveIndex;
     if (state.battle.nextWaveIndex >= CONFIG.waves.length) {
       state.battle.status = "siege";
       state.battle.log = "Final wave defeated. Finish off the castle.";
@@ -183,17 +358,31 @@ export function tickBattle(state, deltaSeconds, nowSeconds) {
       state.battle.waveCooldownRemaining = CONFIG.battle.waveCooldownSeconds;
       state.battle.log = "Wave cleared. Next wave is preparing.";
     }
+    if (clearedWaveIndex !== null) {
+      clearWaveProgress(state, clearedWaveIndex);
+    }
+    state.battle.activeWaveIndex = null;
+  } else if (state.enemies.length === 0 && state.battle.status === "retreating") {
+    state.battle.log = "The wave hid in the castle. Deploy a new ally to bring them back out.";
+    state.battle.activeWaveIndex = null;
   }
 
-  if (state.castle.health <= 0) {
+  const canWin = state.battle.nextWaveIndex >= CONFIG.waves.length &&
+    state.enemies.length === 0 &&
+    state.battle.retreatWaveIndex === null;
+
+  if (state.castle.health <= 0 && canWin) {
     state.castle.health = 0;
     state.game.isOver = true;
     state.game.result = "win";
     state.battle.status = "won";
     state.battle.log = "Castle destroyed. Victory!";
+  } else if (state.castle.health <= 0) {
+    state.castle.health = 1;
+    state.battle.log = "The castle is barely standing. Clear the remaining waves first.";
   } else if (state.battleUnits.length === 0 && state.enemies.length > 0) {
-    state.battle.log = "Your battle line fell. Mine more ore and deploy reinforcements.";
-  } else if (state.battleUnits.length === 0 && state.battle.nextWaveIndex === 0) {
+    state.battle.log = "Your battle line fell. The enemies are pulling back to the castle.";
+  } else if (state.battleUnits.length === 0 && state.battle.nextWaveIndex === 0 && state.battle.retreatWaveIndex === null) {
     state.battle.log = "Deploy a unit through the garrison.";
   }
 }

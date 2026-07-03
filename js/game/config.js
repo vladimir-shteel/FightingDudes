@@ -4,7 +4,7 @@ export const CONFIG = {
   startingGold: 0,
   startingOre: 0,
   unitBuyBaseCost: 0,
-  unitBuyCostStep: 0,
+  unitBuyExponent: 1,
   battle: {
     waveCooldownSeconds: 0
   },
@@ -63,4 +63,24 @@ export function getMineLevelData(level) {
 
 export function getMineMaxLevel() {
   return CONFIG.mine.levels.length;
+}
+
+export function getMineResourceType(index) {
+  return CONFIG.mine.resourceTypes[index] ?? null;
+}
+
+export function getResourceLabel(resourceKey) {
+  if (resourceKey === "gold") {
+    return "Gold";
+  }
+
+  return CONFIG.mine.resourceTypes?.find((item) => item.key === resourceKey)?.label ?? resourceKey;
+}
+
+export function getWeaponConfig(key) {
+  return CONFIG.equipment.weapons?.[key] ?? null;
+}
+
+export function getArmorConfig(key) {
+  return CONFIG.equipment.armors?.[key] ?? null;
 }

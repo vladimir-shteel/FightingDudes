@@ -1,6 +1,6 @@
 import { createInitialState } from "./game/state.js";
 import { mountUI } from "./game/ui.js";
-import { tickBattle, tickPassiveGold } from "./game/systems/battleSystem.js";
+import { tickBattle } from "./game/systems/battleSystem.js";
 import { tickMineProduction } from "./game/systems/mineSystem.js";
 import { CONFIG, initConfig } from "./game/config.js";
 
@@ -16,10 +16,9 @@ async function bootstrap() {
     const deltaSeconds = Math.min((timestamp - previousTimestamp) / 1000, 0.25);
     previousTimestamp = timestamp;
 
-    tickPassiveGold(state, deltaSeconds);
     tickMineProduction(state, deltaSeconds);
     tickBattle(state, deltaSeconds, timestamp / 1000);
-    ui.render();
+    ui.renderFrame();
 
     window.setTimeout(() => {
       window.requestAnimationFrame(gameLoop);

@@ -1,8 +1,28 @@
 import { CONFIG } from "../config.js";
 import { createReserveUnit } from "../factories.js";
 
+function getBaseUnitEquivalent(unit) {
+  return Math.pow(2, Math.max(0, (unit?.level ?? 1) - 1));
+}
+
+function getTotalOwnedBaseUnitEquivalents(state) {
+  const reserveCount = state.reserveUnits.reduce(
+    (total, unit) => total + getBaseUnitEquivalent(unit),
+    0
+  );
+  const mineCount = state.mines.reduce(
+    (total, mine) => total + mine.workerIds.reduce(
+      (mineTotal, worker) => mineTotal + (worker ? getBaseUnitEquivalent(worker) : 0),
+      0
+    ),
+    0
+  );
+  return reserveCount + mineCount;
+}
+
 export function getUnitBuyCost(state) {
-  return CONFIG.unitBuyBaseCost + state.economy.unitsPurchased * CONFIG.unitBuyCostStep;
+  const ownedBaseUnits = getTotalOwnedBaseUnitEquivalents(state);
+  return Math.max(1, Math.floor(CONFIG.unitBuyBaseCost * Math.pow(CONFIG.unitBuyExponent, ownedBaseUnits)));
 }
 
 export function buyUnit(state) {

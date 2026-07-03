@@ -1,9 +1,17 @@
 {
   "baseProductionPerSecond": 0.8,
+  "goldPerSecondPerWorkerLevel": 0.45,
+  "collectionIntervalSeconds": 1,
+  "resourceTypes": [
+    { "key": "wood", "label": "Wood", "mineName": "Lumber Camp", "unlockCost": 0, "unlockCurrency": "gold" },
+    { "key": "ore", "label": "Stone", "mineName": "Stone Quarry", "unlockCost": 42, "unlockCurrency": "gold" },
+    { "key": "crystal", "label": "Crystal", "mineName": "Crystal Pit", "unlockCost": 140, "unlockCurrency": "gold" },
+    { "key": "iron", "label": "Iron", "mineName": "Iron Forge", "unlockCost": 260, "unlockCurrency": "gold" }
+  ],
   "levels": [
-    { "level": 1, "slots": 1, "upgradeOreCost": 24, "slotProductionMultipliers": [1] },
-    { "level": 2, "slots": 2, "upgradeOreCost": 38, "slotProductionMultipliers": [1, 1.14] },
-    { "level": 3, "slots": 3, "upgradeOreCost": 52, "slotProductionMultipliers": [1, 1.14, 1.28] },
-    { "level": 4, "slots": 4, "upgradeOreCost": 66, "slotProductionMultipliers": [1, 1.14, 1.28, 1.42] }
+    { "level": 1, "slots": 1, "upgradeCost": 24, "upgradeCurrency": "gold", "slotProductionMultipliers": [1] },
+    { "level": 2, "slots": 2, "upgradeCost": 38, "upgradeCurrency": "gold", "slotProductionMultipliers": [1, 1.14] },
+    { "level": 3, "slots": 3, "upgradeCost": 52, "upgradeCurrency": "gold", "slotProductionMultipliers": [1, 1.14, 1.28] },
+    { "level": 4, "slots": 4, "upgradeCost": 66, "upgradeCurrency": "gold", "slotProductionMultipliers": [1, 1.14, 1.28, 1.42] }
   ]
 }

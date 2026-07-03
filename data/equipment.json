@@ -1,26 +1,44 @@
 {
-  "sword": {
-    "label": "Sword",
-    "oreCost": 18,
-    "attackMultiplier": 1.5,
-    "healthBonus": 0,
-    "attackSpeedMultiplier": 1,
-    "attackType": "melee"
+  "weapons": {
+    "sword": {
+      "label": "Sword",
+      "icon": "⚔️",
+      "costs": {
+        "ore": 14,
+        "wood": 6
+      },
+      "attackMultiplier": 1.5,
+      "attackSpeedMultiplier": 1,
+      "attackType": "melee",
+      "attackRangeBonus": 0.9
+    },
+    "bow": {
+      "label": "Bow",
+      "icon": "🏹",
+      "costs": {
+        "wood": 18,
+        "crystal": 8
+      },
+      "attackMultiplier": 1.25,
+      "attackSpeedMultiplier": 1.35,
+      "attackType": "ranged",
+      "attackRangeBonus": 9.6
+    }
   },
-  "bow": {
-    "label": "Bow",
-    "oreCost": 22,
-    "attackMultiplier": 1.25,
-    "healthBonus": 0,
-    "attackSpeedMultiplier": 1.35,
-    "attackType": "ranged"
-  },
-  "armor": {
-    "label": "Armor",
-    "oreCost": 20,
-    "attackMultiplier": 1,
-    "healthBonus": 22,
-    "attackSpeedMultiplier": 0.92,
-    "attackType": "tank"
+  "armors": {
+    "none": {
+      "label": "No Armor",
+      "costs": {},
+      "healthBonus": 0
+    },
+    "armor": {
+      "label": "Armor",
+      "icon": "🛡️",
+      "costs": {
+        "iron": 14,
+        "ore": 10
+      },
+      "healthBonus": 22
+    }
   }
 }

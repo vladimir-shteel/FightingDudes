@@ -1,22 +1,22 @@
 [
   [
-    { "name": "Goblin", "health": 28, "attack": 5, "attackSpeed": 1.0 },
-    { "name": "Goblin", "health": 28, "attack": 5, "attackSpeed": 1.0 },
-    { "name": "Raider", "health": 42, "attack": 6, "attackSpeed": 0.9 }
+    { "name": "Goblin", "icon": "👺", "health": 28, "attack": 5, "attackSpeed": 1.0 },
+    { "name": "Goblin", "icon": "👺", "health": 28, "attack": 5, "attackSpeed": 1.0 },
+    { "name": "Raider", "icon": "😈", "health": 42, "attack": 6, "attackSpeed": 0.9 }
   ],
   [
-    { "name": "Raider", "health": 48, "attack": 7, "attackSpeed": 1.0 },
-    { "name": "Raider", "health": 48, "attack": 7, "attackSpeed": 1.0 },
-    { "name": "Shaman", "health": 60, "attack": 10, "attackSpeed": 0.8 }
+    { "name": "Raider", "icon": "😈", "health": 48, "attack": 7, "attackSpeed": 1.0 },
+    { "name": "Raider", "icon": "😈", "health": 48, "attack": 7, "attackSpeed": 1.0 },
+    { "name": "Shaman", "icon": "🧟", "health": 60, "attack": 10, "attackSpeed": 0.8 }
   ],
   [
-    { "name": "Knight", "health": 90, "attack": 12, "attackSpeed": 0.9 },
-    { "name": "Raider", "health": 54, "attack": 8, "attackSpeed": 1.0 },
-    { "name": "Raider", "health": 54, "attack": 8, "attackSpeed": 1.0 }
+    { "name": "Knight", "icon": "💀", "health": 90, "attack": 12, "attackSpeed": 0.9 },
+    { "name": "Raider", "icon": "😈", "health": 54, "attack": 8, "attackSpeed": 1.0 },
+    { "name": "Raider", "icon": "😈", "health": 54, "attack": 8, "attackSpeed": 1.0 }
   ],
   [
-    { "name": "Knight", "health": 100, "attack": 14, "attackSpeed": 0.9 },
-    { "name": "Knight", "health": 100, "attack": 14, "attackSpeed": 0.9 },
-    { "name": "Shaman", "health": 72, "attack": 15, "attackSpeed": 0.8 }
+    { "name": "Knight", "icon": "💀", "health": 100, "attack": 14, "attackSpeed": 0.9 },
+    { "name": "Knight", "icon": "💀", "health": 100, "attack": 14, "attackSpeed": 0.9 },
+    { "name": "Shaman", "icon": "🧟", "health": 72, "attack": 15, "attackSpeed": 0.8 }
   ]
 ]
