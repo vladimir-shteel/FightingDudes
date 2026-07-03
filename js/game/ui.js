@@ -66,6 +66,7 @@ function createUnitCard(unit, options = {}) {
   card.innerHTML = `
     <div class="unit-badges">
       <span class="unit-level-badge">${level}</span>
+      ${row ? `<span class="formation-badge">${row.symbol ?? row.label.slice(0, 1)}</span>` : ""}
     </div>
     <div class="unit-character" aria-hidden="true">
       <div class="unit-icon">

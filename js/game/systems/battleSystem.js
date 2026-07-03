@@ -1,4 +1,4 @@
-import { CONFIG } from "../config.js";
+import { CONFIG, getFormationRowConfig } from "../config.js";
 import { createEnemy } from "../factories.js";
 import { clamp, generateId, sum } from "../utils.js";
 import { initBattlePhysics, stepBattlePhysics } from "../physics/battlePhysics.js";
@@ -50,6 +50,27 @@ function chooseClosestTarget(actor, targets) {
   return bestTarget;
 }
 
+function chooseFormationPriorityTarget(actor, targets) {
+  if (targets.length === 0) {
+    return null;
+  }
+
+  let bestTarget = null;
+  let bestScore = Number.POSITIVE_INFINITY;
+
+  for (const target of targets) {
+    const rowConfig = getFormationRowConfig(target.formationRow);
+    const priority = Math.max(0.1, rowConfig?.enemyTargetPriority ?? 1);
+    const score = getDistance(actor, target) / priority;
+    if (score < bestScore) {
+      bestScore = score;
+      bestTarget = target;
+    }
+  }
+
+  return bestTarget;
+}
+
 function keepCurrentTarget(actor, targets) {
   const currentTarget = targets.find((target) => target.id === actor.targetId) ?? null;
   if (!currentTarget) {
@@ -63,6 +84,18 @@ function keepCurrentTarget(actor, targets) {
 
 function chooseTarget(actor, targets) {
   return keepCurrentTarget(actor, targets) ?? chooseClosestTarget(actor, targets);
+}
+
+function chooseEnemyTarget(actor, targets) {
+  const priorityTarget = chooseFormationPriorityTarget(actor, targets);
+  const currentTarget = keepCurrentTarget(actor, targets);
+  if (!currentTarget || !priorityTarget) {
+    return currentTarget ?? priorityTarget;
+  }
+
+  const currentPriority = getFormationRowConfig(currentTarget.formationRow)?.enemyTargetPriority ?? 1;
+  const priorityTargetPriority = getFormationRowConfig(priorityTarget.formationRow)?.enemyTargetPriority ?? 1;
+  return priorityTargetPriority > currentPriority ? priorityTarget : currentTarget;
 }
 
 function markHit(target, nowSeconds) {
@@ -156,7 +189,7 @@ function assignTargets(state) {
       continue;
     }
 
-    const targetUnit = chooseTarget(enemy, state.battleUnits);
+    const targetUnit = chooseEnemyTarget(enemy, state.battleUnits);
     enemy.targetId = targetUnit?.id ?? null;
     enemy.targetHint = targetUnit?.name ?? "advance";
   }

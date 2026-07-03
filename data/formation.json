@@ -3,12 +3,16 @@
   "rows": {
     "front": {
       "label": "Front",
+      "symbol": "F",
       "spawnX": 10,
+      "enemyTargetPriority": 2,
       "damageMultiplier": 1
     },
     "back": {
       "label": "Back",
+      "symbol": "B",
       "spawnX": 5,
+      "enemyTargetPriority": 1,
       "rangedDamageMultiplier": 1.18
     }
   }

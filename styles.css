@@ -613,6 +613,20 @@ h3 {
   color: var(--accent-strong);
 }
 
+.formation-badge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 22px;
+  min-height: 22px;
+  padding: 2px 6px;
+  border: 2px solid rgba(115, 219, 164, 0.42);
+  background: rgba(23, 20, 17, 0.78);
+  color: var(--accent-strong);
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1;
+}
+
 .battlefield {
   position: relative;
   min-height: 430px;
