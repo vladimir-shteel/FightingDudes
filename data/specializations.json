@@ -1,0 +1,28 @@
+{
+  "thresholdLevel": 3,
+  "defaultKey": "berserker",
+  "options": {
+    "berserker": {
+      "label": "Berserker",
+      "icon": "B",
+      "attackMultiplier": 1.12,
+      "critChance": 0.22,
+      "critMultiplier": 1.9,
+      "lifesteal": 0.18
+    },
+    "paladin": {
+      "label": "Paladin",
+      "icon": "P",
+      "healthMultiplier": 1.12,
+      "regenAuraRadius": 9,
+      "regenPerSecond": 2.4
+    },
+    "ranger": {
+      "label": "Ranger",
+      "icon": "R",
+      "rangedOnly": true,
+      "attackSpeedMultiplier": 1.08,
+      "doubleShotChance": 0.35
+    }
+  }
+}

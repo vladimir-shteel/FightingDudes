@@ -61,14 +61,19 @@ export function mergeReservePair(state, firstUnitId, secondUnitId) {
     return { ok: false, reason: "This unit has reached max merge level." };
   }
 
-  const higherLevelUnit = createReserveUnit(first.level + 1);
+  const nextLevel = first.level + 1;
+  const specializationKey = nextLevel >= (CONFIG.specializations.thresholdLevel ?? Number.POSITIVE_INFINITY)
+    ? state.ui.selectedSpecializationKey ?? CONFIG.specializations.defaultKey
+    : null;
+  const higherLevelUnit = createReserveUnit(nextLevel, specializationKey);
   const keptUnits = state.reserveUnits.filter(
     (unit) => unit.id !== firstUnitId && unit.id !== secondUnitId
   );
   keptUnits.push(higherLevelUnit);
   state.reserveUnits = keptUnits;
 
-  return { ok: true, reason: `Merged into level ${higherLevelUnit.level}.` };
+  const specializationText = higherLevelUnit.specializationLabel ? ` ${higherLevelUnit.specializationLabel}` : "";
+  return { ok: true, reason: `Merged into level ${higherLevelUnit.level}${specializationText}.` };
 }
 
 export function massMergeReserve(state) {

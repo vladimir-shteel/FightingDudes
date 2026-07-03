@@ -1555,6 +1555,20 @@ h3 {
   min-height: 14px;
 }
 
+.unit-specialization {
+  display: block;
+  min-height: 14px;
+  color: var(--accent-strong);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.specialization-panel {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
 .battle-token {
   position: absolute;
   width: 88px;

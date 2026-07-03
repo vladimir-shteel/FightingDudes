@@ -1,8 +1,9 @@
-import { CONFIG, getArmorConfig, getUnitLevelData, getWeaponConfig } from "./config.js";
+import { CONFIG, getArmorConfig, getSpecializationConfig, getUnitLevelData, getWeaponConfig } from "./config.js";
 import { generateId } from "./utils.js";
 
-export function createReserveUnit(level = 1) {
+export function createReserveUnit(level = 1, specializationKey = null) {
   const levelData = getUnitLevelData(level);
+  const specialization = getSpecializationConfig(specializationKey);
   if (!levelData) {
     throw new Error(`Missing unit level data for level ${level}`);
   }
@@ -11,6 +12,9 @@ export function createReserveUnit(level = 1) {
     id: generateId("unit"),
     name: levelData.name,
     level,
+    specializationKey,
+    specializationLabel: specialization?.label ?? null,
+    specializationIcon: specialization?.icon ?? null,
     icon: levelData.icon ?? "🚧",
     baseHealth: levelData.baseHealth,
     baseAttack: levelData.baseAttack,
@@ -39,6 +43,7 @@ export function createMine(index) {
 export function createBattleUnit(unit, weaponKey, armorKey) {
   const weapon = getWeaponConfig(weaponKey);
   const armor = getArmorConfig(armorKey);
+  const specialization = getSpecializationConfig(unit.specializationKey);
   const maxHealth = unit.baseHealth + (armor?.healthBonus ?? 0);
   const defaultAttackRangeBonus = weapon.attackType === "ranged"
     ? CONFIG.battle.rangedAttackRangeBonus
@@ -53,17 +58,28 @@ export function createBattleUnit(unit, weaponKey, armorKey) {
     level: unit.level,
     weaponKey,
     armorKey,
+    specializationKey: unit.specializationKey ?? null,
+    specializationLabel: specialization?.label ?? null,
+    specializationIcon: specialization?.icon ?? null,
     icon: unit.icon,
     weaponIcon: weapon.icon ?? "",
     armorIcon: armor?.icon ?? "",
     attackType: weapon.attackType,
-    attack: unit.baseAttack * weapon.attackMultiplier,
-    attackSpeed: unit.baseAttackSpeed * weapon.attackSpeedMultiplier,
+    attack: unit.baseAttack * weapon.attackMultiplier * (specialization?.attackMultiplier ?? 1),
+    attackSpeed: unit.baseAttackSpeed * weapon.attackSpeedMultiplier * (specialization?.attackSpeedMultiplier ?? 1),
     moveSpeed: CONFIG.battle.allyMoveSpeed,
     attackRange,
     attackRangeBonus,
-    maxHealth,
-    health: maxHealth,
+    maxHealth: maxHealth * (specialization?.healthMultiplier ?? 1),
+    health: maxHealth * (specialization?.healthMultiplier ?? 1),
+    critChance: specialization?.critChance ?? 0,
+    critMultiplier: specialization?.critMultiplier ?? 1,
+    lifesteal: specialization?.lifesteal ?? 0,
+    regenAuraRadius: specialization?.regenAuraRadius ?? 0,
+    regenPerSecond: specialization?.regenPerSecond ?? 0,
+    doubleShotChance: weapon.attackType === "ranged" || !specialization?.rangedOnly
+      ? specialization?.doubleShotChance ?? 0
+      : 0,
     x: CONFIG.battle.allySpawnX,
     y: CONFIG.battle.fieldHeight / 2,
     radius: CONFIG.battle.unitRadius,

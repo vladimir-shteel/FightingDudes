@@ -56,6 +56,9 @@ function createUnitCard(unit, options = {}) {
   const armorText = armor?.label ?? "No armor";
   const icon = unit.icon ?? "🚧";
   const weaponIcon = unit.weaponIcon ?? weapon?.icon ?? "";
+  const specialization = unit.specializationLabel
+    ? `<span class="unit-specialization">${unit.specializationIcon ?? ""} ${unit.specializationLabel}</span>`
+    : "";
 
   card.dataset.gear = visualGear;
   card.dataset.level = String(level);
@@ -75,6 +78,7 @@ function createUnitCard(unit, options = {}) {
     <div class="unit-ui">
       <div class="unit-name">${unit.name}</div>
       <span class="unit-meta">ATK ${Math.round(attack)} | HP ${Math.round(health)}</span>
+      ${specialization}
       <span class="unit-gear">${armorText}</span>
     </div>
     ${compact ? `<span class="compact-caption">ATK ${Math.round(attack)} | HP ${Math.round(health)}</span>` : ""}
@@ -285,6 +289,27 @@ export function mountUI(state, onStateChanged) {
 
   elements.weaponSelect.value = state.ui.selectedWeaponKey;
   elements.armorSelect.value = state.ui.selectedArmorKey;
+
+  const specializationPanel = document.createElement("div");
+  specializationPanel.className = "specialization-panel";
+  specializationPanel.innerHTML = `
+    <label class="resource-label" for="specializationSelect">Merge Class</label>
+    <select id="specializationSelect" class="gear-select"></select>
+  `;
+  elements.reservePanel.insertBefore(specializationPanel, elements.reserveZone);
+  const specializationSelect = specializationPanel.querySelector("#specializationSelect");
+  for (const [key, specialization] of Object.entries(CONFIG.specializations.options ?? {})) {
+    const option = document.createElement("option");
+    option.value = key;
+    option.textContent = `${specialization.icon ?? ""} ${specialization.label}`;
+    specializationSelect.append(option);
+  }
+  specializationSelect.value = state.ui.selectedSpecializationKey ?? CONFIG.specializations.defaultKey;
+  specializationSelect.addEventListener("change", () => {
+    state.ui.selectedSpecializationKey = specializationSelect.value;
+    state.battle.log = `Merge specialization: ${CONFIG.specializations.options[specializationSelect.value]?.label}.`;
+    onStateChanged();
+  });
 
   const mineProgressCache = new Map();
 
@@ -895,6 +920,7 @@ export function mountUI(state, onStateChanged) {
   function renderGearMeta() {
     elements.weaponSelect.value = state.ui.selectedWeaponKey;
     elements.armorSelect.value = state.ui.selectedArmorKey;
+    specializationSelect.value = state.ui.selectedSpecializationKey ?? CONFIG.specializations.defaultKey;
     const selectedWeapon = getWeaponConfig(state.ui.selectedWeaponKey);
     const selectedArmor = getArmorConfig(state.ui.selectedArmorKey);
     const totalCosts = getCombinedCosts(selectedWeapon, selectedArmor);

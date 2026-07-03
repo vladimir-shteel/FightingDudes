@@ -69,6 +69,33 @@ function markHit(target, nowSeconds) {
   target.hitUntil = nowSeconds + 0.16;
 }
 
+function rollAttackDamage(attacker) {
+  let damage = attacker.attack;
+  if ((attacker.critChance ?? 0) > 0 && Math.random() < attacker.critChance) {
+    damage *= attacker.critMultiplier ?? 1;
+  }
+  if ((attacker.doubleShotChance ?? 0) > 0 && Math.random() < attacker.doubleShotChance) {
+    damage += attacker.attack;
+  }
+  return damage;
+}
+
+function applyPaladinAuras(state, deltaSeconds) {
+  const paladins = state.battleUnits.filter((unit) => (unit.regenAuraRadius ?? 0) > 0 && (unit.regenPerSecond ?? 0) > 0);
+  if (paladins.length === 0) {
+    return;
+  }
+
+  for (const unit of state.battleUnits) {
+    for (const paladin of paladins) {
+      const distance = getDistance(unit, paladin);
+      if (distance <= paladin.regenAuraRadius) {
+        unit.health = Math.min(unit.maxHealth, unit.health + paladin.regenPerSecond * deltaSeconds);
+      }
+    }
+  }
+}
+
 function pushRangedAttackEffect(state, attacker, target, nowSeconds) {
   if (attacker.attackType !== "ranged") {
     return;
@@ -172,7 +199,11 @@ function applyFriendlyAttacks(state, nowSeconds) {
       const attackRange = getAttackRange(unit);
       if (targetDistance <= attackRange && nowSeconds - unit.lastAttackAt >= attackInterval) {
         unit.state = "engaged";
-        targetEnemy.health -= unit.attack;
+        const damage = rollAttackDamage(unit);
+        targetEnemy.health -= damage;
+        if ((unit.lifesteal ?? 0) > 0) {
+          unit.health = Math.min(unit.maxHealth, unit.health + damage * unit.lifesteal);
+        }
         unit.lastAttackAt = nowSeconds;
         markHit(targetEnemy, nowSeconds);
         pushRangedAttackEffect(state, unit, targetEnemy, nowSeconds);
@@ -191,7 +222,11 @@ function applyFriendlyAttacks(state, nowSeconds) {
       nowSeconds - unit.lastAttackAt >= attackInterval
     ) {
       unit.state = "engaged";
-      state.castle.health -= unit.attack;
+      const damage = rollAttackDamage(unit);
+      state.castle.health -= damage;
+      if ((unit.lifesteal ?? 0) > 0) {
+        unit.health = Math.min(unit.maxHealth, unit.health + damage * unit.lifesteal);
+      }
       unit.lastAttackAt = nowSeconds;
       state.castle.hitUntil = nowSeconds + 0.16;
       pushRangedAttackEffect(state, unit, state.castle, nowSeconds);
@@ -353,6 +388,7 @@ export function tickBattle(state, deltaSeconds, nowSeconds) {
 
   assignTargets(state);
   stepBattlePhysics(state, deltaSeconds);
+  applyPaladinAuras(state, deltaSeconds);
   applyFriendlyAttacks(state, nowSeconds);
   applyEnemyAttacks(state, nowSeconds);
   cleanupDefeated(state);
