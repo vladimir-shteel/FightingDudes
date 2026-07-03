@@ -24,7 +24,7 @@ import {
   upgradeMine
 } from "./systems/mineSystem.js";
 import { sendBridgeheadToBattle, stageUnitOnBridgehead } from "./systems/garrisonSystem.js";
-import { getBattleSummary } from "./systems/battleSystem.js";
+import { forceSpawnNextWave, getBattleSummary } from "./systems/battleSystem.js";
 
 function getResourceIconMarkup(resourceKey, extraClass = "") {
   const icon = getResourceIcon(resourceKey);
@@ -213,6 +213,8 @@ export function mountUI(state, onStateChanged) {
     selectedUnitValue: document.querySelector("#selectedUnitValue"),
     selectedUnitHint: document.querySelector("#selectedUnitHint"),
     waveValue: document.querySelector("#waveValue"),
+    speedControls: document.querySelector("#speedControls"),
+    skipCooldownButton: document.querySelector("#skipCooldownButton"),
     battleSummary: document.querySelector("#battleSummary"),
     battleTimer: document.querySelector("#battleTimer"),
     castleHealth: document.querySelector("#castleHealth"),
@@ -285,6 +287,21 @@ export function mountUI(state, onStateChanged) {
 
   elements.weaponSelect.value = state.ui.selectedWeaponKey;
   elements.armorSelect.value = state.ui.selectedArmorKey;
+
+  elements.speedControls.innerHTML = "";
+  for (const multiplier of CONFIG.speedControls.multipliers ?? [1]) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "speed-button";
+    button.dataset.speedMultiplier = String(multiplier);
+    button.textContent = `${multiplier}x`;
+    button.addEventListener("click", () => {
+      state.ui.gameSpeedMultiplier = multiplier;
+      state.battle.log = `Game speed set to ${multiplier}x.`;
+      onStateChanged();
+    });
+    elements.speedControls.append(button);
+  }
 
   const mineProgressCache = new Map();
 
@@ -431,6 +448,12 @@ export function mountUI(state, onStateChanged) {
 
   elements.sendBridgeheadButton.addEventListener("click", () => {
     const result = sendBridgeheadToBattle(state);
+    state.battle.log = result.reason;
+    onStateChanged();
+  });
+
+  elements.skipCooldownButton.addEventListener("click", () => {
+    const result = forceSpawnNextWave(state);
     state.battle.log = result.reason;
     onStateChanged();
   });
@@ -784,6 +807,18 @@ export function mountUI(state, onStateChanged) {
     } else {
       elements.battleTimer.textContent = "Next wave: -";
     }
+
+    for (const button of elements.speedControls.querySelectorAll(".speed-button")) {
+      button.dataset.active = Number(button.dataset.speedMultiplier) === (state.ui.gameSpeedMultiplier ?? 1)
+        ? "true"
+        : "false";
+    }
+
+    elements.skipCooldownButton.disabled =
+      state.battle.status !== "cooldown" ||
+      state.battleUnits.length === 0 ||
+      state.battle.nextWaveIndex >= CONFIG.waves.length ||
+      state.game.isOver;
   }
 
   function renderSelectedUnitMeta() {

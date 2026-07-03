@@ -14,10 +14,11 @@ async function bootstrap() {
 
   function gameLoop(timestamp) {
     const deltaSeconds = Math.min((timestamp - previousTimestamp) / 1000, 0.25);
+    const scaledDeltaSeconds = deltaSeconds * (state.ui.gameSpeedMultiplier ?? 1);
     previousTimestamp = timestamp;
 
-    tickMineProduction(state, deltaSeconds);
-    tickBattle(state, deltaSeconds, timestamp / 1000);
+    tickMineProduction(state, scaledDeltaSeconds);
+    tickBattle(state, scaledDeltaSeconds, timestamp / 1000);
     ui.renderFrame();
 
     window.setTimeout(() => {

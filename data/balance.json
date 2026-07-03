@@ -8,6 +8,10 @@
   "startingOre": 0,
   "unitBuyBaseCost": 16,
   "unitBuyExponent": 1.22,
+  "speedControls": {
+    "defaultMultiplier": 1,
+    "multipliers": [1, 2, 4]
+  },
   "battle": {
     "waveCooldownSeconds": 12,
     "fieldWidth": 100,

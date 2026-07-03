@@ -18,6 +18,7 @@ export function createInitialState() {
     ui: {
       selectedWeaponKey: Object.keys(CONFIG.equipment.weapons ?? {})[0] ?? "sword",
       selectedArmorKey: Object.keys(CONFIG.equipment.armors ?? {})[0] ?? "none",
+      gameSpeedMultiplier: CONFIG.speedControls.defaultMultiplier ?? 1,
       selectedUnitId: null,
       dragUnitId: null,
       handledResourceBurstIds: [],

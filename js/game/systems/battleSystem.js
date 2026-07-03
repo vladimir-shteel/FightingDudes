@@ -316,6 +316,29 @@ export function spawnNextWave(state) {
   return didSpawn;
 }
 
+export function forceSpawnNextWave(state) {
+  if (state.game.isOver) {
+    return { ok: false, reason: "Run is already complete." };
+  }
+
+  if (state.battle.status !== "cooldown") {
+    return { ok: false, reason: "Cooldown can only be skipped while the next wave is preparing." };
+  }
+
+  if (state.battleUnits.length === 0) {
+    return { ok: false, reason: "Deploy at least one unit before calling the next wave." };
+  }
+
+  const didSpawn = spawnNextWave(state);
+  if (!didSpawn) {
+    return { ok: false, reason: "No more waves to spawn." };
+  }
+
+  state.battle.waveCooldownRemaining = 0;
+  state.battle.log = `Cooldown skipped. Wave ${state.battle.activeWaveIndex + 1} is attacking.`;
+  return { ok: true, reason: state.battle.log };
+}
+
 export function tickBattle(state, deltaSeconds, nowSeconds) {
   initBattlePhysics();
 

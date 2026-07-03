@@ -5,6 +5,10 @@ export const CONFIG = {
   startingOre: 0,
   unitBuyBaseCost: 0,
   unitBuyExponent: 1,
+  speedControls: {
+    defaultMultiplier: 1,
+    multipliers: [1]
+  },
   battle: {
     waveCooldownSeconds: 0
   },

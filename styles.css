@@ -229,6 +229,36 @@ h3 {
   line-height: 1;
 }
 
+.speed-chip {
+  min-width: 124px;
+}
+
+.speed-controls {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.speed-button {
+  border: 1px solid rgba(120, 57, 28, 0.2);
+  background: rgba(255, 255, 255, 0.42);
+  color: var(--text);
+  font-size: 0.76rem;
+  font-weight: 900;
+  padding: 4px 5px;
+  cursor: pointer;
+}
+
+.speed-button[data-active="true"] {
+  background: rgba(115, 219, 164, 0.26);
+  color: var(--accent-strong);
+}
+
+.skip-cooldown-button {
+  align-self: stretch;
+  min-height: 54px;
+}
+
 .resource-chip[data-resource-chip="gold"] {
   background: linear-gradient(180deg, #fff7c7 0%, #ffe38b 100%);
 }
