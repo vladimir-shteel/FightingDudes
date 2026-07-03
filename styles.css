@@ -614,6 +614,105 @@ h3 {
   --world-phase-tint: linear-gradient(180deg, rgba(77, 98, 118, 0.28), rgba(35, 52, 67, 0.22));
 }
 
+.world-phase-badge {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  z-index: 6;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border: 2px solid rgba(115, 63, 28, 0.28);
+  border-radius: 999px;
+  background: rgba(255, 248, 229, 0.9);
+  color: var(--text);
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  box-shadow: 0 4px 0 rgba(101, 56, 24, 0.14);
+  pointer-events: none;
+}
+
+.world-phase-icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.world-phase-badge[data-world-phase="night"] {
+  background: rgba(30, 40, 80, 0.85);
+  color: #fff5d6;
+  border-color: rgba(180, 200, 255, 0.35);
+}
+
+.world-phase-badge[data-world-phase="storm"] {
+  background: rgba(55, 70, 88, 0.9);
+  color: #fff5d6;
+  border-color: rgba(200, 215, 230, 0.32);
+}
+
+.world-phase-badge[data-world-phase="dusk"] {
+  background: linear-gradient(180deg, #ffb173, #e07c48);
+  color: #4a1d0a;
+  border-color: rgba(120, 45, 12, 0.35);
+}
+
+.world-phase-badge[data-world-phase="night"] .world-phase-icon,
+.world-phase-badge[data-world-phase="storm"] .world-phase-icon {
+  filter: drop-shadow(0 1px 2px rgba(255, 255, 255, 0.3));
+}
+
+.storm-fx {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 4;
+}
+
+.storm-fx-cloud {
+  position: absolute;
+  top: var(--top, 6%);
+  left: -12%;
+  font-size: 30px;
+  filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.4));
+  animation: storm-cloud-drift var(--duration, 20s) var(--delay, 0s) linear infinite;
+}
+
+@keyframes storm-cloud-drift {
+  from { transform: translateX(0); }
+  to { transform: translateX(130vw); }
+}
+
+.storm-fx-drop {
+  position: absolute;
+  top: -14px;
+  left: var(--x, 50%);
+  width: 2px;
+  height: 14px;
+  background: linear-gradient(180deg, rgba(180, 220, 255, 0.9), rgba(120, 180, 240, 0.2));
+  border-radius: 2px;
+  animation: storm-drop-fall 1.1s var(--delay, 0s) linear infinite;
+  will-change: transform, opacity;
+}
+
+@keyframes storm-drop-fall {
+  0% { transform: translateY(0); opacity: 0; }
+  10% { opacity: 1; }
+  100% { transform: translateY(520px); opacity: 0; }
+}
+
+@media (max-width: 720px) {
+  .storm-fx-cloud {
+    font-size: 22px;
+  }
+  @keyframes storm-drop-fall {
+    0% { transform: translateY(0); opacity: 0; }
+    10% { opacity: 1; }
+    100% { transform: translateY(300px); opacity: 0; }
+  }
+}
+
 .battlefield::after {
   content: "";
   position: absolute;

@@ -2,13 +2,14 @@ import { createInitialState } from "./game/state.js";
 import { mountUI } from "./game/ui.js";
 import { tickBattle } from "./game/systems/battleSystem.js";
 import { tickMineProduction } from "./game/systems/mineSystem.js";
-import { updateWorldPhase } from "./game/systems/worldSystem.js";
+import { rollInitialWorldPhase } from "./game/systems/worldSystem.js";
 import { CONFIG, initConfig } from "./game/config.js";
 
 async function bootstrap() {
   await initConfig();
 
   const state = createInitialState();
+  rollInitialWorldPhase(state);
   const ui = mountUI(state, () => ui.render());
 
   let previousTimestamp = performance.now();
@@ -18,7 +19,6 @@ async function bootstrap() {
     previousTimestamp = timestamp;
 
     tickMineProduction(state, deltaSeconds);
-    updateWorldPhase(state);
     tickBattle(state, deltaSeconds, timestamp / 1000);
     ui.renderFrame();
 

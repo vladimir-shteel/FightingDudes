@@ -1,13 +1,29 @@
 import { CONFIG, getWorldPhaseConfig } from "../config.js";
 
-export function updateWorldPhase(state) {
-  const cycle = CONFIG.worldPhases.cycle ?? ["day"];
-  const waveNumber = Math.max(0, state.battle.activeWaveIndex ?? state.battle.nextWaveIndex ?? 0);
-  const phaseKey = cycle[waveNumber % cycle.length] ?? cycle[0] ?? "day";
+function applyPhase(state, phaseKey) {
   const phase = getWorldPhaseConfig(phaseKey);
   state.world.phase = phaseKey;
   state.world.label = phase?.label ?? phaseKey;
+  state.world.icon = phase?.icon ?? "";
   state.world.description = phase?.description ?? "";
+}
+
+function pickPhaseForWave(waveNumber) {
+  const cycle = CONFIG.worldPhases.cycle ?? ["day"];
+  const stormChance = CONFIG.worldPhases.stormChance ?? 0;
+  const base = cycle[waveNumber % cycle.length] ?? cycle[0] ?? "day";
+  if (stormChance > 0 && Math.random() < stormChance) {
+    return "storm";
+  }
+  return base;
+}
+
+export function rollInitialWorldPhase(state) {
+  applyPhase(state, pickPhaseForWave(0));
+}
+
+export function rollWorldPhaseForWave(state, waveIndex) {
+  applyPhase(state, pickPhaseForWave(Math.max(0, waveIndex)));
 }
 
 export function getWorldAttackMultiplier(state, side) {

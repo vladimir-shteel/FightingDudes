@@ -221,6 +221,9 @@ export function mountUI(state, onStateChanged) {
     bridgeheadSlots: document.querySelector("#bridgeheadSlots"),
     sendBridgeheadButton: document.querySelector("#sendBridgeheadButton"),
     battlefield: document.querySelector("#battlefield"),
+    worldPhaseBadge: document.querySelector("#worldPhaseBadge"),
+    worldPhaseIcon: document.querySelector("#worldPhaseIcon"),
+    worldPhaseLabel: document.querySelector("#worldPhaseLabel"),
     cheatPanel: document.querySelector("#cheatPanel"),
     grantResourcesButton: document.querySelector("#grantResourcesButton"),
     victoryOverlay: document.querySelector("#victoryOverlay"),
@@ -688,12 +691,50 @@ export function mountUI(state, onStateChanged) {
     }
   }
 
+  function syncStormFx() {
+    const isStorm = state.world.phase === "storm";
+    const existing = elements.battlefield.querySelector(":scope > .storm-fx");
+    if (!isStorm) {
+      existing?.remove();
+      return;
+    }
+    if (existing) return;
+
+    const storm = document.createElement("div");
+    storm.className = "storm-fx";
+    storm.setAttribute("aria-hidden", "true");
+    for (let c = 0; c < 3; c += 1) {
+      const cloud = document.createElement("span");
+      cloud.className = "storm-fx-cloud";
+      cloud.textContent = c % 2 === 0 ? "☁️" : "🌧️";
+      cloud.style.setProperty("--top", `${4 + c * 14}%`);
+      cloud.style.setProperty("--delay", `${(-c * 5).toFixed(2)}s`);
+      cloud.style.setProperty("--duration", `${18 + c * 4}s`);
+      storm.append(cloud);
+    }
+    for (let i = 0; i < 32; i += 1) {
+      const drop = document.createElement("span");
+      drop.className = "storm-fx-drop";
+      drop.style.setProperty("--x", `${(i * 3.2).toFixed(1)}%`);
+      drop.style.setProperty("--delay", `${(i * 0.08).toFixed(2)}s`);
+      storm.append(drop);
+    }
+    elements.battlefield.append(storm);
+  }
+
   function renderBattle() {
     const castleRatio = state.castle.health / state.castle.maxHealth;
     elements.castleHealth.textContent = `${formatNumber(state.castle.health)}/${formatNumber(state.castle.maxHealth)}`;
     elements.castleHealthBar.style.width = `${castleRatio * 100}%`;
     elements.battleLog.textContent = state.battle.log;
     elements.battlefield.dataset.worldPhase = state.world.phase;
+    if (elements.worldPhaseIcon) {
+      elements.worldPhaseIcon.textContent = state.world.icon ?? "";
+      elements.worldPhaseLabel.textContent = state.world.label ?? "";
+      elements.worldPhaseBadge.dataset.worldPhase = state.world.phase;
+      elements.worldPhaseBadge.title = state.world.description ?? state.world.label ?? "";
+    }
+    syncStormFx();
     elements.castleSprite.classList.toggle("is-hit", (state.castle.hitUntil ?? 0) > performance.now() / 1000);
 
     elements.battleUnits.innerHTML = "";
@@ -773,9 +814,9 @@ export function mountUI(state, onStateChanged) {
       `${summary.friendlyCount} allies | ${state.bridgeheadUnits.length} staged | ${summary.enemyCount} enemies | power ${Math.round(summary.squadPower)}`;
 
     if (state.battle.status === "cooldown" && !state.game.isOver) {
-      elements.battleTimer.textContent = `${state.world.label} | Next wave: ${Math.ceil(state.battle.waveCooldownRemaining)}s`;
+      elements.battleTimer.textContent = `Next wave: ${Math.ceil(state.battle.waveCooldownRemaining)}s`;
     } else if (state.battle.status === "fighting") {
-      elements.battleTimer.textContent = `${state.world.label} | Wave in progress`;
+      elements.battleTimer.textContent = "Wave in progress";
     } else if (state.battle.status === "retreating") {
       elements.battleTimer.textContent = "Wave retreating";
     } else if (state.battle.status === "siege") {
@@ -783,7 +824,7 @@ export function mountUI(state, onStateChanged) {
     } else if (state.game.isOver) {
       elements.battleTimer.textContent = "Run complete";
     } else {
-      elements.battleTimer.textContent = `${state.world.label} | Next wave: -`;
+      elements.battleTimer.textContent = "Next wave: -";
     }
   }
 
