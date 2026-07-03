@@ -3,33 +3,86 @@
   "events": [
     {
       "key": "festival",
+      "type": "festival",
       "label": "Festival",
-      "description": "Mines work harder until the next wave.",
+      "description": "Fireworks and dance — every mine +50% until the next wave.",
       "weight": 3,
-      "durationSeconds": 45,
-      "mineProductionMultiplier": 1.5
-    },
-    {
-      "key": "merchant",
-      "label": "Wandering Merchant",
-      "description": "A trader leaves a small gold advance.",
-      "weight": 2,
-      "resourceGrant": { "gold": 35 }
-    },
-    {
-      "key": "prospectors",
-      "label": "Prospectors",
-      "description": "Scouts share spare ore and wood.",
-      "weight": 2,
-      "resourceGrant": { "ore": 20, "wood": 20 }
+      "mineProductionMultiplier": 1.5,
+      "persistsUntilNextWave": true,
+      "icon": "🎆"
     },
     {
       "key": "mine_collapse",
+      "type": "collapse",
       "label": "Mine Collapse",
-      "description": "Production slows down for a short time.",
+      "description": "A shaft caved in — one slot is buried for a minute.",
       "weight": 2,
-      "durationSeconds": 35,
-      "mineProductionMultiplier": 0.75
+      "durationSeconds": 60,
+      "mineProductionMultiplier": 0.75,
+      "icon": "🪨"
+    },
+    {
+      "key": "prospectors",
+      "type": "grant",
+      "label": "Prospectors",
+      "description": "Scouts hauled a stash. Tap to collect.",
+      "weight": 2,
+      "resourceGrant": { "ore": 45, "wood": 45 },
+      "icon": "⛏️"
+    },
+    {
+      "key": "harvest",
+      "type": "grant",
+      "label": "Harvest",
+      "description": "Wagons of lumber. Tap to collect.",
+      "weight": 2,
+      "resourceGrant": { "wood": 80 },
+      "icon": "🌾"
+    },
+    {
+      "key": "stone_caravan",
+      "type": "grant",
+      "label": "Stone Caravan",
+      "description": "Ore and iron delivery. Tap to collect.",
+      "weight": 2,
+      "resourceGrant": { "ore": 60, "iron": 16 },
+      "icon": "🐫"
+    },
+    {
+      "key": "bad_weather",
+      "type": "debuff",
+      "label": "Bad Weather",
+      "description": "Rain slows every mine.",
+      "weight": 2,
+      "durationSeconds": 25,
+      "mineProductionMultiplier": 0.9,
+      "icon": "🌧️"
+    },
+    {
+      "key": "merchant",
+      "type": "merchant",
+      "label": "Wandering Merchant",
+      "description": "Sells resources for gold. Leaves when the next wave starts.",
+      "weight": 4,
+      "icon": "🛒",
+      "wares": [
+        { "resourceKey": "ore", "amount": 15, "goldCost": 40 },
+        { "resourceKey": "wood", "amount": 15, "goldCost": 40 },
+        { "resourceKey": "crystal", "amount": 8, "goldCost": 60 },
+        { "resourceKey": "iron", "amount": 8, "goldCost": 80 }
+      ]
+    },
+    {
+      "key": "mercenary",
+      "type": "mercenary",
+      "label": "Wandering Mercenary",
+      "description": "Hires straight to the bridgehead.",
+      "weight": 3,
+      "icon": "🗡️",
+      "offers": [
+        { "level": 2, "weaponKey": "sword", "armorKey": "leather", "goldCost": 90 },
+        { "level": 3, "weaponKey": "bow", "armorKey": "leather", "goldCost": 180 }
+      ]
     }
   ]
 }

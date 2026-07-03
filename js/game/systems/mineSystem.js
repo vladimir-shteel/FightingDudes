@@ -2,7 +2,7 @@ import { CONFIG, getMineLevelData, getMineMaxLevel } from "../config.js";
 import { clamp } from "../utils.js";
 import { createReserveUnit } from "../factories.js";
 import { removeUnitFromReserve, returnUnitToReserve } from "./reserveSystem.js";
-import { getMineProductionMultiplier } from "./eventsSystem.js";
+import { getMineProductionMultiplier, isMineSlotDisabledByEvent } from "./eventsSystem.js";
 
 export function getMineUpgradeCost(mine) {
   const nextLevelData = getMineLevelData(mine.level + 1);
@@ -218,13 +218,14 @@ export function mergeReserveUnitIntoMineUnit(state, reserveUnitId, mineId, slotI
 export function tickMineProduction(state, deltaSeconds) {
   const passivePerMine = CONFIG.passiveGoldPerSecondPerUnlockedMine ?? 0;
   const passiveInterval = Math.max(0.001, CONFIG.passiveGoldPayoutIntervalSeconds ?? 1);
-  const eventMultiplier = getMineProductionMultiplier(state);
 
   for (const mine of state.mines) {
     if (!mine.isUnlocked) {
       mine.passiveProgress = 0;
       continue;
     }
+
+    const eventMultiplier = getMineProductionMultiplier(state, mine.id);
 
     if (passivePerMine > 0) {
       mine.passiveProgress = (mine.passiveProgress ?? 0) + deltaSeconds;
@@ -255,6 +256,10 @@ export function tickMineProduction(state, deltaSeconds) {
       const worker = mine.workerIds[index];
       if (!worker) {
         mine.workerProgress[index] = 0;
+        continue;
+      }
+
+      if (isMineSlotDisabledByEvent(state, mine.id, index)) {
         continue;
       }
 

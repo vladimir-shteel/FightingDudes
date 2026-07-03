@@ -9,7 +9,7 @@
   "unitBuyBaseCost": 16,
   "unitBuyExponent": 1.22,
   "battle": {
-    "waveCooldownSeconds": 12,
+    "waveCooldownSeconds": 25,
     "fieldWidth": 100,
     "fieldHeight": 30,
     "allySpawnX": 8,

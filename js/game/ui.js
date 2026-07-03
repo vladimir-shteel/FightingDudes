@@ -25,6 +25,17 @@ import {
 } from "./systems/mineSystem.js";
 import { sendBridgeheadToBattle, stageUnitOnBridgehead } from "./systems/garrisonSystem.js";
 import { getBattleSummary } from "./systems/battleSystem.js";
+import {
+  claimGrantEvent,
+  getActiveGrants,
+  getActiveMerchant,
+  getActiveMercenary,
+  getMineVisualEffects,
+  hireMercenaryOffer,
+  isMineSlotDisabledByEvent,
+  purchaseMerchantWare,
+  triggerEventByKey
+} from "./systems/eventsSystem.js";
 
 function getResourceIconMarkup(resourceKey, extraClass = "") {
   const icon = getResourceIcon(resourceKey);
@@ -153,7 +164,10 @@ function playResourceBurst(elements, burst) {
   let startX;
   let startY;
 
-  if (burst.battlefield && elements.battlefield) {
+  if (burst.origin) {
+    startX = burst.origin.x;
+    startY = burst.origin.y;
+  } else if (burst.battlefield && elements.battlefield) {
     const fieldRect = elements.battlefield.getBoundingClientRect();
     const px = fieldRect.left + (burst.battlefield.x / CONFIG.battle.fieldWidth) * fieldRect.width;
     const py = fieldRect.top + (burst.battlefield.y / CONFIG.battle.fieldHeight) * fieldRect.height;
@@ -229,6 +243,7 @@ export function mountUI(state, onStateChanged) {
     reservePanel: document.querySelector(".reserve-panel"),
     reserveZone: document.querySelector("#reserveZone"),
     minesGrid: document.querySelector("#minesGrid"),
+    minesPanel: document.querySelector(".mines-panel"),
     enemyUnits: document.querySelector("#enemyUnits"),
     battleUnits: document.querySelector("#battleUnits"),
     garrisonDropzone: document.querySelector("#garrisonDropzone"),
@@ -286,11 +301,84 @@ export function mountUI(state, onStateChanged) {
   elements.weaponSelect.value = state.ui.selectedWeaponKey;
   elements.armorSelect.value = state.ui.selectedArmorKey;
 
+  const eventRow = document.createElement("div");
+  eventRow.className = "event-row";
   const eventPanel = document.createElement("div");
   eventPanel.className = "event-panel";
-  elements.battleLog.insertAdjacentElement("afterend", eventPanel);
+  const visitorSlots = document.createElement("div");
+  visitorSlots.className = "visitor-slots";
+  visitorSlots.hidden = true;
+  eventRow.append(eventPanel, visitorSlots);
+  elements.battleLog.insertAdjacentElement("afterend", eventRow);
+  elements.visitorSlots = visitorSlots;
+  let lastVisitorSignature = "";
+
+  const eventToastLayer = document.createElement("div");
+  eventToastLayer.className = "event-toast-layer";
+  eventToastLayer.setAttribute("aria-live", "polite");
+  document.body.append(eventToastLayer);
+  elements.eventToastLayer = eventToastLayer;
+  let lastToastId = null;
+
+  // Cheat: force-fire an event by key.
+  const cheatEventWrap = document.createElement("div");
+  cheatEventWrap.className = "cheat-event-wrap";
+  const cheatEventSelect = document.createElement("select");
+  cheatEventSelect.className = "gear-select cheat-event-select";
+  for (const definition of CONFIG.events.events ?? []) {
+    const option = document.createElement("option");
+    option.value = definition.key;
+    option.textContent = `${definition.icon ?? "•"} ${definition.label}`;
+    cheatEventSelect.append(option);
+  }
+  const cheatEventButton = document.createElement("button");
+  cheatEventButton.type = "button";
+  cheatEventButton.className = "secondary-button";
+  cheatEventButton.textContent = "Trigger event";
+  cheatEventButton.addEventListener("click", () => {
+    const key = cheatEventSelect.value;
+    triggerEventByKey(state, key, performance.now() / 1000);
+    onStateChanged();
+  });
+  cheatEventWrap.append(cheatEventSelect, cheatEventButton);
+  elements.cheatPanel.append(cheatEventWrap);
+
+  const offerPopover = document.createElement("div");
+  offerPopover.className = "offer-popover";
+  offerPopover.hidden = true;
+  offerPopover.addEventListener("click", (event) => {
+    event.stopPropagation();
+  });
+  document.body.append(offerPopover);
+  elements.offerPopover = offerPopover;
+
+  state.ui.openOfferEventId = state.ui.openOfferEventId ?? null;
+
+  document.addEventListener("click", (event) => {
+    if (!state.ui.openOfferEventId) {
+      return;
+    }
+    if (offerPopover.contains(event.target) || visitorSlots.contains(event.target)) {
+      return;
+    }
+    state.ui.openOfferEventId = null;
+    onStateChanged();
+  });
+
+  window.addEventListener("resize", () => {
+    if (state.ui.openOfferEventId) {
+      onStateChanged();
+    }
+  });
 
   const mineProgressCache = new Map();
+  let lastEventsSignature = "";
+
+  function getEventsSignature() {
+    return (state.activeEvents ?? [])
+      .map((event) => `${event.id}:${event.targetMineId ?? "-"}:${event.disabledSlotIndex ?? "-"}`)
+      .join("|");
+  }
 
   function getSelectedUnitContext() {
     const selectedUnitId = state.ui.selectedUnitId;
@@ -518,6 +606,101 @@ export function mountUI(state, onStateChanged) {
     elements.reservePanel.classList.toggle("actionable-target", selected?.source === "mine");
   }
 
+  function appendMineEffects(card, mine) {
+    if (!mine.isUnlocked) {
+      card.classList.remove("is-collapsing");
+      return;
+    }
+    const effects = getMineVisualEffects(state, mine.id);
+    const hasCollapse = effects.some((effect) => effect.kind === "collapse");
+    card.classList.toggle("is-collapsing", hasCollapse);
+
+    if (hasCollapse) {
+      const collapse = document.createElement("div");
+      collapse.className = "mine-fx mine-fx-collapse";
+      collapse.setAttribute("aria-hidden", "true");
+      const glyphs = ["🪨", "🪨", "💨", "🪨", "💨"];
+      for (let i = 0; i < 5; i += 1) {
+        const rock = document.createElement("span");
+        rock.className = "mine-fx-rock";
+        rock.textContent = glyphs[i % glyphs.length];
+        rock.style.setProperty("--x", `${15 + (i * 17)}%`);
+        rock.style.setProperty("--delay", `${(i * 0.4).toFixed(2)}s`);
+        rock.style.setProperty("--drift", `${((i % 2 === 0 ? -1 : 1) * (8 + i * 3))}px`);
+        collapse.append(rock);
+      }
+      card.append(collapse);
+    }
+  }
+
+  function renderMinesZoneEffects() {
+    const panel = elements.minesPanel;
+    if (!panel) return;
+    const hasFestival = state.activeEvents.some((event) => event.type === "festival");
+    const hasStorm = state.activeEvents.some((event) => event.key === "bad_weather");
+    panel.classList.toggle("is-festive", hasFestival);
+    panel.classList.toggle("is-stormy", hasStorm);
+
+    let overlay = panel.querySelector(":scope > .mines-zone-fx");
+    const needsOverlay = hasFestival || hasStorm;
+    if (!needsOverlay) {
+      overlay?.remove();
+      return;
+    }
+
+    if (!overlay) {
+      overlay = document.createElement("div");
+      overlay.className = "mines-zone-fx";
+      overlay.setAttribute("aria-hidden", "true");
+      panel.append(overlay);
+    }
+
+    const currentState = `${hasFestival ? "F" : ""}${hasStorm ? "S" : ""}`;
+    if (overlay.dataset.state === currentState) {
+      return;
+    }
+    overlay.dataset.state = currentState;
+    overlay.innerHTML = "";
+
+    if (hasFestival) {
+      const fireworks = document.createElement("div");
+      fireworks.className = "zone-fx zone-fx-fireworks";
+      const glyphs = ["🎆", "✨", "🎇", "🎉", "⭐"];
+      for (let i = 0; i < 14; i += 1) {
+        const spark = document.createElement("span");
+        spark.className = "zone-fx-spark";
+        spark.textContent = glyphs[i % glyphs.length];
+        spark.style.setProperty("--x", `${4 + (i * 7)}%`);
+        spark.style.setProperty("--delay", `${(i * 0.28).toFixed(2)}s`);
+        spark.style.setProperty("--scale", `${(0.85 + (i % 3) * 0.2).toFixed(2)}`);
+        fireworks.append(spark);
+      }
+      overlay.append(fireworks);
+    }
+
+    if (hasStorm) {
+      const storm = document.createElement("div");
+      storm.className = "zone-fx zone-fx-storm";
+      for (let c = 0; c < 4; c += 1) {
+        const cloud = document.createElement("span");
+        cloud.className = "zone-fx-cloud";
+        cloud.textContent = c % 2 === 0 ? "☁️" : "🌧️";
+        cloud.style.setProperty("--top", `${4 + c * 12}%`);
+        cloud.style.setProperty("--delay", `${(-c * 4).toFixed(2)}s`);
+        cloud.style.setProperty("--duration", `${16 + c * 3}s`);
+        storm.append(cloud);
+      }
+      for (let i = 0; i < 24; i += 1) {
+        const drop = document.createElement("span");
+        drop.className = "zone-fx-drop";
+        drop.style.setProperty("--x", `${(i * 4.2).toFixed(1)}%`);
+        drop.style.setProperty("--delay", `${(i * 0.11).toFixed(2)}s`);
+        storm.append(drop);
+      }
+      overlay.append(storm);
+    }
+  }
+
   function renderMines() {
     elements.minesGrid.innerHTML = "";
     const selected = getSelectedUnitContext();
@@ -582,7 +765,8 @@ export function mountUI(state, onStateChanged) {
       for (let index = 0; index < getMineMaxLevel(); index += 1) {
         const slot = document.createElement("div");
         const isOpen = index < openSlots;
-        slot.className = `slot ${isOpen ? "is-open" : "is-locked"}`;
+        const isCollapsedSlot = mine.isUnlocked && isMineSlotDisabledByEvent(state, mine.id, index);
+        slot.className = `slot ${isOpen ? "is-open" : "is-locked"}${isCollapsedSlot ? " is-collapsed" : ""}`;
         slot.dataset.mineSlot = `${mine.id}:${index}`;
 
         const slotMultiplier = slotMultipliers[index] ?? 1;
@@ -615,7 +799,7 @@ export function mountUI(state, onStateChanged) {
           });
         } else {
           const slotShell = document.createElement("div");
-          slotShell.className = "slot slot-filled is-open";
+          slotShell.className = `slot slot-filled is-open${isCollapsedSlot ? " is-collapsed" : ""}`;
           slotShell.dataset.mineSlot = `${mine.id}:${index}`;
           if (slotBadge) {
             slotShell.insertAdjacentHTML("afterbegin", slotBadge);
@@ -682,6 +866,7 @@ export function mountUI(state, onStateChanged) {
       }
 
       card.append(slots);
+      appendMineEffects(card, mine);
       card.querySelector(`[data-upgrade-mine="${mine.id}"]`).addEventListener("click", () => {
         const result = mine.isUnlocked ? upgradeMine(state, mine.id) : unlockMine(state, mine.id);
         state.battle.log = result.reason;
@@ -789,7 +974,9 @@ export function mountUI(state, onStateChanged) {
       elements.battleTimer.textContent = "Next wave: -";
     }
 
-    const activeEvents = state.activeEvents ?? [];
+    const activeEvents = (state.activeEvents ?? []).filter(
+      (event) => event.type !== "merchant" && event.type !== "mercenary"
+    );
     eventPanel.innerHTML = activeEvents.length > 0
       ? activeEvents.map((event) => `<span class="event-chip">${event.label}</span>`).join("")
       : (state.eventHistory?.[0]
@@ -993,13 +1180,306 @@ export function mountUI(state, onStateChanged) {
     document.body.classList.toggle("state-win", state.game.result === "win");
   }
 
+  function renderVisitorSlots() {
+    const grants = getActiveGrants(state);
+    const merchant = getActiveMerchant(state);
+    const mercenary = getActiveMercenary(state);
+    const visitors = [...grants, merchant, mercenary].filter(Boolean);
+    const container = elements.visitorSlots;
+
+    if (visitors.length === 0) {
+      if (lastVisitorSignature !== "") {
+        container.innerHTML = "";
+        container.hidden = true;
+        lastVisitorSignature = "";
+      }
+      if (state.ui.openOfferEventId) {
+        state.ui.openOfferEventId = null;
+      }
+      renderOfferPopover();
+      return;
+    }
+
+    const signature = visitors
+      .map((visitor) => `${visitor.id}:${state.ui.openOfferEventId === visitor.id ? "open" : "closed"}`)
+      .join("|");
+    if (signature !== lastVisitorSignature) {
+      lastVisitorSignature = signature;
+      container.hidden = false;
+      container.innerHTML = "";
+      for (const visitor of visitors) {
+        const slot = document.createElement("button");
+        slot.type = "button";
+        slot.className = `visitor-slot visitor-${visitor.type}`;
+        slot.dataset.visitorType = visitor.type;
+        slot.dataset.eventId = visitor.id;
+        slot.classList.toggle("is-open", state.ui.openOfferEventId === visitor.id);
+
+        if (visitor.type === "grant") {
+          const grantSummary = Object.entries(visitor.resourceGrant ?? {})
+            .map(([key, amount]) =>
+              `<span class="visitor-grant-pair">+${amount}${getResourceIconMarkup(key, "visitor-grant-icon")}</span>`
+            )
+            .join("");
+          slot.innerHTML = `
+            <span class="visitor-icon">${visitor.icon ?? "🎁"}</span>
+            <span class="visitor-label">${visitor.label}</span>
+            <span class="visitor-grant-summary">${grantSummary}</span>
+          `;
+          slot.addEventListener("click", (event) => {
+            event.stopPropagation();
+            const rect = slot.getBoundingClientRect();
+            const payouts = Object.entries(visitor.resourceGrant ?? {})
+              .map(([resourceKey, amount]) => ({ resourceKey, amount }));
+            const result = claimGrantEvent(state, visitor.id);
+            if (result.ok && payouts.length > 0) {
+              state.resourceBursts.push({
+                id: `grant-${visitor.id}-${Date.now()}`,
+                mineId: null,
+                slotIndex: -1,
+                origin: { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 },
+                payouts
+              });
+            }
+            onStateChanged();
+          });
+        } else {
+          slot.innerHTML = `
+            <span class="visitor-icon">${visitor.icon ?? "❓"}</span>
+            <span class="visitor-label">${visitor.label}</span>
+          `;
+          slot.addEventListener("click", (event) => {
+            event.stopPropagation();
+            state.ui.openOfferEventId =
+              state.ui.openOfferEventId === visitor.id ? null : visitor.id;
+            onStateChanged();
+          });
+        }
+        container.append(slot);
+      }
+    }
+
+    renderOfferPopover();
+  }
+
+  function flushEventNotifications() {
+    const notification = state.ui.pendingNotification;
+    if (!notification || notification.id === lastToastId) {
+      return;
+    }
+    lastToastId = notification.id;
+
+    const toast = document.createElement("div");
+    toast.className = `event-toast event-toast-${notification.tone ?? "good"}`;
+    toast.innerHTML = `
+      <span class="event-toast-icon">${notification.icon}</span>
+      <div class="event-toast-body">
+        <div class="event-toast-title">${notification.label}</div>
+        <div class="event-toast-desc">${notification.description}</div>
+      </div>
+    `;
+    elements.eventToastLayer.append(toast);
+    window.setTimeout(() => toast.classList.add("is-leaving"), 3200);
+    window.setTimeout(() => toast.remove(), 3900);
+  }
+
+  function computeOfferSignature(visitor) {
+    if (!visitor) return "";
+    if (visitor.type === "merchant") {
+      const gold = state.resources.gold ?? 0;
+      const rows = visitor.wares
+        .map((ware) =>
+          `${ware.index}:${ware.purchased ? 1 : 0}:${gold >= ware.goldCost ? 1 : 0}`
+        )
+        .join(",");
+      return `${visitor.id}|merchant|${rows}`;
+    }
+    if (visitor.type === "mercenary") {
+      const gold = state.resources.gold ?? 0;
+      const full =
+        state.bridgeheadUnits.length >= (CONFIG.bridgehead?.maxSlots ?? 8) ? 1 : 0;
+      const rows = visitor.offers
+        .map((offer) =>
+          `${offer.index}:${offer.purchased ? 1 : 0}:${gold >= offer.goldCost ? 1 : 0}`
+        )
+        .join(",");
+      return `${visitor.id}|mercenary|${full}|${rows}`;
+    }
+    return visitor.id;
+  }
+
+  function renderOfferPopover() {
+    const popover = elements.offerPopover;
+    const eventId = state.ui.openOfferEventId;
+    const visitor = eventId
+      ? state.activeEvents.find((event) => event.id === eventId)
+      : null;
+
+    if (!visitor) {
+      if (!popover.hidden) {
+        popover.hidden = true;
+        popover.innerHTML = "";
+        popover.dataset.eventId = "";
+        popover.dataset.signature = "";
+      }
+      return;
+    }
+
+    const anchor = elements.visitorSlots.querySelector(
+      `.visitor-slot[data-event-id="${eventId}"]`
+    );
+    if (!anchor) {
+      popover.hidden = true;
+      return;
+    }
+
+    const signature = computeOfferSignature(visitor);
+    const shouldRebuild = popover.dataset.signature !== signature;
+    if (!shouldRebuild) {
+      popover.hidden = false;
+      positionOfferPopover(anchor);
+      return;
+    }
+    popover.dataset.signature = signature;
+    popover.innerHTML = "";
+    const header = document.createElement("div");
+    header.className = "offer-popover-header";
+    header.innerHTML = `
+      <span class="offer-popover-icon">${visitor.icon ?? "❓"}</span>
+      <div>
+        <div class="offer-popover-title">${visitor.label}</div>
+        <div class="offer-popover-subtitle">${visitor.description}</div>
+      </div>
+    `;
+    popover.append(header);
+
+    const list = document.createElement("div");
+    list.className = "offer-popover-list";
+
+    if (visitor.type === "merchant") {
+      for (const ware of visitor.wares) {
+        const row = document.createElement("button");
+        row.type = "button";
+        row.className = "offer-row";
+        const canAfford = (state.resources.gold ?? 0) >= ware.goldCost;
+        const disabled = ware.purchased || !canAfford;
+        row.disabled = disabled;
+        row.classList.toggle("is-sold", ware.purchased);
+        row.innerHTML = `
+          <span class="offer-row-main">
+            <span class="offer-row-amount">+${ware.amount}</span>
+            ${getResourceIconMarkup(ware.resourceKey, "offer-row-resource")}
+            <span class="offer-row-name">${getResourceLabel(ware.resourceKey)}</span>
+          </span>
+          <span class="offer-row-price">
+            ${ware.purchased ? "Sold" : `${ware.goldCost}`}
+            ${ware.purchased ? "" : getResourceIconMarkup("gold", "offer-row-gold")}
+          </span>
+        `;
+        row.addEventListener("click", (event) => {
+          event.stopPropagation();
+          if (disabled) return;
+          const result = purchaseMerchantWare(state, visitor.id, ware.index);
+          if (!result.ok) {
+            state.battle.log = result.reason;
+          }
+          onStateChanged();
+        });
+        list.append(row);
+      }
+    } else if (visitor.type === "mercenary") {
+      const bridgeheadMax = CONFIG.bridgehead?.maxSlots ?? 8;
+      const bridgeheadFull = state.bridgeheadUnits.length >= bridgeheadMax;
+      for (const offer of visitor.offers) {
+        const row = document.createElement("button");
+        row.type = "button";
+        row.className = "offer-row";
+        const weapon = getWeaponConfig(offer.weaponKey);
+        const armor = getArmorConfig(offer.armorKey);
+        const canAfford = (state.resources.gold ?? 0) >= offer.goldCost;
+        const disabled = offer.purchased || !canAfford || bridgeheadFull;
+        row.disabled = disabled;
+        row.classList.toggle("is-sold", offer.purchased);
+        const gearLine = [weapon?.icon, armor?.icon].filter(Boolean).join(" ") ||
+          `${weapon?.label ?? ""} / ${armor?.label ?? ""}`;
+        row.innerHTML = `
+          <span class="offer-row-main">
+            <span class="offer-row-amount">Lv${offer.level}</span>
+            <span class="offer-row-name">${gearLine}</span>
+          </span>
+          <span class="offer-row-price">
+            ${offer.purchased ? "Hired" : `${offer.goldCost}`}
+            ${offer.purchased ? "" : getResourceIconMarkup("gold", "offer-row-gold")}
+          </span>
+        `;
+        row.addEventListener("click", (event) => {
+          event.stopPropagation();
+          if (disabled) return;
+          const result = hireMercenaryOffer(state, visitor.id, offer.index);
+          if (!result.ok) {
+            state.battle.log = result.reason;
+          }
+          onStateChanged();
+        });
+        list.append(row);
+      }
+      if (bridgeheadFull) {
+        const note = document.createElement("div");
+        note.className = "offer-popover-note";
+        note.textContent = "Bridgehead is full — free a slot to hire.";
+        list.append(note);
+      }
+    }
+
+    popover.append(list);
+    popover.dataset.eventId = eventId;
+    popover.hidden = false;
+    positionOfferPopover(anchor);
+  }
+
+  function positionOfferPopover(anchor) {
+    const popover = elements.offerPopover;
+    popover.style.visibility = "hidden";
+    popover.style.top = "0px";
+    popover.style.left = "0px";
+
+    const anchorRect = anchor.getBoundingClientRect();
+    const popRect = popover.getBoundingClientRect();
+    const viewportW = window.innerWidth || document.documentElement.clientWidth;
+    const viewportH = window.innerHeight || document.documentElement.clientHeight;
+    const margin = 8;
+
+    let placement = "top";
+    let top = anchorRect.top - popRect.height - margin;
+    if (top < margin) {
+      top = anchorRect.bottom + margin;
+      placement = "bottom";
+      if (top + popRect.height > viewportH - margin) {
+        top = Math.max(margin, viewportH - popRect.height - margin);
+      }
+    }
+    let left = anchorRect.left + anchorRect.width / 2 - popRect.width / 2;
+    left = Math.max(margin, Math.min(left, viewportW - popRect.width - margin));
+
+    const anchorX = anchorRect.left + anchorRect.width / 2 - left;
+    popover.style.setProperty("--anchor-x", `${anchorX}px`);
+    popover.dataset.placement = placement;
+    popover.style.top = `${top}px`;
+    popover.style.left = `${left}px`;
+    popover.style.visibility = "";
+  }
+
   function render() {
     renderMeta();
     renderReserve();
     renderMines();
+    lastEventsSignature = getEventsSignature();
     renderMineProgressFrame();
     renderBattle();
     renderBridgehead();
+    renderVisitorSlots();
+    renderMinesZoneEffects();
+    flushEventNotifications();
     updateSelectionTether();
     flushResourceBursts();
     flushBattleEffects();
@@ -1008,10 +1488,18 @@ export function mountUI(state, onStateChanged) {
   function renderFrame() {
     renderEconomyMeta();
     renderBattleMeta();
+    const currentSignature = getEventsSignature();
+    if (currentSignature !== lastEventsSignature) {
+      lastEventsSignature = currentSignature;
+      renderMines();
+    }
     renderMineProgressFrame();
     renderBattle();
     renderBridgehead();
     renderActionHints();
+    renderVisitorSlots();
+    renderMinesZoneEffects();
+    flushEventNotifications();
     renderVictoryState();
     updateSelectionTether();
     flushResourceBursts();

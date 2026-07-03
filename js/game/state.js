@@ -22,7 +22,8 @@ export function createInitialState() {
       dragUnitId: null,
       handledResourceBurstIds: [],
       handledBattleEffectIds: [],
-      isCheatsOpen: false
+      isCheatsOpen: false,
+      openOfferEventId: null
     },
     reserveUnits: [],
     mines: Array.from({ length: 4 }, (_, index) => createMine(index)),
