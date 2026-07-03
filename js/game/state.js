@@ -34,7 +34,7 @@ export function createInitialState() {
     merchant: {
       isActive: false,
       lastArrivalWave: 0,
-      offers: []
+      prices: {}
     },
     castle: {
       maxHealth: CONFIG.castle.maxHealth,

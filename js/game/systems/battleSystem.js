@@ -2,7 +2,7 @@ import { CONFIG } from "../config.js";
 import { createEnemy } from "../factories.js";
 import { clamp, generateId, sum } from "../utils.js";
 import { initBattlePhysics, stepBattlePhysics } from "../physics/battlePhysics.js";
-import { maybeOpenMerchant } from "./merchantSystem.js";
+import { dismissMerchant, maybeOpenMerchant } from "./merchantSystem.js";
 
 function getAttackInterval(actor) {
   return 1 / actor.attackSpeed;
@@ -294,6 +294,7 @@ function spawnWave(state, waveIndex, message) {
   state.battle.activeWaveIndex = waveIndex;
   state.battle.status = "fighting";
   state.battle.log = message;
+  dismissMerchant(state);
   return true;
 }
 

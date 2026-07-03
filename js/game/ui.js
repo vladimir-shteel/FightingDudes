@@ -25,7 +25,7 @@ import {
 } from "./systems/mineSystem.js";
 import { sendBridgeheadToBattle, stageUnitOnBridgehead } from "./systems/garrisonSystem.js";
 import { getBattleSummary } from "./systems/battleSystem.js";
-import { acceptMerchantOffer } from "./systems/merchantSystem.js";
+import { buyFromMerchant, sellToMerchant } from "./systems/merchantSystem.js";
 
 function getResourceIconMarkup(resourceKey, extraClass = "") {
   const icon = getResourceIcon(resourceKey);
@@ -140,15 +140,6 @@ function renderCostMarkup(costs) {
   `).join("");
 }
 
-function renderResourceSetMarkup(resources) {
-  return Object.entries(resources ?? {}).map(([resourceKey, amount]) => `
-    <span class="gear-cost-pill gear-cost-${resourceKey}">
-      ${getResourceIconMarkup(resourceKey, "gear-cost-icon")}
-      <span>${formatNumber(amount)}</span>
-    </span>
-  `).join("");
-}
-
 function canAffordCosts(resources, costs) {
   return Object.entries(costs ?? {}).every(([resourceKey, amount]) => (resources[resourceKey] ?? 0) >= amount);
 }
@@ -163,7 +154,10 @@ function playResourceBurst(elements, burst) {
   let startX;
   let startY;
 
-  if (burst.battlefield && elements.battlefield) {
+  if (burst.origin) {
+    startX = burst.origin.x;
+    startY = burst.origin.y;
+  } else if (burst.battlefield && elements.battlefield) {
     const fieldRect = elements.battlefield.getBoundingClientRect();
     const px = fieldRect.left + (burst.battlefield.x / CONFIG.battle.fieldWidth) * fieldRect.width;
     const py = fieldRect.top + (burst.battlefield.y / CONFIG.battle.fieldHeight) * fieldRect.height;
@@ -296,11 +290,57 @@ export function mountUI(state, onStateChanged) {
   elements.weaponSelect.value = state.ui.selectedWeaponKey;
   elements.armorSelect.value = state.ui.selectedArmorKey;
 
-  const merchantPanel = document.createElement("div");
-  merchantPanel.className = "merchant-panel";
-  elements.garrisonDropzone.insertAdjacentElement("afterend", merchantPanel);
+  const merchantChip = document.createElement("button");
+  merchantChip.type = "button";
+  merchantChip.className = "merchant-chip";
+  merchantChip.hidden = true;
+  merchantChip.innerHTML = `
+    <span class="merchant-chip-icon" aria-hidden="true">🐫</span>
+    <span class="merchant-chip-text">
+      <span class="merchant-chip-label">Caravan arrived</span>
+      <span class="merchant-chip-sub">Tap to trade</span>
+    </span>
+  `;
+  merchantChip.addEventListener("click", (event) => {
+    event.stopPropagation();
+    state.ui.isMerchantOpen = !state.ui.isMerchantOpen;
+    onStateChanged();
+  });
+  elements.garrisonDropzone.insertAdjacentElement("afterend", merchantChip);
+  elements.merchantChip = merchantChip;
+
+  const merchantPopover = document.createElement("div");
+  merchantPopover.className = "merchant-popover";
+  merchantPopover.hidden = true;
+  merchantPopover.addEventListener("click", (event) => {
+    event.stopPropagation();
+  });
+  document.body.append(merchantPopover);
+  elements.merchantPopover = merchantPopover;
+
+  state.ui.isMerchantOpen = state.ui.isMerchantOpen ?? false;
+
+  document.addEventListener("click", (event) => {
+    if (!state.ui.isMerchantOpen) return;
+    if (merchantPopover.contains(event.target) || merchantChip.contains(event.target)) return;
+    state.ui.isMerchantOpen = false;
+    onStateChanged();
+  });
+
+  const merchantToastLayer = document.createElement("div");
+  merchantToastLayer.className = "merchant-toast-layer";
+  merchantToastLayer.setAttribute("aria-live", "polite");
+  document.body.append(merchantToastLayer);
+  elements.merchantToastLayer = merchantToastLayer;
+  let lastMerchantToastId = null;
 
   const mineProgressCache = new Map();
+  let lastMerchantSignature = "";
+
+  function getMerchantSignature() {
+    if (!state.merchant.isActive) return "";
+    return `${state.merchant.lastArrivalWave}:${Object.keys(state.merchant.prices).join(",")}:${state.ui.isMerchantOpen ? "open" : "closed"}`;
+  }
 
   function getSelectedUnitContext() {
     const selectedUnitId = state.ui.selectedUnitId;
@@ -926,33 +966,182 @@ export function mountUI(state, onStateChanged) {
   }
 
   function renderMerchant() {
-    merchantPanel.hidden = !state.merchant.isActive;
-    merchantPanel.innerHTML = "";
+    const chip = elements.merchantChip;
+    const popover = elements.merchantPopover;
+
     if (!state.merchant.isActive) {
+      chip.hidden = true;
+      popover.hidden = true;
+      popover.innerHTML = "";
+      state.ui.isMerchantOpen = false;
       return;
     }
 
-    const title = document.createElement("div");
-    title.className = "merchant-title";
-    title.textContent = `Caravan - wave ${state.merchant.lastArrivalWave}`;
-    merchantPanel.append(title);
+    chip.hidden = false;
+    chip.classList.toggle("is-open", state.ui.isMerchantOpen);
 
-    for (const offer of state.merchant.offers) {
-      const button = document.createElement("button");
-      button.type = "button";
-      button.className = "merchant-offer";
-      button.innerHTML = `
-        <span>${renderResourceSetMarkup(offer.pay)}</span>
-        <strong>-></strong>
-        <span>${renderResourceSetMarkup(offer.receive)}</span>
+    if (!state.ui.isMerchantOpen) {
+      popover.hidden = true;
+      popover.innerHTML = "";
+      return;
+    }
+
+    popover.innerHTML = "";
+    const header = document.createElement("div");
+    header.className = "merchant-header";
+    header.innerHTML = `
+      <span class="merchant-header-icon" aria-hidden="true">🐫</span>
+      <div>
+        <div class="merchant-title">Caravan Merchant</div>
+        <div class="merchant-subtitle">Barter with gold. Rates leave with the next wave.</div>
+      </div>
+    `;
+    popover.append(header);
+
+    const grid = document.createElement("div");
+    grid.className = "merchant-grid";
+
+    const gold = state.resources.gold ?? 0;
+    for (const [resourceKey, price] of Object.entries(state.merchant.prices)) {
+      const row = document.createElement("div");
+      row.className = "merchant-row";
+      row.innerHTML = `
+        <span class="merchant-resource">
+          ${getResourceIconMarkup(resourceKey, "merchant-resource-icon")}
+          <span class="merchant-resource-label">${getResourceLabel(resourceKey)}</span>
+          <span class="merchant-resource-chunk">×${price.chunk}</span>
+        </span>
       `;
-      button.addEventListener("click", () => {
-        const result = acceptMerchantOffer(state, offer.key);
-        state.battle.log = result.reason;
+
+      const sellButton = document.createElement("button");
+      sellButton.type = "button";
+      sellButton.className = "merchant-sell-button";
+      const holds = state.resources[resourceKey] ?? 0;
+      sellButton.dataset.merchantSell = resourceKey;
+      sellButton.disabled = holds < price.chunk;
+      sellButton.innerHTML = `
+        Sell
+        <span class="merchant-price">
+          +${price.sellPrice}${getResourceIconMarkup("gold", "merchant-price-icon")}
+        </span>
+      `;
+      sellButton.addEventListener("click", () => {
+        const rect = sellButton.getBoundingClientRect();
+        const result = sellToMerchant(state, resourceKey);
+        if (result.ok) {
+          spawnMerchantBurst(rect, "gold", price.sellPrice);
+        }
         onStateChanged();
       });
-      merchantPanel.append(button);
+
+      const buyButton = document.createElement("button");
+      buyButton.type = "button";
+      buyButton.className = "merchant-buy-button";
+      buyButton.dataset.merchantBuy = resourceKey;
+      buyButton.disabled = gold < price.buyPrice;
+      buyButton.innerHTML = `
+        Buy
+        <span class="merchant-price">
+          −${price.buyPrice}${getResourceIconMarkup("gold", "merchant-price-icon")}
+        </span>
+      `;
+      buyButton.addEventListener("click", () => {
+        const rect = buyButton.getBoundingClientRect();
+        const result = buyFromMerchant(state, resourceKey);
+        if (result.ok) {
+          spawnMerchantBurst(rect, resourceKey, price.chunk);
+        }
+        onStateChanged();
+      });
+
+      row.append(buyButton, sellButton);
+      grid.append(row);
     }
+
+    popover.append(grid);
+    popover.hidden = false;
+    positionMerchantPopover();
+  }
+
+  function positionMerchantPopover() {
+    const popover = elements.merchantPopover;
+    const anchor = elements.merchantChip;
+    if (popover.hidden || anchor.hidden) return;
+
+    popover.style.visibility = "hidden";
+    popover.style.top = "0px";
+    popover.style.left = "0px";
+
+    const anchorRect = anchor.getBoundingClientRect();
+    const popRect = popover.getBoundingClientRect();
+    const viewportW = window.innerWidth || document.documentElement.clientWidth;
+    const viewportH = window.innerHeight || document.documentElement.clientHeight;
+    const margin = 8;
+
+    let placement = "top";
+    let top = anchorRect.top - popRect.height - margin;
+    if (top < margin) {
+      top = anchorRect.bottom + margin;
+      placement = "bottom";
+      if (top + popRect.height > viewportH - margin) {
+        top = Math.max(margin, viewportH - popRect.height - margin);
+      }
+    }
+    let left = anchorRect.left + anchorRect.width / 2 - popRect.width / 2;
+    left = Math.max(margin, Math.min(left, viewportW - popRect.width - margin));
+
+    const anchorX = anchorRect.left + anchorRect.width / 2 - left;
+    popover.style.setProperty("--anchor-x", `${anchorX}px`);
+    popover.dataset.placement = placement;
+    popover.style.top = `${top}px`;
+    popover.style.left = `${left}px`;
+    popover.style.visibility = "";
+  }
+
+  function updateMerchantAffordance() {
+    if (!state.merchant.isActive) return;
+    const popover = elements.merchantPopover;
+    if (popover.hidden) {
+      positionMerchantPopover();
+      return;
+    }
+    const gold = state.resources.gold ?? 0;
+    for (const [resourceKey, price] of Object.entries(state.merchant.prices)) {
+      const buyBtn = popover.querySelector(`[data-merchant-buy="${resourceKey}"]`);
+      const sellBtn = popover.querySelector(`[data-merchant-sell="${resourceKey}"]`);
+      if (buyBtn) buyBtn.disabled = gold < price.buyPrice;
+      if (sellBtn) sellBtn.disabled = (state.resources[resourceKey] ?? 0) < price.chunk;
+    }
+    positionMerchantPopover();
+  }
+
+  function flushMerchantNotification() {
+    const notification = state.ui.pendingMerchantNotification;
+    if (!notification || notification.id === lastMerchantToastId) return;
+    lastMerchantToastId = notification.id;
+
+    const toast = document.createElement("div");
+    toast.className = "merchant-toast";
+    toast.innerHTML = `
+      <span class="merchant-toast-icon">${notification.icon}</span>
+      <div class="merchant-toast-body">
+        <div class="merchant-toast-title">${notification.title}</div>
+        <div class="merchant-toast-desc">${notification.description}</div>
+      </div>
+    `;
+    elements.merchantToastLayer.append(toast);
+    window.setTimeout(() => toast.classList.add("is-leaving"), 3200);
+    window.setTimeout(() => toast.remove(), 3900);
+  }
+
+  function spawnMerchantBurst(rect, resourceKey, amount) {
+    state.resourceBursts.push({
+      id: `merchant-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      mineId: null,
+      slotIndex: -1,
+      origin: { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 },
+      payouts: [{ resourceKey, amount }]
+    });
   }
 
   function flushResourceBursts() {
@@ -1016,9 +1205,9 @@ export function mountUI(state, onStateChanged) {
     renderSelectedUnitMeta();
     renderActionHints();
     renderGearMeta();
-    renderMerchant();
     renderBridgehead();
     renderMerchant();
+    lastMerchantSignature = getMerchantSignature();
     elements.cheatPanel.hidden = !state.ui.isCheatsOpen;
     renderVictoryState();
   }
@@ -1047,6 +1236,14 @@ export function mountUI(state, onStateChanged) {
     renderBattle();
     renderBridgehead();
     renderActionHints();
+    const merchantSig = getMerchantSignature();
+    if (merchantSig !== lastMerchantSignature) {
+      lastMerchantSignature = merchantSig;
+      renderMerchant();
+    } else {
+      updateMerchantAffordance();
+    }
+    flushMerchantNotification();
     renderVictoryState();
     updateSelectionTether();
     flushResourceBursts();
