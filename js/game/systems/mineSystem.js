@@ -215,9 +215,33 @@ export function mergeReserveUnitIntoMineUnit(state, reserveUnitId, mineId, slotI
 }
 
 export function tickMineProduction(state, deltaSeconds) {
+  const passivePerMine = CONFIG.passiveGoldPerSecondPerUnlockedMine ?? 0;
+  const passiveInterval = Math.max(0.001, CONFIG.passiveGoldPayoutIntervalSeconds ?? 1);
+
   for (const mine of state.mines) {
     if (!mine.isUnlocked) {
+      mine.passiveProgress = 0;
       continue;
+    }
+
+    if (passivePerMine > 0) {
+      mine.passiveProgress = (mine.passiveProgress ?? 0) + deltaSeconds;
+      if (mine.passiveProgress >= passiveInterval) {
+        const payoutSeconds = mine.passiveProgress;
+        mine.passiveProgress = 0;
+        const goldAmount = passivePerMine * payoutSeconds;
+        state.resources.gold = clamp(
+          state.resources.gold + goldAmount,
+          0,
+          Number.MAX_SAFE_INTEGER
+        );
+        state.resourceBursts.push({
+          id: `${mine.id}-passive-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          mineId: mine.id,
+          slotIndex: -1,
+          payouts: [{ resourceKey: "gold", amount: goldAmount }].filter((payout) => payout.amount > 0)
+        });
+      }
     }
 
     const mineLevelData = getMineLevelData(mine.level);

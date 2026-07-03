@@ -1,12 +1,15 @@
 {
   "tickRateMs": 100,
+  "goldIcon": "🪙",
   "passiveGoldPerSecond": 0,
-  "startingGold": 80,
+  "passiveGoldPerSecondPerUnlockedMine": 0.25,
+  "passiveGoldPayoutIntervalSeconds": 4,
+  "startingGold": 110,
   "startingOre": 0,
   "unitBuyBaseCost": 16,
   "unitBuyExponent": 1.22,
   "battle": {
-    "waveCooldownSeconds": 9,
+    "waveCooldownSeconds": 12,
     "fieldWidth": 100,
     "fieldHeight": 30,
     "allySpawnX": 8,
@@ -43,7 +46,7 @@
     }
   },
   "castle": {
-    "maxHealth": 1800
+    "maxHealth": 3200
   },
   "merge": {
     "maxLevel": 6

@@ -31,7 +31,8 @@ export function createMine(index) {
     isUnlocked: index === 0,
     level: 1,
     workerIds: [null, null, null, null],
-    workerProgress: [0, 0, 0, 0]
+    workerProgress: [0, 0, 0, 0],
+    passiveProgress: 0
   };
 }
 
@@ -89,6 +90,7 @@ export function createEnemy(definition) {
     moveSpeed: definition.moveSpeed ?? CONFIG.battle.enemyMoveSpeed,
     attackRange: (CONFIG.battle.baseAttackReach ?? 0) + attackRangeBonus,
     attackRangeBonus,
+    goldReward: definition.goldReward ?? 0,
     x: CONFIG.battle.enemySpawnX,
     y: CONFIG.battle.fieldHeight / 2,
     radius: CONFIG.battle.unitRadius,

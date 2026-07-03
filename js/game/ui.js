@@ -3,6 +3,7 @@ import {
   getArmorConfig,
   getMineLevelData,
   getMineMaxLevel,
+  getResourceIcon,
   getResourceLabel,
   getWeaponConfig
 } from "./config.js";
@@ -26,7 +27,12 @@ import { deployUnitToBattle } from "./systems/garrisonSystem.js";
 import { getBattleSummary } from "./systems/battleSystem.js";
 
 function getResourceIconMarkup(resourceKey, extraClass = "") {
-  return `<span class="resource-icon resource-icon-${resourceKey}${extraClass ? ` ${extraClass}` : ""}" aria-hidden="true"></span>`;
+  const icon = getResourceIcon(resourceKey);
+  const suffix = extraClass ? ` ${extraClass}` : "";
+  if (icon) {
+    return `<span class="resource-icon resource-icon-emoji${suffix}" aria-hidden="true">${icon}</span>`;
+  }
+  return `<span class="resource-icon resource-icon-${resourceKey}${suffix}" aria-hidden="true"></span>`;
 }
 
 function createUnitCard(unit, options = {}) {
@@ -144,18 +150,35 @@ function getSelectedLoadoutCosts(state) {
 }
 
 function playResourceBurst(elements, burst) {
-  const source = elements.minesGrid.querySelector(
-    `[data-mine-slot="${burst.mineId}:${burst.slotIndex}"]`
-  );
-  if (!source) {
-    return;
+  let startX;
+  let startY;
+
+  if (burst.battlefield && elements.battlefield) {
+    const fieldRect = elements.battlefield.getBoundingClientRect();
+    const px = fieldRect.left + (burst.battlefield.x / CONFIG.battle.fieldWidth) * fieldRect.width;
+    const py = fieldRect.top + (burst.battlefield.y / CONFIG.battle.fieldHeight) * fieldRect.height;
+    startX = px;
+    startY = py;
+  } else {
+    const source = burst.slotIndex >= 0
+      ? elements.minesGrid.querySelector(`[data-mine-slot="${burst.mineId}:${burst.slotIndex}"]`)
+      : elements.minesGrid.querySelector(`[data-mine-passive="${burst.mineId}"]`)
+        ?? elements.minesGrid.querySelector(`[data-mine-card="${burst.mineId}"]`);
+    if (!source) {
+      return;
+    }
+
+    const sourceRect = source.getBoundingClientRect();
+    startX = sourceRect.left + sourceRect.width / 2;
+    startY = sourceRect.top + sourceRect.height / 2;
   }
 
-  const sourceRect = source.getBoundingClientRect();
-  const startX = sourceRect.left + sourceRect.width / 2;
-  const startY = sourceRect.top + sourceRect.height / 2;
-
   for (const payout of burst.payouts) {
+    const displayAmount = Math.round(payout.amount);
+    if (displayAmount <= 0) {
+      continue;
+    }
+
     const target = elements.resourceList.querySelector(`[data-resource-chip="${payout.resourceKey}"]`);
     if (!target) {
       continue;
@@ -168,7 +191,7 @@ function playResourceBurst(elements, burst) {
     token.className = `resource-fly resource-${payout.resourceKey}`;
     token.innerHTML = `
       ${getResourceIconMarkup(payout.resourceKey, "resource-fly-icon")}
-      <span class="resource-fly-text">+${Math.max(1, Math.floor(payout.amount))}</span>
+      <span class="resource-fly-text">+${displayAmount}</span>
     `;
     token.style.left = `${startX}px`;
     token.style.top = `${startY}px`;
@@ -179,7 +202,7 @@ function playResourceBurst(elements, burst) {
       token.style.opacity = "0";
     });
 
-    window.setTimeout(() => token.remove(), 650);
+    window.setTimeout(() => token.remove(), 760);
   }
 }
 
@@ -246,7 +269,7 @@ export function mountUI(state, onStateChanged) {
   for (const [weaponKey, weapon] of Object.entries(CONFIG.equipment.weapons ?? {})) {
     const option = document.createElement("option");
     option.value = weaponKey;
-    option.textContent = weapon.label;
+    option.textContent = weapon.icon ? `${weapon.icon}  ${weapon.label}` : weapon.label;
     elements.weaponSelect.append(option);
   }
 
@@ -254,7 +277,7 @@ export function mountUI(state, onStateChanged) {
   for (const [armorKey, armor] of Object.entries(CONFIG.equipment.armors ?? {})) {
     const option = document.createElement("option");
     option.value = armorKey;
-    option.textContent = armor.label;
+    option.textContent = armor.icon ? `${armor.icon}  ${armor.label}` : armor.label;
     elements.armorSelect.append(option);
   }
 
@@ -477,11 +500,19 @@ export function mountUI(state, onStateChanged) {
       const card = document.createElement("article");
       card.className = "mine-card";
       card.dataset.resourceKey = mine.resourceKey;
+      card.dataset.mineCard = mine.id;
 
       const upgradeCost = getMineUpgradeCost(mine);
-      const openSlots = getMineLevelData(mine.level)?.slots ?? 0;
+      const mineLevelData = getMineLevelData(mine.level);
+      const openSlots = mineLevelData?.slots ?? 0;
+      const slotMultipliers = mineLevelData?.slotProductionMultipliers ?? [];
       const nextLevelData = getMineLevelData(mine.level + 1);
       const upgradeCurrency = nextLevelData?.upgradeCurrency ?? "gold";
+      const passiveInterval = Math.max(0.001, CONFIG.passiveGoldPayoutIntervalSeconds ?? 1);
+      const passiveProgress = mine.isUnlocked
+        ? Math.min(1, (mine.passiveProgress ?? 0) / passiveInterval)
+        : 0;
+      const showPassive = mine.isUnlocked && (CONFIG.passiveGoldPerSecondPerUnlockedMine ?? 0) > 0;
       const actionLabel = !mine.isUnlocked
         ? `Unlock (${formatNumber(mine.unlockCost)} ${getResourceLabel(mine.unlockCurrency)})`
         : upgradeCost === null
@@ -489,12 +520,26 @@ export function mountUI(state, onStateChanged) {
           : `Upgrade (${formatNumber(upgradeCost)} ${getResourceLabel(upgradeCurrency)})`;
       card.innerHTML = `
         <div class="mine-head">
+          ${showPassive ? `
+            <div class="mine-passive" data-mine-passive="${mine.id}" title="Passive gold trickle">
+              ${getResourceIconMarkup("gold", "mine-passive-icon")}
+              <div class="mine-passive-bar">
+                <div
+                  class="mine-passive-fill"
+                  data-mine-passive-fill="${mine.id}"
+                  style="height:${passiveProgress * 100}%"
+                ></div>
+              </div>
+            </div>
+          ` : ""}
           <div class="mine-title-wrap">
             <div class="mine-title">
               ${getResourceIconMarkup(mine.resourceKey, "mine-resource-icon")}
-              <h3>${mine.name}</h3>
+              <div class="mine-title-text">
+                <h3>${mine.name}</h3>
+                <p class="eyebrow">Produces ${mine.resourceLabel} + Gold</p>
+              </div>
             </div>
-            <p class="eyebrow">Produces ${mine.resourceLabel} + Gold</p>
           </div>
           <button class="secondary-button" data-upgrade-mine="${mine.id}">
             ${actionLabel}
@@ -517,13 +562,18 @@ export function mountUI(state, onStateChanged) {
         slot.className = `slot ${isOpen ? "is-open" : "is-locked"}`;
         slot.dataset.mineSlot = `${mine.id}:${index}`;
 
+        const slotMultiplier = slotMultipliers[index] ?? 1;
+        const slotBadge = isOpen && mine.isUnlocked
+          ? `<span class="slot-bonus" title="Production bonus for this slot">×${slotMultiplier.toFixed(slotMultiplier % 1 === 0 ? 0 : 2).replace(/\.?0+$/, "")}</span>`
+          : "";
+
         const worker = mine.workerIds[index];
         if (!mine.isUnlocked) {
           slot.innerHTML = '<div class="slot-placeholder">Unlock mine first</div>';
         } else if (!isOpen) {
           slot.innerHTML = '<div class="slot-placeholder">Locked slot</div>';
         } else if (!worker) {
-          slot.innerHTML = '<div class="slot-placeholder">Drop reserve unit here</div>';
+          slot.innerHTML = `${slotBadge}<div class="slot-placeholder">Drop reserve unit here</div>`;
           slot.classList.toggle("actionable-target", selected?.source === "reserve" || selected?.source === "mine");
           slot.addEventListener("click", () => {
             const selected = getSelectedUnitContext();
@@ -544,6 +594,9 @@ export function mountUI(state, onStateChanged) {
           const slotShell = document.createElement("div");
           slotShell.className = "slot slot-filled is-open";
           slotShell.dataset.mineSlot = `${mine.id}:${index}`;
+          if (slotBadge) {
+            slotShell.insertAdjacentHTML("afterbegin", slotBadge);
+          }
           const progress = Math.min(
             1,
             (mine.workerProgress[index] ?? 0) / Math.max(0.001, CONFIG.mine.collectionIntervalSeconds ?? 1)
@@ -739,10 +792,29 @@ export function mountUI(state, onStateChanged) {
 
   function renderMineProgressFrame() {
     const collectionInterval = Math.max(0.001, CONFIG.mine.collectionIntervalSeconds ?? 1);
+    const passiveInterval = Math.max(0.001, CONFIG.passiveGoldPayoutIntervalSeconds ?? 1);
 
     for (const mine of state.mines) {
       if (!mine.isUnlocked) {
         continue;
+      }
+
+      const passiveFill = elements.minesGrid.querySelector(`[data-mine-passive-fill="${mine.id}"]`);
+      if (passiveFill) {
+        const passiveProgress = Math.min(1, (mine.passiveProgress ?? 0) / passiveInterval);
+        const cacheKey = `${mine.id}:passive`;
+        const previousProgress = mineProgressCache.get(cacheKey) ?? passiveProgress;
+        const isPassiveReset = passiveProgress < previousProgress;
+        if (isPassiveReset) {
+          passiveFill.classList.add("is-resetting");
+        } else {
+          passiveFill.classList.remove("is-resetting");
+        }
+        passiveFill.style.height = `${passiveProgress * 100}%`;
+        mineProgressCache.set(cacheKey, passiveProgress);
+        if (isPassiveReset) {
+          requestAnimationFrame(() => passiveFill.classList.remove("is-resetting"));
+        }
       }
 
       const openSlots = getMineLevelData(mine.level)?.slots ?? 0;

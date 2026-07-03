@@ -1,10 +1,10 @@
 {
   "levels": [
-    { "level": 1, "name": "Dude", "icon": "🙂", "baseHealth": 24, "baseAttack": 6, "baseAttackSpeed": 1 },
-    { "level": 2, "name": "Dude", "icon": "😐", "baseHealth": 38, "baseAttack": 11, "baseAttackSpeed": 1 },
-    { "level": 3, "name": "Dude", "icon": "😎", "baseHealth": 52, "baseAttack": 16, "baseAttackSpeed": 1 },
-    { "level": 4, "name": "Dude", "icon": "🧔", "baseHealth": 66, "baseAttack": 21, "baseAttackSpeed": 1 },
-    { "level": 5, "name": "Dude", "icon": "🧙", "baseHealth": 80, "baseAttack": 26, "baseAttackSpeed": 1 },
-    { "level": 6, "name": "Dude", "icon": "🦸", "baseHealth": 94, "baseAttack": 31, "baseAttackSpeed": 1 }
+    { "level": 1, "name": "Dude", "icon": "🙂", "baseHealth": 32, "baseAttack": 7, "baseAttackSpeed": 1 },
+    { "level": 2, "name": "Dude", "icon": "😐", "baseHealth": 52, "baseAttack": 13, "baseAttackSpeed": 1 },
+    { "level": 3, "name": "Dude", "icon": "😎", "baseHealth": 74, "baseAttack": 20, "baseAttackSpeed": 1.05 },
+    { "level": 4, "name": "Dude", "icon": "🧔", "baseHealth": 98, "baseAttack": 28, "baseAttackSpeed": 1.1 },
+    { "level": 5, "name": "Dude", "icon": "🧙", "baseHealth": 124, "baseAttack": 37, "baseAttackSpeed": 1.15 },
+    { "level": 6, "name": "Dude", "icon": "🦸", "baseHealth": 154, "baseAttack": 48, "baseAttackSpeed": 1.2 }
   ]
 }

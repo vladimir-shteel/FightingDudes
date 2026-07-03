@@ -1,6 +1,6 @@
 import { CONFIG } from "../config.js";
 import { createEnemy } from "../factories.js";
-import { generateId, sum } from "../utils.js";
+import { clamp, generateId, sum } from "../utils.js";
 import { initBattlePhysics, stepBattlePhysics } from "../physics/battlePhysics.js";
 
 function getAttackInterval(actor) {
@@ -255,6 +255,20 @@ function removeExitedRetreatingEnemies(state) {
   });
 }
 
+function awardEnemyGold(state, enemy) {
+  const reward = enemy.goldReward ?? 0;
+  if (reward <= 0) {
+    return;
+  }
+
+  state.resources.gold = clamp(state.resources.gold + reward, 0, Number.MAX_SAFE_INTEGER);
+  state.resourceBursts.push({
+    id: generateId("kill-gold"),
+    battlefield: { x: enemy.x ?? 0, y: enemy.y ?? 0 },
+    payouts: [{ resourceKey: "gold", amount: reward }]
+  });
+}
+
 function cleanupDefeated(state) {
   state.battleUnits = state.battleUnits.filter((unit) => unit.health > 0);
   state.enemies = state.enemies.filter((enemy) => {
@@ -263,6 +277,7 @@ function cleanupDefeated(state) {
     }
 
     markWaveEnemyDefeated(state, enemy);
+    awardEnemyGold(state, enemy);
     return false;
   });
   removeExitedRetreatingEnemies(state);

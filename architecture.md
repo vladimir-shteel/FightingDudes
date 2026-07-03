@@ -95,14 +95,41 @@
   - Explicit stats and optional display icon per unit level instead of formulas in code.
 - `data/mine-levels.json`
   - Explicit mine resource types, unlock costs/currencies, slot counts, upgrade costs/currencies and production multipliers per mine level.
+  - Each `resourceType` may declare an `icon` emoji (mirrors the enemy/weapon/armor `icon` field). When present, the UI renders that emoji everywhere the resource appears; when absent, the UI falls back to the built-in CSS shape keyed on `resource-icon-${key}`. `balance.json` holds the matching `goldIcon` since gold is not a mine-produced resource.
 - `data/equipment.json`
   - Separate weapon and armor definitions, optional display icons, combat modifiers and per-resource costs.
+  - Weapons form a tier ladder from wood-only entry gear up to mixed iron/crystal high-tier options; each weapon declares `attackMultiplier`, `attackSpeedMultiplier`, `attackType` (`melee` or `ranged`), and an `attackRangeBonus` that extends `baseAttackReach`.
+  - Armors similarly ladder from `none` to multi-resource plate; each declares a flat `healthBonus`.
 - `data/waves.json`
   - Enemy wave compositions in order, including optional enemy icons.
+  - Enemy definitions may override `moveSpeed` and `attackRangeBonus` to introduce ranged attackers (Archer), fast skirmishers (Wolf), and slow bruisers (Ogre/Warlord) alongside the base melee types.
+  - Enemy definitions may declare an optional `goldReward` that is paid to the player on kill. Enemies without the field grant no gold.
+
+## Balance Formulas (in code, not JSON)
+
+These formulas live in the systems, not in JSON. JSON supplies the coefficients; the formulas here explain what those coefficients mean.
+
+- **Reserve unit buy cost** (`reserveSystem.getUnitBuyCost`): `max(1, floor(unitBuyBaseCost × unitBuyExponent^ownedBaseUnitEquivalents))`, where `baseUnitEquivalent(unit) = 2^(level-1)` summed over all reserve units and mine workers (battle units are excluded). Deploying units to battle temporarily lowers the price.
+- **Mine payout per collection tick** (`mineSystem.tickMineProduction`, one tick per `collectionIntervalSeconds` of accumulated worker progress):
+  - `resource = baseProductionPerSecond × workerLevel × slotProductionMultipliers[slot] × payoutSeconds`
+  - `activeWorkerGold = goldPerSecondPerWorkerLevel × workerLevel × slotProductionMultipliers[slot] × payoutSeconds`
+- **Passive mine gold trickle** (`mineSystem.tickMineProduction`): each unlocked mine independently accumulates `passiveProgress` in seconds and, once it reaches `passiveGoldPayoutIntervalSeconds`, pays out `passiveGoldPerSecondPerUnlockedMine × payoutSeconds` gold and emits a `resourceBurst` with `slotIndex: -1`. The UI renders `passiveProgress / passiveGoldPayoutIntervalSeconds` as a small progress bar in the mine card corner and routes the burst from the mine card element. Keeps the game from soft-locking after the player commits all their units to battle.
+- **Uneven slot production**: `mineLevels.slotProductionMultipliers[slot]` scales both resource and gold output per slot within a mine. Later slots are worth more than earlier ones; the UI shows this as a `×N` badge on each open slot so the player can see which slot to fill first.
+- **Battle unit derived stats** (`factories.createBattleUnit`):
+  - `attack = baseAttack × weapon.attackMultiplier`
+  - `attackSpeed = baseAttackSpeed × weapon.attackSpeedMultiplier`
+  - `maxHealth = baseHealth + armor.healthBonus`
+  - `attackRange = baseAttackReach + (weapon.attackRangeBonus ?? melee/rangedAttackRangeBonus)`
+- **Enemy attack range** (`factories.createEnemy`): `baseAttackReach + (definition.attackRangeBonus ?? enemyAttackRangeBonus)`.
+- **Attack interval** (`battleSystem.getAttackInterval`): `1 / attackSpeed` seconds between hits.
+- **Effective attack range for combat check** (`battleSystem.getAttackRange`): `actor.attackRange + attackRangeTolerance` so units engage slightly before the exact edge.
+- **Target stickiness** (`battleSystem.keepCurrentTarget`): keeps the current target while it is within `attackRange + targetLeashDistance` to avoid flicker.
+- **Wave respawn** (`battleSystem.createWaveEnemies`): retreating waves respawn using `waveProgress.defeatedEnemyIndexesByWave` so only survivors return; a cleared wave's progress is dropped.
+- **Enemy kill reward** (`battleSystem.awardEnemyGold`): when an enemy dies, an optional `goldReward` (from the wave definition, defaults to 0) is added to gold and a `resourceBurst` with `battlefield: { x, y }` is emitted so the UI flies a gold chip from the enemy's on-field position to the gold chip. Enemies without a `goldReward` grant nothing.
 
 ## Current Prototype Constraints
 
-- Gold is no longer passive; it is awarded only from active mine workers during payout ticks.
+- Gold comes from two sources only: active mine workers during payout ticks, and a small passive trickle proportional to the number of unlocked mines.
 - Deploying through the garrison purchases one weapon plus one armor choice per unit.
 - Battle targeting is intentionally simplified: all allies focus enemies first, then the castle.
 - Loss state is not terminal yet; if the frontline dies, the player can keep mining and deploy more units.

@@ -1,17 +1,17 @@
 {
-  "baseProductionPerSecond": 0.8,
-  "goldPerSecondPerWorkerLevel": 0.45,
+  "baseProductionPerSecond": 0.9,
+  "goldPerSecondPerWorkerLevel": 0.55,
   "collectionIntervalSeconds": 1,
   "resourceTypes": [
-    { "key": "wood", "label": "Wood", "mineName": "Lumber Camp", "unlockCost": 0, "unlockCurrency": "gold" },
-    { "key": "ore", "label": "Stone", "mineName": "Stone Quarry", "unlockCost": 42, "unlockCurrency": "gold" },
-    { "key": "crystal", "label": "Crystal", "mineName": "Crystal Pit", "unlockCost": 140, "unlockCurrency": "gold" },
-    { "key": "iron", "label": "Iron", "mineName": "Iron Forge", "unlockCost": 260, "unlockCurrency": "gold" }
+    { "key": "wood", "label": "Wood", "icon": "🪵", "mineName": "Lumber Camp", "unlockCost": 0, "unlockCurrency": "gold" },
+    { "key": "ore", "label": "Stone", "icon": "🪨", "mineName": "Stone Quarry", "unlockCost": 30, "unlockCurrency": "gold" },
+    { "key": "crystal", "label": "Crystal", "icon": "💎", "mineName": "Crystal Pit", "unlockCost": 110, "unlockCurrency": "gold" },
+    { "key": "iron", "label": "Iron", "icon": "🔩", "mineName": "Iron Forge", "unlockCost": 180, "unlockCurrency": "gold" }
   ],
   "levels": [
     { "level": 1, "slots": 1, "upgradeCost": 24, "upgradeCurrency": "gold", "slotProductionMultipliers": [1] },
-    { "level": 2, "slots": 2, "upgradeCost": 38, "upgradeCurrency": "gold", "slotProductionMultipliers": [1, 1.14] },
-    { "level": 3, "slots": 3, "upgradeCost": 52, "upgradeCurrency": "gold", "slotProductionMultipliers": [1, 1.14, 1.28] },
-    { "level": 4, "slots": 4, "upgradeCost": 66, "upgradeCurrency": "gold", "slotProductionMultipliers": [1, 1.14, 1.28, 1.42] }
+    { "level": 2, "slots": 2, "upgradeCost": 40, "upgradeCurrency": "gold", "slotProductionMultipliers": [1, 1.2] },
+    { "level": 3, "slots": 3, "upgradeCost": 60, "upgradeCurrency": "gold", "slotProductionMultipliers": [1, 1.2, 1.4] },
+    { "level": 4, "slots": 4, "upgradeCost": 80, "upgradeCurrency": "gold", "slotProductionMultipliers": [1, 1.2, 1.4, 1.6] }
   ]
 }

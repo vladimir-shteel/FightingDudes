@@ -321,6 +321,43 @@ h3 {
   height: 18px;
 }
 
+.resource-icon-emoji {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  font-size: 15px;
+  border: 0;
+  background: none;
+  transform: none;
+  clip-path: none;
+}
+
+.resource-icon-emoji::before,
+.resource-icon-emoji::after {
+  content: none;
+}
+
+.mine-resource-icon.resource-icon-emoji {
+  font-size: 20px;
+}
+
+.gear-cost-icon.resource-icon-emoji {
+  font-size: 12px;
+}
+
+.slot-progress-icon.resource-icon-emoji {
+  font-size: 12px;
+}
+
+.mine-passive-icon.resource-icon-emoji {
+  font-size: 11px;
+}
+
+.resource-fly-icon.resource-icon-emoji {
+  font-size: 13px;
+}
+
 .resource-icon-gold {
   border-radius: 50%;
   background: radial-gradient(circle at 35% 35%, #fff5b8 0 24%, #ffd447 25% 70%, #d89c10 71% 100%);
@@ -702,8 +739,9 @@ h3 {
 }
 
 .mine-title-wrap {
-  display: grid;
-  gap: 1px;
+  flex: 1 1 auto;
+  display: flex;
+  align-items: stretch;
   min-width: 0;
   padding: 5px 8px;
   border-radius: 14px;
@@ -714,12 +752,25 @@ h3 {
 .mine-title {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 10px;
+  min-width: 0;
+  width: 100%;
+}
+
+.mine-title-text {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
 }
 
 .mine-resource-icon {
-  width: 24px;
-  height: 24px;
+  width: 52px;
+  height: 52px;
+  flex: 0 0 auto;
+}
+
+.mine-resource-icon.resource-icon-emoji {
+  font-size: 44px;
 }
 
 .mine-head .secondary-button {
@@ -1281,6 +1332,76 @@ h3 {
   text-overflow: ellipsis;
 }
 
+.mine-passive {
+  flex: 0 0 auto;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 5px 6px;
+  border-radius: 14px;
+  background: rgba(30, 18, 8, 0.34);
+  border: 2px solid rgba(255, 233, 176, 0.28);
+  box-shadow: inset 0 -2px 0 rgba(255, 248, 229, 0.08);
+  pointer-events: none;
+}
+
+.mine-passive-icon {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+}
+
+.mine-passive-icon.resource-icon-emoji {
+  font-size: 13px;
+}
+
+.mine-passive-bar {
+  position: relative;
+  width: 10px;
+  height: 44px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(74, 46, 22, 0.42);
+  border: 1px solid rgba(255, 233, 176, 0.22);
+}
+
+.mine-passive-fill {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 0%;
+  border-radius: inherit;
+  background: linear-gradient(180deg, #ffe38b 0%, #ffcd45 100%);
+  transition: height 120ms linear;
+}
+
+.mine-passive-fill.is-resetting {
+  transition: none;
+}
+
+.slot {
+  position: relative;
+}
+
+.slot-bonus {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  z-index: 2;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(255, 244, 154, 0.92);
+  border: 2px solid rgba(115, 63, 28, 0.16);
+  color: #6d460b;
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1;
+  pointer-events: none;
+}
+
 .slot-progress {
   display: flex;
   align-items: center;
@@ -1474,26 +1595,35 @@ h3 {
   position: fixed;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 6px;
-  min-width: 36px;
-  height: 36px;
-  padding: 0 10px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 800;
-  color: #57320f;
-  border: 3px solid rgba(115, 63, 28, 0.14);
-  background: #fff6dd;
-  box-shadow: 0 8px 18px rgba(95, 58, 26, 0.16);
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  border-radius: 0;
+  font-size: 16px;
+  font-weight: 900;
+  line-height: 1;
+  color: #3b210b;
+  text-shadow:
+    0 0 3px rgba(255, 248, 229, 0.9),
+    0 1px 0 rgba(255, 248, 229, 0.85),
+    0 2px 3px rgba(70, 34, 12, 0.35);
   transform: translate(0, 0) scale(1);
   opacity: 1;
-  transition: transform 600ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 600ms ease;
+  transition:
+    transform 720ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 180ms ease-in 560ms;
+  pointer-events: none;
 }
 
 .resource-fly-icon {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
+}
+
+.resource-fly-icon.resource-icon-emoji {
+  font-size: 16px;
 }
 
 .resource-fly-text {
@@ -1501,23 +1631,7 @@ h3 {
 }
 
 .resource-fly.resource-gold {
-  background: #fff39f;
-}
-
-.resource-fly.resource-ore {
-  background: #d6ecff;
-}
-
-.resource-fly.resource-wood {
-  background: #f6d49b;
-}
-
-.resource-fly.resource-crystal {
-  background: #ded1ff;
-}
-
-.resource-fly.resource-iron {
-  background: #d9d7df;
+  color: #6a4207;
 }
 
 .ranged-shot-line {
@@ -1782,8 +1896,16 @@ h3 {
   }
 
   .mine-resource-icon {
-    width: 22px;
-    height: 22px;
+    width: 40px;
+    height: 40px;
+  }
+
+  .mine-resource-icon.resource-icon-emoji {
+    font-size: 34px;
+  }
+
+  .mine-passive-bar {
+    min-height: 26px;
   }
 
   .mine-title-wrap .eyebrow {

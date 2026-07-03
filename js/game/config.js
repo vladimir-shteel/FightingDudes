@@ -77,6 +77,14 @@ export function getResourceLabel(resourceKey) {
   return CONFIG.mine.resourceTypes?.find((item) => item.key === resourceKey)?.label ?? resourceKey;
 }
 
+export function getResourceIcon(resourceKey) {
+  if (resourceKey === "gold") {
+    return CONFIG.goldIcon ?? null;
+  }
+
+  return CONFIG.mine.resourceTypes?.find((item) => item.key === resourceKey)?.icon ?? null;
+}
+
 export function getWeaponConfig(key) {
   return CONFIG.equipment.weapons?.[key] ?? null;
 }
