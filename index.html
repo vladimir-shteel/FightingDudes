@@ -79,7 +79,17 @@
                 </div>
               </div>
             </div>
-            <p id="battleLog" class="battle-log">Deploy a unit through the garrison.</p>
+            <section class="bridgehead-panel" aria-label="Bridgehead">
+              <div class="bridgehead-head">
+                <div>
+                  <p class="eyebrow">Staging</p>
+                  <h3>Bridgehead</h3>
+                </div>
+                <button id="sendBridgeheadButton" class="primary-button" type="button">To Battle</button>
+              </div>
+              <div id="bridgeheadSlots" class="bridgehead-slots"></div>
+            </section>
+            <p id="battleLog" class="battle-log">Prepare units in the garrison, then send them from the bridgehead.</p>
           </div>
         </div>
       </section>
@@ -102,7 +112,7 @@
               <p class="eyebrow">Deployment</p>
               <h2>Garrison</h2>
             </div>
-            <p class="panel-note">Choose equipment, then send a unit here.</p>
+            <p class="panel-note">Choose equipment, then prepare a unit here.</p>
           </div>
           <div class="garrison-stage">
           <div class="gear-grid">
@@ -120,7 +130,7 @@
           <div id="gearTotalCostInfo" class="gear-total-cost"></div>
           <div class="garrison-dropzones">
             <div id="garrisonDropzone" class="garrison-dropzone">
-              Tap a unit, then tap here to deploy
+              Tap a unit, then tap here to prepare
             </div>
           </div>
           <div id="gearInfo" class="info-card"></div>

@@ -45,6 +45,9 @@
       "combatLinearDamping": 8.5
     }
   },
+  "bridgehead": {
+    "maxSlots": 8
+  },
   "castle": {
     "maxHealth": 3200
   },

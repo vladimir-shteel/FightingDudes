@@ -26,6 +26,7 @@ export function createInitialState() {
     },
     reserveUnits: [],
     mines: Array.from({ length: 4 }, (_, index) => createMine(index)),
+    bridgeheadUnits: [],
     battleUnits: [],
     enemies: [],
     resourceBursts: [],
@@ -44,7 +45,7 @@ export function createInitialState() {
       },
       waveCooldownRemaining: CONFIG.battle.waveCooldownSeconds,
       status: "idle",
-      log: "Deploy a unit through the garrison."
+      log: "Prepare units in the garrison, then send them from the bridgehead."
     },
     economy: {
       unitsPurchased: 0

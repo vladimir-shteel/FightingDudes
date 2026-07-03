@@ -3,13 +3,14 @@ import { createBattleUnit } from "../factories.js";
 import { removeUnitFromReserve, returnUnitToReserve } from "./reserveSystem.js";
 import { removeUnitFromMine, restoreUnitToMine } from "./mineSystem.js";
 
-function getDeploymentY(state) {
-  const index = state.battleUnits.length;
+function assignBattlePosition(state, unit, indexOffset = 0) {
+  const index = state.battleUnits.length + indexOffset;
   const padding = 4;
   const spread = Math.max(1, CONFIG.battle.fieldHeight - padding * 2);
   const wave = index % 5;
   const ratio = wave / 4;
-  return padding + spread * ratio;
+  unit.x = CONFIG.battle.allySpawnX;
+  unit.y = padding + spread * ratio;
 }
 
 function getCombinedCosts(weapon, armor) {
@@ -45,14 +46,19 @@ function spendCosts(state, costs) {
   }
 }
 
-export function deployUnitToBattle(state, unitId) {
+export function stageUnitOnBridgehead(state, unitId) {
+  const maxSlots = CONFIG.bridgehead?.maxSlots ?? 8;
+  if (state.bridgeheadUnits.length >= maxSlots) {
+    return { ok: false, reason: `Bridgehead is full (${state.bridgeheadUnits.length}/${maxSlots}).` };
+  }
+
   const weaponKey = state.ui.selectedWeaponKey;
   const armorKey = state.ui.selectedArmorKey;
   const weapon = getWeaponConfig(weaponKey);
   const armor = getArmorConfig(armorKey);
 
   if (!weapon || !armor) {
-    return { ok: false, reason: "Select both weapon and armor before deployment." };
+    return { ok: false, reason: "Select both weapon and armor before preparing a unit." };
   }
 
   let source = "reserve";
@@ -87,16 +93,37 @@ export function deployUnitToBattle(state, unitId) {
 
   spendCosts(state, combinedCosts);
   const battleUnit = createBattleUnit(sourceUnit, weaponKey, armorKey);
-  battleUnit.x = CONFIG.battle.allySpawnX;
-  battleUnit.y = getDeploymentY(state);
-  state.battleUnits.push(battleUnit);
-  state.battle.log = `${sourceUnit.name} joined the battlefield with ${weapon.label} and ${armor.label}.`;
+  battleUnit.state = "ready";
+  battleUnit.targetHint = "bridgehead";
+  state.bridgeheadUnits.push(battleUnit);
+  state.battle.log =
+    `${sourceUnit.name} is ready on the bridgehead with ${weapon.label} and ${armor.label}.`;
+
+  return { ok: true, reason: state.battle.log };
+}
+
+export function sendBridgeheadToBattle(state) {
+  if (state.bridgeheadUnits.length === 0) {
+    return { ok: false, reason: "Bridgehead is empty." };
+  }
+
+  const deployingUnits = state.bridgeheadUnits.splice(0);
+  deployingUnits.forEach((unit, index) => {
+    assignBattlePosition(state, unit, index);
+    unit.state = "marching";
+    unit.targetHint = "castle";
+    unit.lastAttackAt = 0;
+    state.battleUnits.push(unit);
+  });
 
   if (state.battle.retreatWaveIndex !== null && state.battle.status === "retreating") {
-    state.battle.log = `${sourceUnit.name} entered the field. Enemies are returning from the castle.`;
+    state.battle.log = `${deployingUnits.length} units entered the field. Enemies are returning from the castle.`;
   } else if (state.battle.status === "idle") {
     state.battle.status = "cooldown";
     state.battle.waveCooldownRemaining = CONFIG.battle.waveCooldownSeconds;
+    state.battle.log = `${deployingUnits.length} units moved from the bridgehead into battle.`;
+  } else {
+    state.battle.log = `${deployingUnits.length} units moved from the bridgehead into battle.`;
   }
 
   return { ok: true, reason: state.battle.log };

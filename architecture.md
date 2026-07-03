@@ -18,6 +18,7 @@
 
 - `reserveUnits` contains units that can be merged or assigned to a mine.
 - `mines` stores its own worker slots, current level, unlock state and upgrade progression.
+- `bridgeheadUnits` contains equipped units waiting for the explicit "To Battle" command.
 - `battleUnits` contains deployed units only. Units moved here cannot return.
 - `enemies` is the current active wave on the battlefield.
 - `castle` stores enemy castle health and is the final battle objective.
@@ -28,7 +29,7 @@
   - enemies spawn near the castle and search for the nearest allied unit
   - each actor has an attack range and stops moving once it can hit its target
   - movement, body blocking and crowding in the top zone are resolved through a dedicated Planck.js physics world
-- If a wave kills the last allied unit, that wave retreats back toward the castle, despawns, and is restored when a new ally is deployed again.
+- If a wave kills the last allied unit, that wave retreats back toward the castle, despawns, and is restored when new allies leave the bridgehead.
 - Each enemy spawned from a wave keeps its original wave slot index. Defeated wave indexes are remembered so retreating waves only respawn surviving members.
 - `resources` currently has two currencies:
   - `gold` for buying fresh units and mine progression, earned from active miners
@@ -53,12 +54,14 @@
   - Tap a reserve or mine unit to select it
   - Tap an empty mine slot to assign a selected reserve unit
   - Tap a mine worker with a selected matching reserve unit to merge into the mine slot
-  - Tap the garrison to deploy the selected reserve or mine unit
+  - Tap the garrison to prepare the selected reserve or mine unit on the bridgehead
+  - Tap "To Battle" to send all bridgehead units into battle
   - Tap the reserve panel to return a selected mine worker back to reserve
 - `garrisonSystem`
   - Pulls a unit from reserve or mine
   - Spends combined multi-resource costs from one selected weapon and one selected armor
-  - Converts the unit into an irreversible battle unit
+  - Converts the unit into an irreversible equipped unit on the bridgehead
+  - Sends all bridgehead units to the battlefield on command
 - `battleSystem`
   - Manages wave cooldowns and wave spawning
   - Handles retreat/despawn when enemies win the current skirmish
@@ -109,7 +112,7 @@
 
 These formulas live in the systems, not in JSON. JSON supplies the coefficients; the formulas here explain what those coefficients mean.
 
-- **Reserve unit buy cost** (`reserveSystem.getUnitBuyCost`): `max(1, floor(unitBuyBaseCost × unitBuyExponent^ownedBaseUnitEquivalents))`, where `baseUnitEquivalent(unit) = 2^(level-1)` summed over all reserve units and mine workers (battle units are excluded). Deploying units to battle temporarily lowers the price.
+- **Reserve unit buy cost** (`reserveSystem.getUnitBuyCost`): `max(1, floor(unitBuyBaseCost × unitBuyExponent^ownedBaseUnitEquivalents))`, where `baseUnitEquivalent(unit) = 2^(level-1)` summed over all reserve units and mine workers (bridgehead and battle units are excluded). Preparing units for the bridgehead temporarily lowers the price.
 - **Mine payout per collection tick** (`mineSystem.tickMineProduction`, one tick per `collectionIntervalSeconds` of accumulated worker progress):
   - `resource = baseProductionPerSecond × workerLevel × slotProductionMultipliers[slot] × payoutSeconds`
   - `activeWorkerGold = goldPerSecondPerWorkerLevel × workerLevel × slotProductionMultipliers[slot] × payoutSeconds`
@@ -130,7 +133,7 @@ These formulas live in the systems, not in JSON. JSON supplies the coefficients;
 ## Current Prototype Constraints
 
 - Gold comes from two sources only: active mine workers during payout ticks, and a small passive trickle proportional to the number of unlocked mines.
-- Deploying through the garrison purchases one weapon plus one armor choice per unit.
+- Preparing through the garrison purchases one weapon plus one armor choice per unit and places the result on the bridgehead.
 - Battle targeting is intentionally simplified: all allies focus enemies first, then the castle.
 - Loss state is not terminal yet; if the frontline dies, the player can keep mining and deploy more units.
 - Because data now loads through `fetch()`, the prototype should be opened through a local/static web server or GitHub Pages, not directly as `file://`.

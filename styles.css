@@ -523,6 +523,67 @@ h3 {
   gap: 12px;
 }
 
+.bridgehead-panel {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 3px solid rgba(255, 233, 176, 0.22);
+  border-radius: 22px;
+  background:
+    linear-gradient(180deg, rgba(255, 242, 205, 0.14), rgba(255, 242, 205, 0.06)),
+    rgba(0, 0, 0, 0.1);
+}
+
+.bridgehead-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.bridgehead-head h3 {
+  margin: 0;
+  font-family: "Russo One", sans-serif;
+  font-size: 20px;
+  letter-spacing: 0;
+}
+
+.bridgehead-head .eyebrow {
+  margin-bottom: 2px;
+}
+
+.bridgehead-slots {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.bridgehead-slot {
+  min-height: 82px;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  border: 2px dashed rgba(255, 233, 176, 0.28);
+  background: rgba(59, 35, 21, 0.18);
+}
+
+.bridgehead-slot.is-filled {
+  border-style: solid;
+  border-color: rgba(212, 255, 85, 0.34);
+  background: rgba(255, 242, 205, 0.12);
+}
+
+.bridgehead-slot .unit-card {
+  width: 100%;
+  cursor: default;
+}
+
+.bridgehead-slot .slot-placeholder {
+  position: static;
+  min-height: 100%;
+  padding: 0 4px;
+}
+
 .battlefield {
   position: relative;
   min-height: 430px;
@@ -900,6 +961,15 @@ h3 {
 .ghost-button:hover {
   transform: translateY(-1px);
   filter: brightness(1.02);
+}
+
+.primary-button:disabled,
+.secondary-button:disabled,
+.ghost-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  transform: none;
+  filter: grayscale(0.2);
 }
 
 .primary-button {
@@ -1978,6 +2048,36 @@ h3 {
     min-height: 240px;
     border-radius: 22px;
     border-width: 3px;
+  }
+
+  .bridgehead-panel {
+    padding: 7px;
+    gap: 6px;
+    border-width: 2px;
+    border-radius: 14px;
+  }
+
+  .bridgehead-head {
+    gap: 8px;
+  }
+
+  .bridgehead-head h3 {
+    font-size: 13px;
+  }
+
+  .bridgehead-head .primary-button {
+    padding: 7px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+  }
+
+  .bridgehead-slots {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 5px;
+  }
+
+  .bridgehead-slot {
+    min-height: 58px;
   }
 
   .battlefield-overlay {

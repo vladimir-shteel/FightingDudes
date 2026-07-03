@@ -398,7 +398,9 @@ export function tickBattle(state, deltaSeconds, nowSeconds) {
   } else if (state.battleUnits.length === 0 && state.enemies.length > 0) {
     state.battle.log = "Your battle line fell. The enemies are pulling back to the castle.";
   } else if (state.battleUnits.length === 0 && state.battle.nextWaveIndex === 0 && state.battle.retreatWaveIndex === null) {
-    state.battle.log = "Deploy a unit through the garrison.";
+    state.battle.log = state.bridgeheadUnits.length > 0
+      ? "Units are waiting on the bridgehead. Press To Battle to deploy them."
+      : "Prepare units in the garrison, then send them from the bridgehead.";
   }
 }
 

@@ -8,6 +8,9 @@ export const CONFIG = {
   battle: {
     waveCooldownSeconds: 0
   },
+  bridgehead: {
+    maxSlots: 8
+  },
   castle: {
     maxHealth: 0
   },

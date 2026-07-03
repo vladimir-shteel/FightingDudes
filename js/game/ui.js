@@ -23,7 +23,7 @@ import {
   unlockMine,
   upgradeMine
 } from "./systems/mineSystem.js";
-import { deployUnitToBattle } from "./systems/garrisonSystem.js";
+import { sendBridgeheadToBattle, stageUnitOnBridgehead } from "./systems/garrisonSystem.js";
 import { getBattleSummary } from "./systems/battleSystem.js";
 
 function getResourceIconMarkup(resourceKey, extraClass = "") {
@@ -218,6 +218,8 @@ export function mountUI(state, onStateChanged) {
     castleHealth: document.querySelector("#castleHealth"),
     castleHealthBar: document.querySelector("#castleHealthBar"),
     battleLog: document.querySelector("#battleLog"),
+    bridgeheadSlots: document.querySelector("#bridgeheadSlots"),
+    sendBridgeheadButton: document.querySelector("#sendBridgeheadButton"),
     battlefield: document.querySelector("#battlefield"),
     cheatPanel: document.querySelector("#cheatPanel"),
     grantResourcesButton: document.querySelector("#grantResourcesButton"),
@@ -329,7 +331,8 @@ export function mountUI(state, onStateChanged) {
       return false;
     }
 
-    return canAffordCosts(state.resources, combinedCosts);
+    return canAffordCosts(state.resources, combinedCosts) &&
+      state.bridgeheadUnits.length < (CONFIG.bridgehead?.maxSlots ?? 8);
   }
 
   function updateSelectionTether() {
@@ -424,6 +427,12 @@ export function mountUI(state, onStateChanged) {
 
   elements.victoryRestartButton.addEventListener("click", () => {
     window.location.reload();
+  });
+
+  elements.sendBridgeheadButton.addEventListener("click", () => {
+    const result = sendBridgeheadToBattle(state);
+    state.battle.log = result.reason;
+    onStateChanged();
   });
 
   elements.weaponSelect.addEventListener("change", () => {
@@ -725,6 +734,26 @@ export function mountUI(state, onStateChanged) {
     }
   }
 
+  function renderBridgehead() {
+    const maxSlots = CONFIG.bridgehead?.maxSlots ?? 8;
+    elements.bridgeheadSlots.innerHTML = "";
+    elements.sendBridgeheadButton.disabled = state.bridgeheadUnits.length === 0 || state.game.isOver;
+
+    for (let index = 0; index < maxSlots; index += 1) {
+      const slot = document.createElement("div");
+      slot.className = `bridgehead-slot ${state.bridgeheadUnits[index] ? "is-filled" : "is-empty"}`;
+
+      const unit = state.bridgeheadUnits[index];
+      if (unit) {
+        slot.append(createUnitCard(unit, { origin: "battle", compact: true }));
+      } else {
+        slot.innerHTML = '<span class="slot-placeholder">Empty</span>';
+      }
+
+      elements.bridgeheadSlots.append(slot);
+    }
+  }
+
   function renderEconomyMeta() {
     for (const resourceKey of resourceOrder) {
       resourceValueMap.get(resourceKey).textContent = formatNumber(state.resources[resourceKey] ?? 0);
@@ -740,7 +769,7 @@ export function mountUI(state, onStateChanged) {
     const summary = getBattleSummary(state);
     elements.waveValue.textContent = `${state.battle.nextWaveIndex} / ${CONFIG.waves.length}`;
     elements.battleSummary.textContent =
-      `${summary.friendlyCount} allies | ${summary.enemyCount} enemies | power ${Math.round(summary.squadPower)}`;
+      `${summary.friendlyCount} allies | ${state.bridgeheadUnits.length} staged | ${summary.enemyCount} enemies | power ${Math.round(summary.squadPower)}`;
 
     if (state.battle.status === "cooldown" && !state.game.isOver) {
       elements.battleTimer.textContent = `Next wave: ${Math.ceil(state.battle.waveCooldownRemaining)}s`;
@@ -772,7 +801,7 @@ export function mountUI(state, onStateChanged) {
     elements.selectedUnitChip.classList.add("is-selected");
     elements.selectedUnitValue.textContent = `${selected.unit.name} Lv${selected.unit.level}`;
     elements.selectedUnitHint.textContent = selected.source === "mine"
-      ? "Tap empty slot to move, Reserve to return, or Garrison to deploy."
+      ? "Tap empty slot to move, Reserve to return, or Garrison to prepare."
       : "Tap mine slot, worker, or Garrison.";
   }
 
@@ -782,7 +811,7 @@ export function mountUI(state, onStateChanged) {
       return;
     }
 
-    const result = deployUnitToBattle(state, selected.unit.id);
+    const result = stageUnitOnBridgehead(state, selected.unit.id);
     state.battle.log = result.reason;
     if (result.ok) {
       clearSelectedUnit();
@@ -943,6 +972,7 @@ export function mountUI(state, onStateChanged) {
     renderSelectedUnitMeta();
     renderActionHints();
     renderGearMeta();
+    renderBridgehead();
     elements.cheatPanel.hidden = !state.ui.isCheatsOpen;
     renderVictoryState();
   }
@@ -958,6 +988,7 @@ export function mountUI(state, onStateChanged) {
     renderMines();
     renderMineProgressFrame();
     renderBattle();
+    renderBridgehead();
     updateSelectionTether();
     flushResourceBursts();
     flushBattleEffects();
@@ -968,6 +999,7 @@ export function mountUI(state, onStateChanged) {
     renderBattleMeta();
     renderMineProgressFrame();
     renderBattle();
+    renderBridgehead();
     renderActionHints();
     renderVictoryState();
     updateSelectionTether();
