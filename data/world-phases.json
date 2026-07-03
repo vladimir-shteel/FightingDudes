@@ -1,0 +1,25 @@
+{
+  "cycle": ["day", "dusk", "night", "storm"],
+  "phases": {
+    "day": {
+      "label": "Day",
+      "description": "Baseline conditions."
+    },
+    "dusk": {
+      "label": "Dusk",
+      "description": "Ranged allies see farther.",
+      "allyRangedAttackRangeBonus": 3
+    },
+    "night": {
+      "label": "Night",
+      "description": "Enemies hit harder.",
+      "enemyAttackMultiplier": 1.1
+    },
+    "storm": {
+      "label": "Storm",
+      "description": "Everyone moves slower.",
+      "allyMoveMultiplier": 0.8,
+      "enemyMoveMultiplier": 0.8
+    }
+  }
+}

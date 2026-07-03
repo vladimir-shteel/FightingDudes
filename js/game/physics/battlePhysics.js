@@ -1,5 +1,6 @@
 import * as planck from "https://cdn.jsdelivr.net/npm/planck@1.5.0/+esm";
 import { CONFIG } from "../config.js";
+import { getWorldAttackRangeBonus, getWorldMoveMultiplier } from "../systems/worldSystem.js";
 
 const CATEGORY_ALLY = 0x0002;
 const CATEGORY_ENEMY = 0x0004;
@@ -41,8 +42,9 @@ function getActorPhysicsRadius(actor) {
   return Math.max(0.18, actor.physicsRadius ?? CONFIG.battle.physicsRadius ?? getPhysicsRadius());
 }
 
-function getAttackRange(actor) {
-  return actor.attackRange ?? ((CONFIG.battle.baseAttackReach ?? 0) + (actor.attackRangeBonus ?? 0));
+function getAttackRange(state, actor, kind) {
+  return (actor.attackRange ?? ((CONFIG.battle.baseAttackReach ?? 0) + (actor.attackRangeBonus ?? 0))) +
+    getWorldAttackRangeBonus(state, actor, kind);
 }
 
 function getTargetVector(fromX, fromY, toX, toY) {
@@ -173,7 +175,7 @@ function getDesiredTargetPoint(actor, target) {
   };
 }
 
-function driveActorBody(body, actor, target, fallbackPoint) {
+function driveActorBody(state, body, actor, kind, target, fallbackPoint) {
   if (!body) {
     return;
   }
@@ -195,12 +197,12 @@ function driveActorBody(body, actor, target, fallbackPoint) {
     ? Math.hypot(position.x - (target.x ?? CONFIG.battle.castleX), position.y - (target.y ?? CONFIG.battle.castleY))
     : desired.distance;
   const desiredDistance = target
-    ? Math.max(0, targetDistance - (getActorPhysicsRadius(target) + getAttackRange(actor) + radius))
+    ? Math.max(0, targetDistance - (getActorPhysicsRadius(target) + getAttackRange(state, actor, kind) + radius))
     : desired.distance;
   const stopThreshold = Math.max(0.15, steering.stopRadius);
   const isInCombatHold = Boolean(target) && desiredDistance <= steering.combatHoldRadius;
   const speedMultiplier = target ? steering.targetSpeedMultiplier : steering.fallbackSpeedMultiplier;
-  const maxSpeed = actor.moveSpeed * speedMultiplier;
+  const maxSpeed = actor.moveSpeed * speedMultiplier * getWorldMoveMultiplier(state, kind);
   const slowdownRatio = Math.min(1, desiredDistance / Math.max(stopThreshold, steering.slowRadius));
   const attackStopSlack = target ? steering.attackStopSlack : stopThreshold;
   const desiredSpeed = desiredDistance <= attackStopSlack ? 0 : maxSpeed * slowdownRatio;
@@ -254,8 +256,10 @@ function driveBodies(state) {
   for (const unit of state.battleUnits) {
     const targetEnemy = state.enemies.find((enemy) => enemy.id === unit.targetId) ?? null;
     driveActorBody(
+      state,
       allyBodies.get(unit.id),
       unit,
+      "ally",
       targetEnemy ?? castleTarget,
       null
     );
@@ -263,8 +267,10 @@ function driveBodies(state) {
 
   for (const enemy of state.enemies) {
     driveActorBody(
+      state,
       enemyBodies.get(enemy.id),
       enemy,
+      "enemy",
       enemy.isRetreating ? null : state.battleUnits.find((unit) => unit.id === enemy.targetId) ?? null,
       enemy.isRetreating ? retreatPoint : enemyAdvancePoint
     );

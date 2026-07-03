@@ -597,8 +597,21 @@ h3 {
   content: "";
   position: absolute;
   inset: 0;
-  background: none;
+  background: var(--world-phase-tint, none);
   pointer-events: none;
+  z-index: 1;
+}
+
+.battlefield[data-world-phase="dusk"] {
+  --world-phase-tint: linear-gradient(180deg, rgba(255, 133, 67, 0.18), rgba(81, 62, 128, 0.14));
+}
+
+.battlefield[data-world-phase="night"] {
+  --world-phase-tint: linear-gradient(180deg, rgba(15, 30, 75, 0.34), rgba(21, 18, 47, 0.26));
+}
+
+.battlefield[data-world-phase="storm"] {
+  --world-phase-tint: linear-gradient(180deg, rgba(77, 98, 118, 0.28), rgba(35, 52, 67, 0.22));
 }
 
 .battlefield::after {

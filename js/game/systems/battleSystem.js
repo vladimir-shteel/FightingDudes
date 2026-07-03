@@ -2,6 +2,7 @@ import { CONFIG } from "../config.js";
 import { createEnemy } from "../factories.js";
 import { clamp, generateId, sum } from "../utils.js";
 import { initBattlePhysics, stepBattlePhysics } from "../physics/battlePhysics.js";
+import { getWorldAttackMultiplier, getWorldAttackRangeBonus } from "./worldSystem.js";
 
 function getAttackInterval(actor) {
   return 1 / actor.attackSpeed;
@@ -17,8 +18,13 @@ function getBodyGap(left, right) {
   return Math.max(0, getDistance(left, right) - leftRadius - rightRadius);
 }
 
-function getAttackRange(actor) {
+function getActorSide(actor) {
+  return actor.id?.startsWith("enemy") ? "enemy" : "ally";
+}
+
+function getAttackRange(state, actor) {
   return (actor.attackRange ?? ((CONFIG.battle.baseAttackReach ?? 0) + (actor.attackRangeBonus ?? 0))) +
+    getWorldAttackRangeBonus(state, actor, getActorSide(actor)) +
     (CONFIG.battle.attackRangeTolerance ?? 0);
 }
 
@@ -50,19 +56,19 @@ function chooseClosestTarget(actor, targets) {
   return bestTarget;
 }
 
-function keepCurrentTarget(actor, targets) {
+function keepCurrentTarget(state, actor, targets) {
   const currentTarget = targets.find((target) => target.id === actor.targetId) ?? null;
   if (!currentTarget) {
     return null;
   }
 
   const currentDistance = getDistance(actor, currentTarget);
-  const leashDistance = getAttackRange(actor) + (CONFIG.battle.targetLeashDistance ?? 8);
+  const leashDistance = getAttackRange(state, actor) + (CONFIG.battle.targetLeashDistance ?? 8);
   return currentDistance <= leashDistance ? currentTarget : null;
 }
 
-function chooseTarget(actor, targets) {
-  return keepCurrentTarget(actor, targets) ?? chooseClosestTarget(actor, targets);
+function chooseTarget(state, actor, targets) {
+  return keepCurrentTarget(state, actor, targets) ?? chooseClosestTarget(actor, targets);
 }
 
 function markHit(target, nowSeconds) {
@@ -139,7 +145,7 @@ function createWaveEnemies(state, waveIndex) {
 
 function assignTargets(state) {
   for (const unit of state.battleUnits) {
-    const targetEnemy = chooseTarget(unit, state.enemies.filter((enemy) => !enemy.isRetreating));
+    const targetEnemy = chooseTarget(state, unit, state.enemies.filter((enemy) => !enemy.isRetreating));
     if (targetEnemy) {
       unit.targetId = targetEnemy.id;
       unit.targetHint = targetEnemy.name;
@@ -156,7 +162,7 @@ function assignTargets(state) {
       continue;
     }
 
-    const targetUnit = chooseTarget(enemy, state.battleUnits);
+    const targetUnit = chooseTarget(state, enemy, state.battleUnits);
     enemy.targetId = targetUnit?.id ?? null;
     enemy.targetHint = targetUnit?.name ?? "advance";
   }
@@ -169,10 +175,10 @@ function applyFriendlyAttacks(state, nowSeconds) {
 
     if (targetEnemy) {
       const targetDistance = getBodyGap(unit, targetEnemy);
-      const attackRange = getAttackRange(unit);
+      const attackRange = getAttackRange(state, unit);
       if (targetDistance <= attackRange && nowSeconds - unit.lastAttackAt >= attackInterval) {
         unit.state = "engaged";
-        targetEnemy.health -= unit.attack;
+        targetEnemy.health -= unit.attack * getWorldAttackMultiplier(state, "ally");
         unit.lastAttackAt = nowSeconds;
         markHit(targetEnemy, nowSeconds);
         pushRangedAttackEffect(state, unit, targetEnemy, nowSeconds);
@@ -183,7 +189,7 @@ function applyFriendlyAttacks(state, nowSeconds) {
     }
 
     const distanceToCastle = getCastleDistance(unit);
-    const castleAttackRange = getAttackRange(unit) + (CONFIG.battle.castleAttackRangeBonus ?? 0);
+    const castleAttackRange = getAttackRange(state, unit) + (CONFIG.battle.castleAttackRangeBonus ?? 0);
     if (
       state.enemies.filter((enemy) => !enemy.isRetreating).length === 0 &&
       state.castle.health > 0 &&
@@ -191,7 +197,7 @@ function applyFriendlyAttacks(state, nowSeconds) {
       nowSeconds - unit.lastAttackAt >= attackInterval
     ) {
       unit.state = "engaged";
-      state.castle.health -= unit.attack;
+      state.castle.health -= unit.attack * getWorldAttackMultiplier(state, "ally");
       unit.lastAttackAt = nowSeconds;
       state.castle.hitUntil = nowSeconds + 0.16;
       pushRangedAttackEffect(state, unit, state.castle, nowSeconds);
@@ -217,9 +223,9 @@ function applyEnemyAttacks(state, nowSeconds) {
     }
 
     const targetDistance = getBodyGap(enemy, targetUnit);
-    const attackRange = getAttackRange(enemy);
+    const attackRange = getAttackRange(state, enemy);
     if (targetDistance <= attackRange && nowSeconds - enemy.lastAttackAt >= attackInterval) {
-      targetUnit.health -= enemy.attack;
+      targetUnit.health -= enemy.attack * getWorldAttackMultiplier(state, "enemy");
       enemy.state = "engaged";
       enemy.lastAttackAt = nowSeconds;
       markHit(targetUnit, nowSeconds);

@@ -693,6 +693,7 @@ export function mountUI(state, onStateChanged) {
     elements.castleHealth.textContent = `${formatNumber(state.castle.health)}/${formatNumber(state.castle.maxHealth)}`;
     elements.castleHealthBar.style.width = `${castleRatio * 100}%`;
     elements.battleLog.textContent = state.battle.log;
+    elements.battlefield.dataset.worldPhase = state.world.phase;
     elements.castleSprite.classList.toggle("is-hit", (state.castle.hitUntil ?? 0) > performance.now() / 1000);
 
     elements.battleUnits.innerHTML = "";
@@ -772,9 +773,9 @@ export function mountUI(state, onStateChanged) {
       `${summary.friendlyCount} allies | ${state.bridgeheadUnits.length} staged | ${summary.enemyCount} enemies | power ${Math.round(summary.squadPower)}`;
 
     if (state.battle.status === "cooldown" && !state.game.isOver) {
-      elements.battleTimer.textContent = `Next wave: ${Math.ceil(state.battle.waveCooldownRemaining)}s`;
+      elements.battleTimer.textContent = `${state.world.label} | Next wave: ${Math.ceil(state.battle.waveCooldownRemaining)}s`;
     } else if (state.battle.status === "fighting") {
-      elements.battleTimer.textContent = "Wave in progress";
+      elements.battleTimer.textContent = `${state.world.label} | Wave in progress`;
     } else if (state.battle.status === "retreating") {
       elements.battleTimer.textContent = "Wave retreating";
     } else if (state.battle.status === "siege") {
@@ -782,7 +783,7 @@ export function mountUI(state, onStateChanged) {
     } else if (state.game.isOver) {
       elements.battleTimer.textContent = "Run complete";
     } else {
-      elements.battleTimer.textContent = "Next wave: -";
+      elements.battleTimer.textContent = `${state.world.label} | Next wave: -`;
     }
   }
 

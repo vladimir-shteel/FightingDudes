@@ -31,6 +31,10 @@ export function createInitialState() {
     enemies: [],
     resourceBursts: [],
     battleEffects: [],
+    world: {
+      phase: CONFIG.worldPhases.cycle?.[0] ?? "day",
+      label: CONFIG.worldPhases.phases?.[CONFIG.worldPhases.cycle?.[0] ?? "day"]?.label ?? "Day"
+    },
     castle: {
       maxHealth: CONFIG.castle.maxHealth,
       health: CONFIG.castle.maxHealth,

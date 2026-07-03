@@ -18,6 +18,10 @@ export const CONFIG = {
     maxLevel: 1
   },
   equipment: {},
+  worldPhases: {
+    cycle: ["day"],
+    phases: {}
+  },
   waves: [],
   unitLevels: [],
   mine: {
@@ -40,16 +44,18 @@ async function fetchJson(fileName) {
 }
 
 export async function initConfig() {
-  const [balance, equipment, waves, unitLevels, mineLevels] = await Promise.all([
+  const [balance, equipment, waves, unitLevels, mineLevels, worldPhases] = await Promise.all([
     fetchJson("balance.json"),
     fetchJson("equipment.json"),
     fetchJson("waves.json"),
     fetchJson("unit-levels.json"),
-    fetchJson("mine-levels.json")
+    fetchJson("mine-levels.json"),
+    fetchJson("world-phases.json")
   ]);
 
   Object.assign(CONFIG, balance, {
     equipment,
+    worldPhases,
     waves,
     unitLevels: unitLevels.levels,
     mine: mineLevels
@@ -94,4 +100,8 @@ export function getWeaponConfig(key) {
 
 export function getArmorConfig(key) {
   return CONFIG.equipment.armors?.[key] ?? null;
+}
+
+export function getWorldPhaseConfig(key) {
+  return CONFIG.worldPhases.phases?.[key] ?? null;
 }
