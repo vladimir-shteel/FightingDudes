@@ -25,6 +25,7 @@ import {
 } from "./systems/mineSystem.js";
 import { sendBridgeheadToBattle, stageUnitOnBridgehead } from "./systems/garrisonSystem.js";
 import { getBattleSummary } from "./systems/battleSystem.js";
+import { placeTerrainZone } from "./systems/terrainSystem.js";
 
 function getResourceIconMarkup(resourceKey, extraClass = "") {
   const icon = getResourceIcon(resourceKey);
@@ -286,6 +287,12 @@ export function mountUI(state, onStateChanged) {
   elements.weaponSelect.value = state.ui.selectedWeaponKey;
   elements.armorSelect.value = state.ui.selectedArmorKey;
 
+  const terrainToolbar = document.createElement("div");
+  terrainToolbar.className = "terrain-toolbar";
+  const terrainLayer = document.createElement("div");
+  terrainLayer.className = "terrain-zone-layer";
+  elements.battlefield.append(terrainLayer, terrainToolbar);
+
   const mineProgressCache = new Map();
 
   function getSelectedUnitContext() {
@@ -444,6 +451,22 @@ export function mountUI(state, onStateChanged) {
   elements.armorSelect.addEventListener("change", () => {
     state.ui.selectedArmorKey = elements.armorSelect.value;
     state.battle.log = `Selected armor: ${getArmorConfig(state.ui.selectedArmorKey)?.label}.`;
+    onStateChanged();
+  });
+
+  elements.battlefield.addEventListener("click", (event) => {
+    if (!state.ui.pendingTerrainZoneType || event.target.closest(".terrain-toolbar")) {
+      return;
+    }
+
+    const rect = elements.battlefield.getBoundingClientRect();
+    const x = ((event.clientX - rect.left) / rect.width) * CONFIG.battle.fieldWidth;
+    const y = ((event.clientY - rect.top) / rect.height) * CONFIG.battle.fieldHeight;
+    const result = placeTerrainZone(state, state.ui.pendingTerrainZoneType, x, y, performance.now() / 1000);
+    state.battle.log = result.reason;
+    if (result.ok) {
+      state.ui.pendingTerrainZoneType = null;
+    }
     onStateChanged();
   });
 
@@ -734,6 +757,42 @@ export function mountUI(state, onStateChanged) {
     }
   }
 
+  function renderTerrainZones() {
+    terrainToolbar.innerHTML = "";
+    for (const [type, zoneConfig] of Object.entries(CONFIG.terrainZones.types ?? {})) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "terrain-button";
+      button.dataset.active = state.ui.pendingTerrainZoneType === type ? "true" : "false";
+      const cooldown = state.terrainZoneCooldowns[type] ?? 0;
+      button.disabled = cooldown > 0 || state.game.isOver;
+      button.innerHTML = `
+        <span>${zoneConfig.label}</span>
+        <small>${cooldown > 0 ? `${Math.ceil(cooldown)}s` : formatCosts(zoneConfig.costs)}</small>
+      `;
+      button.addEventListener("click", () => {
+        state.ui.pendingTerrainZoneType = state.ui.pendingTerrainZoneType === type ? null : type;
+        state.battle.log = state.ui.pendingTerrainZoneType
+          ? `Click the battlefield to place ${zoneConfig.label}.`
+          : "Terrain placement canceled.";
+        onStateChanged();
+      });
+      terrainToolbar.append(button);
+    }
+
+    terrainLayer.innerHTML = "";
+    for (const zone of state.terrainZones) {
+      const marker = document.createElement("div");
+      marker.className = `terrain-zone terrain-zone-${zone.type}`;
+      marker.style.left = `${(zone.x / CONFIG.battle.fieldWidth) * 100}%`;
+      marker.style.top = `${(zone.y / CONFIG.battle.fieldHeight) * 100}%`;
+      marker.style.width = `${(zone.radius / CONFIG.battle.fieldWidth) * 200}%`;
+      marker.style.height = `${(zone.radius / CONFIG.battle.fieldHeight) * 200}%`;
+      marker.textContent = zone.icon ?? zone.label[0];
+      terrainLayer.append(marker);
+    }
+  }
+
   function renderBridgehead() {
     const maxSlots = CONFIG.bridgehead?.maxSlots ?? 8;
     elements.bridgeheadSlots.innerHTML = "";
@@ -988,6 +1047,7 @@ export function mountUI(state, onStateChanged) {
     renderMines();
     renderMineProgressFrame();
     renderBattle();
+    renderTerrainZones();
     renderBridgehead();
     updateSelectionTether();
     flushResourceBursts();
@@ -999,6 +1059,7 @@ export function mountUI(state, onStateChanged) {
     renderBattleMeta();
     renderMineProgressFrame();
     renderBattle();
+    renderTerrainZones();
     renderBridgehead();
     renderActionHints();
     renderVictoryState();

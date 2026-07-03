@@ -2,6 +2,7 @@ import { CONFIG } from "../config.js";
 import { createEnemy } from "../factories.js";
 import { clamp, generateId, sum } from "../utils.js";
 import { initBattlePhysics, stepBattlePhysics } from "../physics/battlePhysics.js";
+import { applyTerrainDamage, getTerrainAttackMultiplier } from "./terrainSystem.js";
 
 function getAttackInterval(actor) {
   return 1 / actor.attackSpeed;
@@ -172,7 +173,7 @@ function applyFriendlyAttacks(state, nowSeconds) {
       const attackRange = getAttackRange(unit);
       if (targetDistance <= attackRange && nowSeconds - unit.lastAttackAt >= attackInterval) {
         unit.state = "engaged";
-        targetEnemy.health -= unit.attack;
+        targetEnemy.health -= unit.attack * getTerrainAttackMultiplier(state, unit, "ally");
         unit.lastAttackAt = nowSeconds;
         markHit(targetEnemy, nowSeconds);
         pushRangedAttackEffect(state, unit, targetEnemy, nowSeconds);
@@ -191,7 +192,7 @@ function applyFriendlyAttacks(state, nowSeconds) {
       nowSeconds - unit.lastAttackAt >= attackInterval
     ) {
       unit.state = "engaged";
-      state.castle.health -= unit.attack;
+      state.castle.health -= unit.attack * getTerrainAttackMultiplier(state, unit, "ally");
       unit.lastAttackAt = nowSeconds;
       state.castle.hitUntil = nowSeconds + 0.16;
       pushRangedAttackEffect(state, unit, state.castle, nowSeconds);
@@ -219,7 +220,7 @@ function applyEnemyAttacks(state, nowSeconds) {
     const targetDistance = getBodyGap(enemy, targetUnit);
     const attackRange = getAttackRange(enemy);
     if (targetDistance <= attackRange && nowSeconds - enemy.lastAttackAt >= attackInterval) {
-      targetUnit.health -= enemy.attack;
+      targetUnit.health -= enemy.attack * getTerrainAttackMultiplier(state, enemy, "enemy");
       enemy.state = "engaged";
       enemy.lastAttackAt = nowSeconds;
       markHit(targetUnit, nowSeconds);
@@ -355,6 +356,7 @@ export function tickBattle(state, deltaSeconds, nowSeconds) {
   stepBattlePhysics(state, deltaSeconds);
   applyFriendlyAttacks(state, nowSeconds);
   applyEnemyAttacks(state, nowSeconds);
+  applyTerrainDamage(state, deltaSeconds, nowSeconds);
   cleanupDefeated(state);
 
   if (state.battleUnits.length === 0 && state.enemies.some((enemy) => !enemy.isRetreating)) {

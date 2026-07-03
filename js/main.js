@@ -2,6 +2,7 @@ import { createInitialState } from "./game/state.js";
 import { mountUI } from "./game/ui.js";
 import { tickBattle } from "./game/systems/battleSystem.js";
 import { tickMineProduction } from "./game/systems/mineSystem.js";
+import { tickTerrainZones } from "./game/systems/terrainSystem.js";
 import { CONFIG, initConfig } from "./game/config.js";
 
 async function bootstrap() {
@@ -17,6 +18,7 @@ async function bootstrap() {
     previousTimestamp = timestamp;
 
     tickMineProduction(state, deltaSeconds);
+    tickTerrainZones(state, deltaSeconds, timestamp / 1000);
     tickBattle(state, deltaSeconds, timestamp / 1000);
     ui.renderFrame();
 

@@ -22,6 +22,7 @@ export function createInitialState() {
       dragUnitId: null,
       handledResourceBurstIds: [],
       handledBattleEffectIds: [],
+      pendingTerrainZoneType: null,
       isCheatsOpen: false
     },
     reserveUnits: [],
@@ -31,6 +32,8 @@ export function createInitialState() {
     enemies: [],
     resourceBursts: [],
     battleEffects: [],
+    terrainZones: [],
+    terrainZoneCooldowns: {},
     castle: {
       maxHealth: CONFIG.castle.maxHealth,
       health: CONFIG.castle.maxHealth,

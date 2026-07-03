@@ -1,0 +1,29 @@
+{
+  "durationSeconds": 45,
+  "types": {
+    "mud": {
+      "label": "Mud",
+      "icon": "M",
+      "radius": 7,
+      "cooldownSeconds": 8,
+      "costs": { "wood": 18 },
+      "enemyMoveMultiplier": 0.6
+    },
+    "holy": {
+      "label": "Holy Ground",
+      "icon": "H",
+      "radius": 6,
+      "cooldownSeconds": 10,
+      "costs": { "crystal": 10 },
+      "allyAttackMultiplier": 1.2
+    },
+    "thorns": {
+      "label": "Thorns",
+      "icon": "T",
+      "radius": 5,
+      "cooldownSeconds": 12,
+      "costs": { "wood": 12, "iron": 5 },
+      "damagePerSecond": 4
+    }
+  }
+}
