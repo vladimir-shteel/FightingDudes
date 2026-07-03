@@ -2371,6 +2371,7 @@ h3 {
 
   .compact-card {
     padding-top: 7px;
+    padding-left: 24px;
   }
 
   .compact-card .unit-character {
@@ -2408,20 +2409,55 @@ h3 {
 
   .compact-card .unit-badges {
     top: 2px;
-    width: auto;
+    left: 3px;
+    right: auto;
+    width: 20px;
     transform: none;
+    align-items: center;
   }
 
   .slot-filled .compact-card .unit-badges {
-    left: 1px;
+    left: 3px;
     right: auto;
     justify-content: flex-start;
   }
 
   .reserve-zone .compact-card .unit-badges {
-    left: auto;
-    right: 3px;
+    left: 3px;
+    right: auto;
     justify-content: flex-end;
+  }
+
+  .compact-card .unit-class-badge {
+    min-width: 18px;
+    min-height: 18px;
+    padding: 1px 3px;
+    font-size: 11px;
+    border-width: 1px;
+  }
+
+  .compact-card .specialization-choice {
+    inset: -8px;
+    min-width: 112px;
+    padding: 7px;
+    gap: 5px;
+    border-radius: 12px;
+  }
+
+  .compact-card .specialization-choice-title {
+    font-size: 8px;
+    letter-spacing: 0.08em;
+  }
+
+  .compact-card .specialization-choice-button {
+    min-height: 26px;
+    gap: 4px;
+    padding: 3px 5px;
+    font-size: 9px;
+  }
+
+  .compact-card .specialization-choice-icon {
+    font-size: 12px;
   }
 
   .compact-card .compact-caption {
