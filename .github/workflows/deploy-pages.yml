@@ -18,6 +18,16 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    env:
+      PREVIEW_BRANCHES: |
+        codex/experimental-03-formation-rows
+        codex/experimental-07-terrain-zones
+        codex/experimental-09-destructible-props
+        codex/experimental-10-merge-specializations
+        codex/experimental-13-between-wave-events
+        codex/experimental-14-caravan-merchant
+        codex/experimental-15-weather-day-night
+        codex/experimental-20-speed-controls
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -25,14 +35,71 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
+      - name: Build Pages artifact with branch previews
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          rm -rf _site
+          mkdir -p _site/previews
+
+          rsync -a \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='_site' \
+            ./ _site/
+
+          git fetch --no-tags --prune origin '+refs/heads/*:refs/remotes/origin/*'
+
+          preview_links=""
+          while IFS= read -r branch; do
+            if [[ -z "$branch" ]]; then
+              continue
+            fi
+
+            if ! git rev-parse --verify --quiet "origin/${branch}" >/dev/null; then
+              echo "Skipping missing preview branch: ${branch}"
+              continue
+            fi
+
+            slug="${branch##*/}"
+            target="_site/previews/${slug}"
+            mkdir -p "$target"
+            git archive --format=tar "origin/${branch}" | tar -x -C "$target"
+            rm -rf "${target}/.github"
+
+            preview_links="${preview_links}<li><a href=\"./${slug}/\">${slug}</a></li>"
+          done <<< "$PREVIEW_BRANCHES"
+
+          cat > _site/previews/index.html <<HTML
+          <!doctype html>
+          <html lang="en">
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <title>Fighting Dudes previews</title>
+            <style>
+              body { font-family: system-ui, sans-serif; margin: 32px; line-height: 1.5; }
+              a { color: #0969da; }
+            </style>
+          </head>
+          <body>
+            <h1>Fighting Dudes previews</h1>
+            <ul>${preview_links}</ul>
+          </body>
+          </html>
+          HTML
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v4
         with:
-          path: .
+          path: _site
 
       - name: Deploy to GitHub Pages
         id: deployment
