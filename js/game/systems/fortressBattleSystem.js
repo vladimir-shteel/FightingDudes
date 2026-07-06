@@ -1,6 +1,7 @@
 import { CONFIG } from "../config.js";
 import { clamp, generateId } from "../utils.js";
 import { FORTRESS_HEIGHT, FORTRESS_WIDTH } from "./fortressSystem.js";
+import { rollUpgradeChoices } from "./upgradeSystem.js";
 
 function getBuildingCenter(building) {
   const minX = Math.min(...building.tiles.map((tile) => tile.x));
@@ -278,6 +279,7 @@ function finishBattle(state, result) {
     } else {
       state.fortress.waveNumber += 1;
       state.fortress.message = `Victory. +${wave.victoryGold} gold.`;
+      rollUpgradeChoices(state);
     }
   } else {
     state.resources.gold += wave.defeatGold;

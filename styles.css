@@ -1729,6 +1729,67 @@ h3 {
   color: var(--muted);
 }
 
+.upgrade-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(43, 30, 20, 0.58);
+  backdrop-filter: blur(6px);
+}
+
+.upgrade-overlay[hidden] {
+  display: none;
+}
+
+.upgrade-card {
+  width: min(640px, 100%);
+  border: 4px solid rgba(114, 63, 28, 0.22);
+  border-radius: 20px;
+  padding: 22px;
+  background: linear-gradient(180deg, #fff7d6 0%, #ffe9af 100%);
+  box-shadow: 0 22px 70px rgba(43, 30, 20, 0.34);
+  color: var(--text);
+}
+
+.upgrade-card h2 {
+  margin-bottom: 14px;
+  font-size: clamp(24px, 5vw, 42px);
+}
+
+.upgrade-choices {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.upgrade-choice-card {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  min-height: 130px;
+  border: 2px solid rgba(114, 63, 28, 0.22);
+  border-radius: 14px;
+  padding: 14px;
+  text-align: left;
+  background: rgba(255, 255, 255, 0.74);
+  color: var(--text);
+  box-shadow: 0 5px 0 rgba(114, 63, 28, 0.12);
+}
+
+.upgrade-choice-card strong {
+  font-size: 16px;
+}
+
+.upgrade-choice-card span {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.3;
+}
+
 @keyframes pop-in {
   from {
     opacity: 0;
@@ -2845,5 +2906,13 @@ h3 {
   .fortress-upgrade-button {
     min-height: 20px;
     font-size: 8px;
+  }
+
+  .upgrade-choices {
+    grid-template-columns: 1fr;
+  }
+
+  .upgrade-choice-card {
+    min-height: 96px;
   }
 }

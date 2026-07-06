@@ -52,6 +52,8 @@ export function createFortressState() {
       enemiesToSpawn: 0,
       result: null
     },
+    pendingUpgradeChoices: null,
+    buildingBuyDiscount: 1,
     unlockedBuildingTypes: Object.entries(CONFIG.fortressBuildings)
       .filter(([, building]) => building.unlockedByDefault)
       .map(([type]) => type)
@@ -90,6 +92,17 @@ export function spendResources(resources, costs = {}) {
     resources[resourceKey] = clamp((resources[resourceKey] ?? 0) - amount, 0, Number.MAX_SAFE_INTEGER);
   }
   return true;
+}
+
+export function getFortressBuildingBuyCost(state, type) {
+  const definition = CONFIG.fortressBuildings[type];
+  const discount = state.fortress.buildingBuyDiscount ?? 1;
+  return Object.fromEntries(
+    costEntries(definition?.buyCost ?? {}).map(([resourceKey, amount]) => [
+      resourceKey,
+      Math.max(1, Math.floor(amount * discount))
+    ])
+  );
 }
 
 export function canPlaceFortressBuilding(state, type, origin, ignoredBuildingId = null) {
@@ -152,11 +165,12 @@ export function buyFortressBuilding(state, type) {
     return { ok: false, reason: "Building is locked." };
   }
   const definition = CONFIG.fortressBuildings[type];
+  const buyCost = getFortressBuildingBuyCost(state, type);
   const origin = findFortressPlacement(state, type);
   if (!origin) {
     return { ok: false, reason: "No valid space on the fortress grid." };
   }
-  if (!spendResources(state.resources, definition.buyCost)) {
+  if (!spendResources(state.resources, buyCost)) {
     return { ok: false, reason: "Not enough resources for this building." };
   }
   const building = createFortressBuilding(type, origin);

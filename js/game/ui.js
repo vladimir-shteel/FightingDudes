@@ -31,10 +31,12 @@ import {
   canAffordResources,
   canPlaceFortressBuilding,
   findFortressPlacement,
+  getFortressBuildingBuyCost,
   moveFortressBuilding,
   removeFortressObstacle,
   upgradeFortressBuilding
 } from "./systems/fortressSystem.js";
+import { applyUpgradeChoice } from "./systems/upgradeSystem.js";
 
 function getResourceIconMarkup(resourceKey, extraClass = "") {
   const icon = getResourceIcon(resourceKey);
@@ -262,7 +264,9 @@ export function mountUI(state, onStateChanged) {
     fortressFightButton: document.querySelector("#fortressFightButton"),
     fortressMessage: document.querySelector("#fortressMessage"),
     fortressField: document.querySelector("#fortressField"),
-    fortressShop: document.querySelector("#fortressShop")
+    fortressShop: document.querySelector("#fortressShop"),
+    upgradeOverlay: document.querySelector("#upgradeOverlay"),
+    upgradeChoices: document.querySelector("#upgradeChoices")
   };
 
   const resourceOrder = [
@@ -966,14 +970,15 @@ export function mountUI(state, onStateChanged) {
       }
 
       const isUnlocked = state.fortress.unlockedBuildingTypes.includes(type);
+      const buyCost = getFortressBuildingBuyCost(state, type);
       const hasSpace = Boolean(findFortressPlacement(state, type));
-      const canBuy = isUnlocked && hasSpace && canAffordResources(state.resources, definition.buyCost);
+      const canBuy = isUnlocked && hasSpace && canAffordResources(state.resources, buyCost);
       const card = document.createElement("article");
       card.className = `fortress-shop-card ${isUnlocked ? "" : "is-locked"} ${!hasSpace ? "has-no-space" : ""}`;
       card.innerHTML = `
         <div class="fortress-shop-icon">${definition.icon}</div>
         <strong>${definition.name}</strong>
-        <div class="fortress-shop-cost">${renderFortressCost(definition.buyCost)}</div>
+        <div class="fortress-shop-cost">${renderFortressCost(buyCost)}</div>
         <button class="secondary-button" type="button">${isUnlocked ? (hasSpace ? "Buy" : "No Space") : "Locked"}</button>
       `;
       const button = card.querySelector("button");
@@ -984,6 +989,28 @@ export function mountUI(state, onStateChanged) {
         onStateChanged();
       });
       elements.fortressShop.append(card);
+    }
+  }
+
+  function renderUpgradeChoices() {
+    const choices = state.fortress.pendingUpgradeChoices ?? [];
+    elements.upgradeOverlay.hidden = choices.length === 0;
+    elements.upgradeChoices.innerHTML = "";
+
+    for (const choice of choices) {
+      const card = document.createElement("button");
+      card.type = "button";
+      card.className = "upgrade-choice-card";
+      card.innerHTML = `
+        <strong>${choice.title}</strong>
+        <span>${choice.description}</span>
+      `;
+      card.addEventListener("click", () => {
+        const result = applyUpgradeChoice(state, choice.id);
+        state.fortress.message = result.reason;
+        onStateChanged();
+      });
+      elements.upgradeChoices.append(card);
     }
   }
 
@@ -1242,6 +1269,7 @@ export function mountUI(state, onStateChanged) {
     renderVictoryState();
     renderFortressField();
     renderFortressShop();
+    renderUpgradeChoices();
   }
 
   function renderVictoryState() {
@@ -1269,6 +1297,7 @@ export function mountUI(state, onStateChanged) {
     elements.fortressMessage.textContent = state.fortress.message;
     renderFortressField();
     renderFortressShop();
+    renderUpgradeChoices();
     renderMineProgressFrame();
     renderBattle();
     renderBridgehead();
