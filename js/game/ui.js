@@ -529,9 +529,6 @@ export function mountUI(state, onStateChanged) {
               </div>
             </div>
           </div>
-          <button class="secondary-button" data-upgrade-mine="${mine.id}">
-            ${actionLabel}
-          </button>
         </div>
         <div class="mine-stats">
           ${showPassive ? `
@@ -656,11 +653,6 @@ export function mountUI(state, onStateChanged) {
       }
 
       card.append(slots);
-      card.querySelector(`[data-upgrade-mine="${mine.id}"]`).addEventListener("click", () => {
-        const result = mine.isUnlocked ? upgradeMine(state, mine.id) : unlockMine(state, mine.id);
-        state.fortress.message = result.reason;
-        onStateChanged();
-      });
 
       elements.minesGrid.append(card);
     }
