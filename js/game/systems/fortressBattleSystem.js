@@ -47,12 +47,9 @@ function moveToward(actor, target, deltaSeconds) {
 }
 
 function getBlockedTileSetForActor(state, ignoreBuildingId) {
+  // Trees (`tile.occupant === "obstacle"`) are walkable for units — only live buildings block.
+  // That way clearing trees stays purely a gold sink for placement, not a defensive perk.
   const obstacles = new Set();
-  for (const tile of state.fortress.field) {
-    if (tile.occupant === "obstacle") {
-      obstacles.add(`${tile.x}:${tile.y}`);
-    }
-  }
   for (const building of state.fortress.buildings) {
     if (building.hp <= 0) {
       continue;
