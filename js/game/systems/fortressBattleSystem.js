@@ -6,8 +6,10 @@ import { rollUpgradeChoices } from "./upgradeSystem.js";
 
 const REPATH_INTERVAL_SECONDS = 0.4;
 const WAYPOINT_ARRIVAL_DISTANCE = 0.18;
-const UNIT_COLLISION_RADIUS = 0.32;
-const UNIT_PUSH_STRENGTH = 1.4;
+// Collision radius must be small enough that opposing melee units still overlap into each other's
+// attack range (warrior range 0.5, enemy range 0.42). 0.18 → minDistance 0.36, comfortably inside melee.
+const UNIT_COLLISION_RADIUS = 0.18;
+const UNIT_PUSH_STRENGTH = 1.0;
 
 function getBuildingCenter(building) {
   const minX = Math.min(...building.tiles.map((tile) => tile.x));
