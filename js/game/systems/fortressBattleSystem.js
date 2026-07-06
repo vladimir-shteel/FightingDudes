@@ -43,13 +43,13 @@ function moveToward(actor, target, deltaSeconds) {
 function createFortressEnemy(state) {
   const base = CONFIG.fortressUnits.enemy;
   const waveBonus = Math.max(0, state.fortress.waveNumber - 1);
-  const hp = base.hp + waveBonus * 6;
+  const hp = base.hp + waveBonus * 3;
   return {
     id: generateId("fortress-enemy"),
     icon: base.icon,
     hp,
     maxHp: hp,
-    attack: base.attack + Math.floor(waveBonus / 2),
+    attack: base.attack + Math.floor(waveBonus / 3),
     cooldownSeconds: base.cooldownSeconds,
     attackTimer: 0,
     range: base.rangeTiles,
