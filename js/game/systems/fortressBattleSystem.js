@@ -1,7 +1,13 @@
 import { CONFIG } from "../config.js";
 import { clamp, generateId } from "../utils.js";
 import { FORTRESS_HEIGHT, FORTRESS_WIDTH } from "./fortressSystem.js";
+import { findTilePath } from "./pathfinding.js";
 import { rollUpgradeChoices } from "./upgradeSystem.js";
+
+const REPATH_INTERVAL_SECONDS = 0.4;
+const WAYPOINT_ARRIVAL_DISTANCE = 0.18;
+const UNIT_COLLISION_RADIUS = 0.32;
+const UNIT_PUSH_STRENGTH = 1.4;
 
 function getBuildingCenter(building) {
   const minX = Math.min(...building.tiles.map((tile) => tile.x));
@@ -38,6 +44,134 @@ function moveToward(actor, target, deltaSeconds) {
   const step = Math.min(distance, actor.speed * deltaSeconds);
   actor.x += (dx / distance) * step;
   actor.y += (dy / distance) * step;
+}
+
+function getBlockedTileSetForActor(state, ignoreBuildingId) {
+  const obstacles = new Set();
+  for (const tile of state.fortress.field) {
+    if (tile.occupant === "obstacle") {
+      obstacles.add(`${tile.x}:${tile.y}`);
+    }
+  }
+  for (const building of state.fortress.buildings) {
+    if (building.hp <= 0) {
+      continue;
+    }
+    if (building.type === "mine") {
+      // Trap mines are transparent to pathfinding — enemies walk into them and trigger damage.
+      continue;
+    }
+    if (building.id === ignoreBuildingId) {
+      continue;
+    }
+    for (const tile of building.tiles) {
+      obstacles.add(`${tile.x}:${tile.y}`);
+    }
+  }
+  return obstacles;
+}
+
+function chooseGoalTileForBuilding(building) {
+  // For rectangular / multi-tile buildings pick the tile closest to top (enemy spawn side) so the enemy
+  // ends up in contact with the outer edge and can attack.
+  let best = null;
+  for (const tile of building.tiles) {
+    if (!best || tile.y < best.y || (tile.y === best.y && tile.x < best.x)) {
+      best = tile;
+    }
+  }
+  return best;
+}
+
+function ensureEnemyPath(state, enemy, deltaSeconds) {
+  enemy.pathTimer = (enemy.pathTimer ?? 0) - deltaSeconds;
+  const targetId = enemy.pathTargetId ?? null;
+  const needsRepath = !enemy.path || enemy.path.length === 0
+    || enemy.pathTimer <= 0
+    || enemy.pathTargetId !== enemy.currentTargetId;
+  if (!needsRepath) {
+    return;
+  }
+  const targetBuilding = state.fortress.buildings.find((building) => building.id === enemy.currentTargetId);
+  if (!targetBuilding || targetBuilding.hp <= 0) {
+    enemy.path = null;
+    enemy.pathTargetId = null;
+    return;
+  }
+  const blocked = getBlockedTileSetForActor(state, targetBuilding.id);
+  const startTile = { x: clamp(Math.round(enemy.x), 0, FORTRESS_WIDTH - 1), y: clamp(Math.round(enemy.y), 0, FORTRESS_HEIGHT - 1) };
+  const goalTile = chooseGoalTileForBuilding(targetBuilding);
+  const tilePath = findTilePath(
+    startTile,
+    goalTile,
+    (x, y) => blocked.has(`${x}:${y}`)
+  );
+  if (!tilePath) {
+    enemy.path = null;
+    enemy.pathTargetId = targetId;
+    return;
+  }
+  // Path returned includes the current tile at index 0; skip it so the first waypoint is one step ahead.
+  enemy.path = tilePath.slice(1).map((tile) => ({ x: tile.x + 0.5, y: tile.y + 0.5 }));
+  enemy.pathTargetId = enemy.currentTargetId;
+  enemy.pathTimer = REPATH_INTERVAL_SECONDS;
+}
+
+function followPath(enemy, deltaSeconds) {
+  if (!enemy.path || enemy.path.length === 0) {
+    return false;
+  }
+  const nextWaypoint = enemy.path[0];
+  moveToward(enemy, nextWaypoint, deltaSeconds);
+  if (Math.hypot(enemy.x - nextWaypoint.x, enemy.y - nextWaypoint.y) <= WAYPOINT_ARRIVAL_DISTANCE) {
+    enemy.path.shift();
+  }
+  return true;
+}
+
+function resolveUnitCollisions(state) {
+  const battle = state.fortress.battle;
+  const actors = [];
+  for (const enemy of battle.enemies) {
+    if (enemy.hp > 0) actors.push(enemy);
+  }
+  for (const ally of battle.allies) {
+    if (ally.hp > 0) actors.push(ally);
+  }
+  const minDistance = UNIT_COLLISION_RADIUS * 2;
+  for (let i = 0; i < actors.length; i += 1) {
+    for (let j = i + 1; j < actors.length; j += 1) {
+      const a = actors[i];
+      const b = actors[j];
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      let distance = Math.hypot(dx, dy);
+      if (distance >= minDistance) {
+        continue;
+      }
+      if (distance < 0.0001) {
+        // Perfect overlap — apply a deterministic tiny offset based on ids to break the tie.
+        const jitter = (a.id.length + b.id.length) % 7;
+        const ax = 0.02 * (jitter - 3);
+        const ay = 0.02 * ((jitter * 3) % 7 - 3);
+        b.x += ax;
+        b.y += ay;
+        continue;
+      }
+      const overlap = minDistance - distance;
+      const push = (overlap / 2) * UNIT_PUSH_STRENGTH;
+      const nx = dx / distance;
+      const ny = dy / distance;
+      a.x -= nx * push;
+      a.y -= ny * push;
+      b.x += nx * push;
+      b.y += ny * push;
+    }
+  }
+  // Keep everyone inside the horizontal grid.
+  for (const actor of actors) {
+    actor.x = clamp(actor.x, -0.4, FORTRESS_WIDTH - 0.6);
+  }
 }
 
 function createFortressEnemy(state) {
@@ -165,10 +299,24 @@ function tickBuildingActions(state, deltaSeconds) {
   }
 }
 
+function distanceToBuildingEdge(enemy, building) {
+  let best = Infinity;
+  for (const tile of building.tiles) {
+    const centerX = tile.x + 0.5;
+    const centerY = tile.y + 0.5;
+    const distance = Math.hypot(enemy.x - centerX, enemy.y - centerY);
+    if (distance < best) {
+      best = distance;
+    }
+  }
+  return best;
+}
+
 function tickEnemies(state, deltaSeconds) {
   const battle = state.fortress.battle;
   for (const enemy of battle.enemies) {
     if (enemy.hp <= 0) {
+      enemy.path = null;
       continue;
     }
 
@@ -187,28 +335,54 @@ function tickEnemies(state, deltaSeconds) {
         continue;
       }
       const level = CONFIG.fortressBuildings.mine.levels[building.level - 1];
-      const center = getBuildingCenter(building);
-      if (getDistance(enemy, center) <= 0.45) {
+      if (distanceToBuildingEdge(enemy, building) <= 0.55) {
         enemy.hp -= level.damage;
         building.hp = 0;
       }
     }
 
-    const targets = state.fortress.buildings
-      .filter((building) => building.hp > 0 && building.type !== "mine")
-      .map((building) => ({ ...getBuildingCenter(building), building }));
-    const target = chooseNearest(enemy, targets);
-    if (!target) {
+    // Pick the nearest attackable building (excluding trap mines — those are hazards, not targets).
+    const attackable = state.fortress.buildings.filter((building) => building.hp > 0 && building.type !== "mine");
+    let bestBuilding = null;
+    let bestEdgeDistance = Infinity;
+    for (const building of attackable) {
+      const edgeDistance = distanceToBuildingEdge(enemy, building);
+      if (edgeDistance < bestEdgeDistance) {
+        bestEdgeDistance = edgeDistance;
+        bestBuilding = building;
+      }
+    }
+    if (!bestBuilding) {
+      enemy.path = null;
+      enemy.currentTargetId = null;
       continue;
     }
-    if (target.distance > enemy.range) {
-      moveToward(enemy, target.item, deltaSeconds);
+    enemy.currentTargetId = bestBuilding.id;
+
+    // In attack range of building footprint? Stand and hit.
+    if (bestEdgeDistance <= 0.7) {
+      enemy.path = null;
+      enemy.attackTimer -= deltaSeconds;
+      if (enemy.attackTimer <= 0) {
+        bestBuilding.hp = clamp(bestBuilding.hp - enemy.attack, 0, bestBuilding.maxHp);
+        enemy.attackTimer = enemy.cooldownSeconds;
+      }
       continue;
     }
-    enemy.attackTimer -= deltaSeconds;
-    if (enemy.attackTimer <= 0) {
-      target.item.building.hp = clamp(target.item.building.hp - enemy.attack, 0, target.item.building.maxHp);
-      enemy.attackTimer = enemy.cooldownSeconds;
+
+    ensureEnemyPath(state, enemy, deltaSeconds);
+    if (!followPath(enemy, deltaSeconds)) {
+      // Path unreachable — fall back to straight line toward the closest footprint tile.
+      let closestTile = bestBuilding.tiles[0];
+      let closestDistance = Infinity;
+      for (const tile of bestBuilding.tiles) {
+        const d = Math.hypot(enemy.x - (tile.x + 0.5), enemy.y - (tile.y + 0.5));
+        if (d < closestDistance) {
+          closestDistance = d;
+          closestTile = tile;
+        }
+      }
+      moveToward(enemy, { x: closestTile.x + 0.5, y: closestTile.y + 0.5 }, deltaSeconds);
     }
   }
 }
@@ -317,6 +491,7 @@ export function tickFortressBattle(state, deltaSeconds) {
   tickEnemies(state, deltaSeconds);
   tickAllies(state, deltaSeconds);
   tickProjectiles(state, deltaSeconds);
+  resolveUnitCollisions(state);
 
   const enemiesBeforeCleanup = battle.enemies.length;
   battle.enemies = battle.enemies.filter((enemy) => enemy.hp > 0);
