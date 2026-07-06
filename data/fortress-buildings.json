@@ -1,0 +1,84 @@
+{
+  "hq": {
+    "name": "HQ",
+    "icon": "🏰",
+    "footprint": [[0, 0], [1, 0], [2, 0], [0, 1], [1, 1], [2, 1]],
+    "unlockedByDefault": true,
+    "buyCost": {},
+    "levels": [
+      { "hp": 1000 }
+    ]
+  },
+  "wall": {
+    "name": "Wall",
+    "icon": "🧱",
+    "footprint": [[0, 0]],
+    "unlockedByDefault": true,
+    "buyCost": { "wood": 8 },
+    "levels": [
+      { "hp": 150, "upgradeCost": { "wood": 12 } },
+      { "hp": 300, "upgradeCost": { "wood": 20, "ore": 8 } },
+      { "hp": 600 }
+    ]
+  },
+  "bigWall": {
+    "name": "Big Wall",
+    "icon": "🧱",
+    "footprint": [[0, 0], [1, 0], [2, 0]],
+    "unlockedByDefault": true,
+    "buyCost": { "wood": 14, "ore": 10 },
+    "levels": [
+      { "hp": 300, "upgradeCost": { "wood": 20, "ore": 12 } },
+      { "hp": 600, "upgradeCost": { "wood": 28, "ore": 20 } },
+      { "hp": 1200 }
+    ]
+  },
+  "barracks": {
+    "name": "Barracks",
+    "icon": "⚔️",
+    "footprint": [[0, 0], [1, 0], [0, 1], [1, 1]],
+    "unlockedByDefault": true,
+    "buyCost": { "wood": 16, "ore": 8 },
+    "levels": [
+      { "hp": 160, "cooldownSeconds": 12, "unit": "warrior", "upgradeCost": { "wood": 18, "ore": 12 } },
+      { "hp": 220, "cooldownSeconds": 10, "unit": "warrior", "upgradeCost": { "wood": 28, "ore": 20, "iron": 6 } },
+      { "hp": 300, "cooldownSeconds": 8, "unit": "warrior" }
+    ]
+  },
+  "archery": {
+    "name": "Archery",
+    "icon": "🏹",
+    "footprint": [[0, 0], [1, 0], [2, 0], [1, 1]],
+    "unlockedByDefault": false,
+    "buyCost": { "wood": 22, "crystal": 6 },
+    "levels": [
+      { "hp": 140, "cooldownSeconds": 18, "unit": "archer", "upgradeCost": { "wood": 26, "crystal": 8 } },
+      { "hp": 190, "cooldownSeconds": 15, "unit": "archer", "upgradeCost": { "wood": 34, "crystal": 14 } },
+      { "hp": 260, "cooldownSeconds": 12, "unit": "archer" }
+    ]
+  },
+  "turret": {
+    "name": "Turret",
+    "icon": "🎯",
+    "footprint": [[0, 0]],
+    "unlockedByDefault": false,
+    "buyCost": { "ore": 20, "iron": 8 },
+    "levels": [
+      { "hp": 120, "damage": 5, "cooldownSeconds": 2, "upgradeCost": { "ore": 28, "iron": 12 } },
+      { "hp": 180, "damage": 7, "cooldownSeconds": 2, "upgradeCost": { "ore": 36, "iron": 18 } },
+      { "hp": 260, "damage": 10, "cooldownSeconds": 2 }
+    ]
+  },
+  "mine": {
+    "name": "Trap Mine",
+    "icon": "💣",
+    "footprint": [[0, 0]],
+    "unlockedByDefault": false,
+    "buyCost": { "iron": 12 },
+    "levels": [
+      { "hp": 1, "damage": 20, "upgradeCost": { "iron": 16 } },
+      { "hp": 1, "damage": 30, "upgradeCost": { "iron": 24, "crystal": 6 } },
+      { "hp": 1, "damage": 50 }
+    ]
+  }
+}

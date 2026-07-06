@@ -265,10 +265,13 @@ export function tickMineProduction(state, deltaSeconds) {
       const payoutSeconds = mine.workerProgress[index];
       mine.workerProgress[index] = 0;
       const slotMultiplier = mineLevelData.slotProductionMultipliers[index] ?? 1;
-      const resourceAmount =
-        CONFIG.mine.baseProductionPerSecond * worker.level * slotMultiplier * payoutSeconds;
-      const goldAmount =
-        (CONFIG.mine.goldPerSecondPerWorkerLevel ?? 0) * worker.level * slotMultiplier * payoutSeconds;
+      const productionTable = CONFIG.mine.workerProductionByLevel ?? null;
+      const resourceAmount = productionTable
+        ? (productionTable[String(worker.level)] ?? 1) * slotMultiplier
+        : CONFIG.mine.baseProductionPerSecond * worker.level * slotMultiplier * payoutSeconds;
+      const goldAmount = productionTable
+        ? 0
+        : (CONFIG.mine.goldPerSecondPerWorkerLevel ?? 0) * worker.level * slotMultiplier * payoutSeconds;
 
       state.resources[mine.resourceKey] = clamp(
         state.resources[mine.resourceKey] + resourceAmount,

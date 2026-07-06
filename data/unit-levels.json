@@ -5,6 +5,7 @@
     { "level": 3, "name": "Dude", "icon": "😎", "baseHealth": 74, "baseAttack": 20, "baseAttackSpeed": 1.05 },
     { "level": 4, "name": "Dude", "icon": "🧔", "baseHealth": 98, "baseAttack": 28, "baseAttackSpeed": 1.1 },
     { "level": 5, "name": "Dude", "icon": "🧙", "baseHealth": 124, "baseAttack": 37, "baseAttackSpeed": 1.15 },
-    { "level": 6, "name": "Dude", "icon": "🦸", "baseHealth": 154, "baseAttack": 48, "baseAttackSpeed": 1.2 }
+    { "level": 6, "name": "Dude", "icon": "🦸", "baseHealth": 154, "baseAttack": 48, "baseAttackSpeed": 1.2 },
+    { "level": 7, "name": "Dude", "icon": "🧝", "baseHealth": 190, "baseAttack": 62, "baseAttackSpeed": 1.25 }
   ]
 }

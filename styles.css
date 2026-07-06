@@ -42,6 +42,7 @@ body {
   font-variant-numeric: tabular-nums;
   color: var(--text);
   background: linear-gradient(180deg, var(--bg-top) 0%, var(--bg-bottom) 60%);
+  overflow: hidden;
 }
 
 button {
@@ -2469,5 +2470,361 @@ h3 {
 
   .gear-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Fortress Merge integration layer */
+.screen-deck {
+  width: 100%;
+  height: 200dvh;
+  transform: translateY(-50%);
+  transition: transform 280ms ease;
+}
+
+.screen-deck.show-top {
+  transform: translateY(0);
+}
+
+.screen-deck.show-bottom {
+  transform: translateY(-50%);
+}
+
+.game-screen {
+  min-height: 100dvh;
+  max-height: 100dvh;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.fortress-screen {
+  background:
+    radial-gradient(circle at 18% 16%, rgba(255, 255, 255, 0.44), transparent 24%),
+    linear-gradient(180deg, #dfeee0 0%, #cddfce 100%);
+}
+
+.production-screen {
+  background: linear-gradient(180deg, var(--bg-top) 0%, var(--bg-bottom) 60%);
+}
+
+.screen-switch-controls {
+  position: sticky;
+  top: 8px;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-bottom: 8px;
+  pointer-events: none;
+}
+
+.screen-switch-controls > * {
+  pointer-events: auto;
+}
+
+.screen-switch-hint {
+  border-radius: 999px;
+  padding: 8px 11px;
+  background: rgba(255, 255, 255, 0.8);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  box-shadow: 0 8px 18px rgba(89, 44, 18, 0.12);
+}
+
+.fortress-shell {
+  display: grid;
+  grid-template-rows: auto auto 1fr;
+  gap: 12px;
+  min-height: 100dvh;
+}
+
+.fortress-layout {
+  display: grid;
+  grid-template-columns: minmax(320px, 1fr) minmax(280px, 380px);
+  gap: 18px;
+  align-items: start;
+}
+
+.fortress-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.fortress-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.fortress-field {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-rows: repeat(7, minmax(54px, 1fr));
+  gap: 8px;
+  width: min(100%, 520px);
+  aspect-ratio: 5 / 7;
+  margin: 0 auto;
+}
+
+.fortress-battle-active .fortress-topbar,
+.fortress-battle-active .fortress-shop-panel {
+  display: none;
+}
+
+.fortress-battle-active .fortress-layout {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.fortress-battle-active .fortress-panel {
+  min-height: calc(100dvh - 72px);
+}
+
+.fortress-battle-active .fortress-actions {
+  display: none;
+}
+
+.fortress-field.is-battle-active {
+  max-height: calc(100dvh - 150px);
+}
+
+.fortress-tile {
+  position: relative;
+  display: grid;
+  place-items: center;
+  gap: 2px;
+  min-width: 0;
+  min-height: 0;
+  border: 2px solid rgba(107, 74, 45, 0.2);
+  border-radius: 16px;
+  padding: 5px;
+  background: rgba(255, 255, 255, 0.52);
+  color: var(--text);
+  box-shadow: inset 0 -3px 0 rgba(107, 74, 45, 0.07);
+  overflow: hidden;
+}
+
+.fortress-tile:disabled {
+  cursor: default;
+}
+
+.fortress-field.is-battle-active .fortress-tile {
+  pointer-events: none;
+}
+
+.fortress-tile.is-obstacle {
+  background:
+    repeating-linear-gradient(135deg, rgba(62, 142, 77, 0.25) 0 9px, rgba(107, 74, 45, 0.18) 9px 18px),
+    #d4dfbd;
+}
+
+.fortress-tile.is-building {
+  background: #fff7dd;
+  border-color: rgba(192, 85, 58, 0.34);
+}
+
+.fortress-tile.is-building-part {
+  background: rgba(255, 247, 221, 0.62);
+  border-style: dashed;
+}
+
+.fortress-tile.is-valid-target {
+  background: rgba(62, 142, 77, 0.18);
+  border-color: var(--green);
+}
+
+.fortress-tile.is-invalid-target {
+  background: rgba(192, 85, 58, 0.12);
+  border-color: rgba(192, 85, 58, 0.34);
+}
+
+.fortress-tile-icon {
+  font-size: clamp(20px, 4vw, 34px);
+  line-height: 1;
+}
+
+.fortress-tile strong {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+}
+
+.fortress-tile small,
+.fortress-tile-action,
+.fortress-tile-empty {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.fortress-upgrade-button {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  bottom: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-height: 24px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--panel-red-dark);
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.fortress-upgrade-button .gear-cost-pill {
+  padding: 1px 4px;
+  font-size: 9px;
+}
+
+.fortress-shop-panel {
+  position: sticky;
+  top: 58px;
+}
+
+.fortress-shop {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.fortress-shop-card {
+  display: grid;
+  grid-template-rows: auto auto minmax(38px, auto) auto;
+  gap: 6px;
+  align-items: center;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 10px;
+  background: var(--paper-strong);
+  box-shadow: 0 3px 0 rgba(107, 74, 45, 0.12);
+}
+
+.fortress-shop-card.is-locked {
+  filter: grayscale(0.7);
+  opacity: 0.68;
+}
+
+.fortress-shop-icon {
+  font-size: 26px;
+  line-height: 1;
+}
+
+.fortress-shop-card strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fortress-shop-cost {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-width: 0;
+}
+
+.fortress-actor,
+.fortress-projectile {
+  position: absolute;
+  left: calc((var(--x) / 5) * 100%);
+  top: calc((var(--y) / 7) * 100%);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 5;
+}
+
+.fortress-actor {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: var(--paper);
+  box-shadow: 0 8px 18px rgba(51, 48, 31, 0.18);
+}
+
+.fortress-actor span {
+  line-height: 1;
+}
+
+.fortress-actor i {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  bottom: -6px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--green);
+}
+
+.fortress-enemy {
+  background: #ffe5dd;
+}
+
+.fortress-enemy i {
+  background: var(--red);
+}
+
+.fortress-ally {
+  background: #e4f2ff;
+}
+
+.fortress-projectile {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--panel-red-dark);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.65);
+}
+
+@media (max-width: 900px) {
+  .fortress-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .fortress-shop-panel {
+    position: static;
+  }
+
+  .fortress-shop {
+    grid-auto-flow: column;
+    grid-auto-columns: 130px;
+    grid-template-columns: none;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+}
+
+@media (max-width: 720px) {
+  .screen-switch-controls {
+    top: 4px;
+    margin-right: 4px;
+  }
+
+  .screen-switch-hint {
+    display: none;
+  }
+
+  .fortress-field {
+    grid-template-rows: repeat(7, minmax(42px, 1fr));
+    gap: 5px;
+  }
+
+  .fortress-tile {
+    border-radius: 12px;
+    padding: 3px;
+  }
+
+  .fortress-upgrade-button {
+    min-height: 20px;
+    font-size: 8px;
   }
 }

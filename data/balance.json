@@ -6,8 +6,8 @@
   "passiveGoldPayoutIntervalSeconds": 4,
   "startingGold": 110,
   "startingOre": 0,
-  "unitBuyBaseCost": 16,
-  "unitBuyExponent": 1.22,
+  "unitBuyBaseCost": 5,
+  "unitBuyExponent": 1,
   "battle": {
     "waveCooldownSeconds": 12,
     "fieldWidth": 100,
@@ -52,6 +52,6 @@
     "maxHealth": 3200
   },
   "merge": {
-    "maxLevel": 6
+    "maxLevel": 3
   }
 }

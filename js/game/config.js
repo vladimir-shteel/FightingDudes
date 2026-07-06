@@ -18,6 +18,9 @@ export const CONFIG = {
     maxLevel: 1
   },
   equipment: {},
+  fortressBuildings: {},
+  fortressUnits: {},
+  fortressWaves: [],
   waves: [],
   unitLevels: [],
   mine: {
@@ -40,16 +43,22 @@ async function fetchJson(fileName) {
 }
 
 export async function initConfig() {
-  const [balance, equipment, waves, unitLevels, mineLevels] = await Promise.all([
+  const [balance, equipment, waves, unitLevels, mineLevels, fortressBuildings, fortressUnits, fortressWaves] = await Promise.all([
     fetchJson("balance.json"),
     fetchJson("equipment.json"),
     fetchJson("waves.json"),
     fetchJson("unit-levels.json"),
-    fetchJson("mine-levels.json")
+    fetchJson("mine-levels.json"),
+    fetchJson("fortress-buildings.json"),
+    fetchJson("fortress-units.json"),
+    fetchJson("fortress-waves.json")
   ]);
 
   Object.assign(CONFIG, balance, {
     equipment,
+    fortressBuildings,
+    fortressUnits,
+    fortressWaves,
     waves,
     unitLevels: unitLevels.levels,
     mine: mineLevels

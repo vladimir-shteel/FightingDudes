@@ -3,99 +3,153 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Fighting Dudes Prototype</title>
+  <title>Fortress Merge Factory Prototype</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Russo+One&family=Manrope:wght@400;500;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
-  <div class="app-shell">
-    <div id="fxLayer" class="fx-layer" aria-hidden="true"></div>
-    <header class="topbar">
-      <div>
-        <p class="eyebrow">GitHub Pages Prototype</p>
-        <h1 id="gameTitle" title="Press E for cheats">Fighting Dudes</h1>
-      </div>
-      <div class="resource-bar">
-        <div id="selectedUnitChip" class="resource-chip selection-chip is-empty">
-          <div class="resource-chip-top">
-            <span class="resource-icon selection-icon" aria-hidden="true"></span>
-            <span class="resource-label">Selected</span>
-          </div>
-          <strong id="selectedUnitValue">None</strong>
-          <span id="selectedUnitHint" class="selection-hint">Tap a unit to choose it.</span>
+  <div id="screenDeck" class="screen-deck show-bottom">
+    <section id="fortressScreen" class="game-screen fortress-screen" aria-label="Fortress building screen">
+      <div class="app-shell fortress-shell">
+        <div class="screen-switch-controls" aria-label="Screen controls">
+          <button id="showProductionButton" class="secondary-button" type="button">Production</button>
+          <span class="screen-switch-hint">Swipe down</span>
         </div>
-        <div id="resourceList" class="resource-list"></div>
-        <div class="resource-chip">
-          <span class="resource-label">Wave</span>
-          <strong id="waveValue">0 / 0</strong>
-        </div>
-      </div>
-      <div id="cheatPanel" class="cheat-panel" hidden>
-        <span class="resource-label">Cheats</span>
-        <button id="grantResourcesButton" class="secondary-button" type="button">+1000 resources</button>
-      </div>
-    </header>
-
-    <main class="layout-grid">
-      <section class="panel battle-panel">
-        <div class="panel-header">
+        <header class="topbar fortress-topbar">
           <div>
             <p class="eyebrow">Top Zone</p>
-            <h2>Battlefield</h2>
+            <h1>Fortress Merge</h1>
           </div>
-          <div class="battle-stats">
-            <span id="battleSummary">No units deployed</span>
-            <span id="battleTimer">Next wave: -</span>
+          <div class="resource-bar">
+            <div id="fortressResourceList" class="resource-list"></div>
+            <div class="resource-chip">
+              <span class="resource-label">Wave</span>
+              <strong id="fortressWaveValue">0 / 0</strong>
+            </div>
           </div>
-        </div>
+        </header>
 
-        <div class="battle-stage">
-          <div class="battlefield-wrap">
-            <div id="battlefield" class="battlefield">
-              <div class="battlefield-overlay">
-                <div class="battlefield-caption">
-                  <h3>Advance To The Castle</h3>
-                  <p>Units spawn on the left, look for targets, close in to attack range and hold position while fighting.</p>
-                </div>
+        <main class="fortress-layout">
+          <section class="panel fortress-panel">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Build Field</p>
+                <h2>5x7 Fortress Grid</h2>
               </div>
-              <div id="battleUnits" class="battle-actors battle-allies"></div>
-              <div id="enemyUnits" class="battle-actors battle-enemies"></div>
-              <div id="castleSprite" class="castle-sprite">
-                <p class="eyebrow">Enemy Castle</p>
-                <div class="castle-icon" aria-hidden="true">🏰</div>
-                <strong id="castleHealth">0 / 0</strong>
-                <div class="progress-shell">
-                  <div id="castleHealthBar" class="progress-bar castle-bar"></div>
-                </div>
-              </div>
-              <div id="victoryOverlay" class="victory-overlay" hidden>
-                <div class="victory-card">
-                  <p class="eyebrow">Victory</p>
-                  <h2>Castle Destroyed</h2>
-                  <p>All waves are cleared. Your dudes can finally take a break.</p>
-                  <button id="victoryRestartButton" class="primary-button" type="button">Start Again</button>
-                </div>
+              <div class="fortress-actions">
+                <button id="fortressFightButton" class="primary-button" type="button">To Battle</button>
               </div>
             </div>
-            <section class="bridgehead-panel" aria-label="Bridgehead">
-              <div class="bridgehead-head">
-                <div>
-                  <p class="eyebrow">Staging</p>
-                  <h3>Bridgehead</h3>
-                </div>
-                <button id="sendBridgeheadButton" class="primary-button" type="button">To Battle</button>
+            <p id="fortressMessage" class="battle-log">Clear space, place buildings, then send prepared units to battle.</p>
+            <div id="fortressField" class="fortress-field" aria-label="Fortress build field"></div>
+          </section>
+          <section class="panel fortress-shop-panel">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Buildings</p>
+                <h2>Workshop</h2>
               </div>
-              <div id="bridgeheadSlots" class="bridgehead-slots"></div>
-            </section>
-            <p id="battleLog" class="battle-log">Prepare units in the garrison, then send them from the bridgehead.</p>
-          </div>
-        </div>
-      </section>
+              <p class="panel-note">Uses the same resources your mines produce.</p>
+            </div>
+            <div id="fortressShop" class="fortress-shop"></div>
+          </section>
+        </main>
+      </div>
+    </section>
 
-      <section class="middle-row">
-        <section class="panel mines-panel">
+    <section id="productionScreen" class="game-screen production-screen" aria-label="Production screen">
+      <div class="app-shell">
+        <div id="fxLayer" class="fx-layer" aria-hidden="true"></div>
+        <div class="screen-switch-controls" aria-label="Screen controls">
+          <button id="showFortressButton" class="secondary-button" type="button">Fortress</button>
+          <span class="screen-switch-hint">Swipe up</span>
+        </div>
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Resource Factory</p>
+            <h1 id="gameTitle" title="Press E for cheats">Merge Factory</h1>
+          </div>
+          <div class="resource-bar">
+            <div id="selectedUnitChip" class="resource-chip selection-chip is-empty">
+              <div class="resource-chip-top">
+                <span class="resource-icon selection-icon" aria-hidden="true"></span>
+                <span class="resource-label">Selected</span>
+              </div>
+              <strong id="selectedUnitValue">None</strong>
+              <span id="selectedUnitHint" class="selection-hint">Tap a unit to choose it.</span>
+            </div>
+            <div id="resourceList" class="resource-list"></div>
+            <div class="resource-chip">
+              <span class="resource-label">Wave</span>
+              <strong id="waveValue">0 / 0</strong>
+            </div>
+          </div>
+          <div id="cheatPanel" class="cheat-panel" hidden>
+            <span class="resource-label">Cheats</span>
+            <button id="grantResourcesButton" class="secondary-button" type="button">+1000 resources</button>
+          </div>
+        </header>
+
+        <main class="layout-grid">
+          <section class="panel battle-panel">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Top Zone</p>
+                <h2>Battlefield</h2>
+              </div>
+              <div class="battle-stats">
+                <span id="battleSummary">No units deployed</span>
+                <span id="battleTimer">Next wave: -</span>
+              </div>
+            </div>
+
+            <div class="battle-stage">
+              <div class="battlefield-wrap">
+                <div id="battlefield" class="battlefield">
+                  <div class="battlefield-overlay">
+                    <div class="battlefield-caption">
+                      <h3>Advance To The Castle</h3>
+                      <p>Units spawn on the left, look for targets, close in to attack range and hold position while fighting.</p>
+                    </div>
+                  </div>
+                  <div id="battleUnits" class="battle-actors battle-allies"></div>
+                  <div id="enemyUnits" class="battle-actors battle-enemies"></div>
+                  <div id="castleSprite" class="castle-sprite">
+                    <p class="eyebrow">Enemy Castle</p>
+                    <div class="castle-icon" aria-hidden="true">🏰</div>
+                    <strong id="castleHealth">0 / 0</strong>
+                    <div class="progress-shell">
+                      <div id="castleHealthBar" class="progress-bar castle-bar"></div>
+                    </div>
+                  </div>
+                  <div id="victoryOverlay" class="victory-overlay" hidden>
+                    <div class="victory-card">
+                      <p class="eyebrow">Victory</p>
+                      <h2>Castle Destroyed</h2>
+                      <p>All waves are cleared. Your dudes can finally take a break.</p>
+                      <button id="victoryRestartButton" class="primary-button" type="button">Start Again</button>
+                    </div>
+                  </div>
+                </div>
+                <section class="bridgehead-panel" aria-label="Bridgehead">
+                  <div class="bridgehead-head">
+                    <div>
+                      <p class="eyebrow">Staging</p>
+                      <h3>Bridgehead</h3>
+                    </div>
+                    <button id="sendBridgeheadButton" class="primary-button" type="button">To Battle</button>
+                  </div>
+                  <div id="bridgeheadSlots" class="bridgehead-slots"></div>
+                </section>
+                <p id="battleLog" class="battle-log">Prepare units in the garrison, then send them from the bridgehead.</p>
+              </div>
+            </div>
+          </section>
+
+          <section class="middle-row">
+            <section class="panel mines-panel">
           <div class="panel-header">
             <div>
               <p class="eyebrow">Middle Zone</p>
@@ -142,20 +196,22 @@
         <div class="panel-header">
           <div>
             <p class="eyebrow">Bottom Zone</p>
-            <h2>Reserve</h2>
+            <h2>Worker Pile</h2>
           </div>
           <div class="reserve-actions">
-            <button id="buyUnitButton" class="primary-button">Buy Unit</button>
+            <button id="buyUnitButton" class="primary-button">Buy Worker</button>
             <button id="massMergeButton" class="secondary-button">Mass Merge</button>
             <button id="restartButton" class="ghost-button">Restart</button>
           </div>
         </div>
         <div class="reserve-note">
-          Merge two identical levels into one higher-level unit.
+          Merge two matching workers into one higher-level worker.
         </div>
         <div id="reserveZone" class="reserve-zone"></div>
       </section>
-    </main>
+        </main>
+      </div>
+    </section>
   </div>
 
   <script type="module" src="./js/main.js"></script>

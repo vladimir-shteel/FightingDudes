@@ -1,28 +1,9 @@
 import { CONFIG } from "../config.js";
 import { createReserveUnit } from "../factories.js";
 
-function getBaseUnitEquivalent(unit) {
-  return Math.pow(2, Math.max(0, (unit?.level ?? 1) - 1));
-}
-
-function getTotalOwnedBaseUnitEquivalents(state) {
-  const reserveCount = state.reserveUnits.reduce(
-    (total, unit) => total + getBaseUnitEquivalent(unit),
-    0
-  );
-  const mineCount = state.mines.reduce(
-    (total, mine) => total + mine.workerIds.reduce(
-      (mineTotal, worker) => mineTotal + (worker ? getBaseUnitEquivalent(worker) : 0),
-      0
-    ),
-    0
-  );
-  return reserveCount + mineCount;
-}
-
 export function getUnitBuyCost(state) {
-  const ownedBaseUnits = getTotalOwnedBaseUnitEquivalents(state);
-  return Math.max(1, Math.floor(CONFIG.unitBuyBaseCost * Math.pow(CONFIG.unitBuyExponent, ownedBaseUnits)));
+  const baseCost = CONFIG.unitBuyBaseCost + (state.economy.unitsPurchased ?? 0);
+  return Math.max(1, Math.floor(baseCost * (state.economy.workerBuyDiscount ?? 1)));
 }
 
 export function buyUnit(state) {
@@ -33,9 +14,9 @@ export function buyUnit(state) {
 
   state.resources.gold -= cost;
   state.economy.unitsPurchased += 1;
-  state.reserveUnits.push(createReserveUnit(1));
+  state.reserveUnits.push(createReserveUnit(state.economy.workerStartLevel ?? 1));
 
-  return { ok: true, reason: "A fresh unit joined the reserve." };
+  return { ok: true, reason: "A fresh worker joined the pile." };
 }
 
 export function mergeReservePair(state, firstUnitId, secondUnitId) {

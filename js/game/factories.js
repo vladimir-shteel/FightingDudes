@@ -20,6 +20,7 @@ export function createReserveUnit(level = 1) {
 
 export function createMine(index) {
   const resourceType = CONFIG.mine.resourceTypes[index % CONFIG.mine.resourceTypes.length];
+  const maxSlots = CONFIG.mine.levels.length;
 
   return {
     id: generateId("mine"),
@@ -28,10 +29,10 @@ export function createMine(index) {
     resourceLabel: resourceType.label,
     unlockCost: resourceType.unlockCost ?? 0,
     unlockCurrency: resourceType.unlockCurrency ?? "gold",
-    isUnlocked: index === 0,
+    isUnlocked: (resourceType.unlockCost ?? 0) === 0,
     level: 1,
-    workerIds: [null, null, null, null],
-    workerProgress: [0, 0, 0, 0],
+    workerIds: Array.from({ length: maxSlots }, () => null),
+    workerProgress: Array.from({ length: maxSlots }, () => 0),
     passiveProgress: 0
   };
 }

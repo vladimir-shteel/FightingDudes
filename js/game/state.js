@@ -1,5 +1,6 @@
 import { CONFIG } from "./config.js";
 import { createMine } from "./factories.js";
+import { createFortressState } from "./systems/fortressSystem.js";
 
 export function createInitialState() {
   const resources = {
@@ -15,6 +16,7 @@ export function createInitialState() {
 
   return {
     resources,
+    fortress: createFortressState(),
     ui: {
       selectedWeaponKey: Object.keys(CONFIG.equipment.weapons ?? {})[0] ?? "sword",
       selectedArmorKey: Object.keys(CONFIG.equipment.armors ?? {})[0] ?? "none",
@@ -48,7 +50,9 @@ export function createInitialState() {
       log: "Prepare units in the garrison, then send them from the bridgehead."
     },
     economy: {
-      unitsPurchased: 0
+      unitsPurchased: 0,
+      workerStartLevel: 1,
+      workerBuyDiscount: 1
     },
     game: {
       isOver: false,

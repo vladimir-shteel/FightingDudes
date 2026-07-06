@@ -1,0 +1,9 @@
+[
+  { "enemyCount": 3, "spawnIntervalSeconds": 3, "victoryGold": 18, "defeatGold": 8 },
+  { "enemyCount": 4, "spawnIntervalSeconds": 3, "victoryGold": 24, "defeatGold": 10 },
+  { "enemyCount": 5, "spawnIntervalSeconds": 2, "victoryGold": 32, "defeatGold": 14 },
+  { "enemyCount": 7, "spawnIntervalSeconds": 2, "victoryGold": 42, "defeatGold": 18 },
+  { "enemyCount": 10, "spawnIntervalSeconds": 1, "victoryGold": 56, "defeatGold": 24 },
+  { "enemyCount": 14, "spawnIntervalSeconds": 1, "victoryGold": 72, "defeatGold": 32 },
+  { "enemyCount": 20, "spawnIntervalSeconds": 0.8, "victoryGold": 100, "defeatGold": 45 }
+]

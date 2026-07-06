@@ -1,17 +1,27 @@
 {
-  "baseProductionPerSecond": 0.9,
-  "goldPerSecondPerWorkerLevel": 0.55,
-  "collectionIntervalSeconds": 1,
+  "baseProductionPerSecond": 0,
+  "goldPerSecondPerWorkerLevel": 0,
+  "collectionIntervalSeconds": 5,
+  "workerProductionByLevel": {
+    "1": 2,
+    "2": 3,
+    "3": 5,
+    "4": 7,
+    "5": 10,
+    "6": 12,
+    "7": 15
+  },
   "resourceTypes": [
     { "key": "wood", "label": "Wood", "icon": "🪵", "mineName": "Lumber Camp", "unlockCost": 0, "unlockCurrency": "gold" },
-    { "key": "ore", "label": "Stone", "icon": "🪨", "mineName": "Stone Quarry", "unlockCost": 30, "unlockCurrency": "gold" },
-    { "key": "crystal", "label": "Crystal", "icon": "💎", "mineName": "Crystal Pit", "unlockCost": 110, "unlockCurrency": "gold" },
-    { "key": "iron", "label": "Iron", "icon": "🔩", "mineName": "Iron Forge", "unlockCost": 180, "unlockCurrency": "gold" }
+    { "key": "ore", "label": "Stone", "icon": "🪨", "mineName": "Stone Quarry", "unlockCost": 0, "unlockCurrency": "gold" },
+    { "key": "iron", "label": "Iron", "icon": "🔩", "mineName": "Iron Forge", "unlockCost": 110, "unlockCurrency": "gold" },
+    { "key": "crystal", "label": "Crystal", "icon": "💎", "mineName": "Crystal Pit", "unlockCost": 180, "unlockCurrency": "gold" }
   ],
   "levels": [
     { "level": 1, "slots": 1, "upgradeCost": 24, "upgradeCurrency": "gold", "slotProductionMultipliers": [1] },
     { "level": 2, "slots": 2, "upgradeCost": 40, "upgradeCurrency": "gold", "slotProductionMultipliers": [1, 1.2] },
     { "level": 3, "slots": 3, "upgradeCost": 60, "upgradeCurrency": "gold", "slotProductionMultipliers": [1, 1.2, 1.4] },
-    { "level": 4, "slots": 4, "upgradeCost": 80, "upgradeCurrency": "gold", "slotProductionMultipliers": [1, 1.2, 1.4, 1.6] }
+    { "level": 4, "slots": 4, "upgradeCost": 80, "upgradeCurrency": "gold", "slotProductionMultipliers": [1, 1.2, 1.4, 1.6] },
+    { "level": 5, "slots": 5, "upgradeCost": 100, "upgradeCurrency": "gold", "slotProductionMultipliers": [1, 1.2, 1.4, 1.6, 1.8] }
   ]
 }
