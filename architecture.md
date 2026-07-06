@@ -114,10 +114,11 @@ These formulas live in the systems, not in JSON. JSON supplies the coefficients;
 
 - **Reserve unit buy cost** (`reserveSystem.getUnitBuyCost`): `max(1, floor(unitBuyBaseCost × unitBuyExponent^ownedBaseUnitEquivalents))`, where `baseUnitEquivalent(unit) = 2^(level-1)` summed over all reserve units and mine workers (bridgehead and battle units are excluded). Preparing units for the bridgehead temporarily lowers the price.
 - **Mine payout per collection tick** (`mineSystem.tickMineProduction`, one tick per `collectionIntervalSeconds` of accumulated worker progress):
-  - `resource = baseProductionPerSecond × workerLevel × slotProductionMultipliers[slot] × payoutSeconds`
-  - `activeWorkerGold = goldPerSecondPerWorkerLevel × workerLevel × slotProductionMultipliers[slot] × payoutSeconds`
+  - When `workerProductionByLevel` is present, `resource = workerProductionByLevel[workerLevel] × slotProductionMultipliers[slot]` per collection tick.
+  - Without `workerProductionByLevel`, `resource = baseProductionPerSecond × workerLevel × slotProductionMultipliers[slot] × payoutSeconds`
+  - Without `workerProductionByLevel`, `activeWorkerGold = goldPerSecondPerWorkerLevel × workerLevel × slotProductionMultipliers[slot] × payoutSeconds`
 - **Passive mine gold trickle** (`mineSystem.tickMineProduction`): each unlocked mine independently accumulates `passiveProgress` in seconds and, once it reaches `passiveGoldPayoutIntervalSeconds`, pays out `passiveGoldPerSecondPerUnlockedMine × payoutSeconds` gold and emits a `resourceBurst` with `slotIndex: -1`. The UI renders `passiveProgress / passiveGoldPayoutIntervalSeconds` as a small progress bar in the mine card corner and routes the burst from the mine card element. Keeps the game from soft-locking after the player commits all their units to battle.
-- **Uneven slot production**: `mineLevels.slotProductionMultipliers[slot]` scales both resource and gold output per slot within a mine. Later slots are worth more than earlier ones; the UI shows this as a `×N` badge on each open slot so the player can see which slot to fill first.
+- **Uneven slot production**: `mineLevels.slotProductionMultipliers[slot]` scales resource output, and also active-worker gold output when the fallback per-second formula is used. Later slots are worth more than earlier ones; the UI shows this as a `×N` badge on each open slot so the player can see which slot to fill first.
 - **Battle unit derived stats** (`factories.createBattleUnit`):
   - `attack = baseAttack × weapon.attackMultiplier`
   - `attackSpeed = baseAttackSpeed × weapon.attackSpeedMultiplier`
@@ -129,10 +130,11 @@ These formulas live in the systems, not in JSON. JSON supplies the coefficients;
 - **Target stickiness** (`battleSystem.keepCurrentTarget`): keeps the current target while it is within `attackRange + targetLeashDistance` to avoid flicker.
 - **Wave respawn** (`battleSystem.createWaveEnemies`): retreating waves respawn using `waveProgress.defeatedEnemyIndexesByWave` so only survivors return; a cleared wave's progress is dropped.
 - **Enemy kill reward** (`battleSystem.awardEnemyGold`): when an enemy dies, an optional `goldReward` (from the wave definition, defaults to 0) is added to gold and a `resourceBurst` with `battlefield: { x, y }` is emitted so the UI flies a gold chip from the enemy's on-field position to the gold chip. Enemies without a `goldReward` grant nothing.
+- **Fortress enemy kill reward** (`fortressBattleSystem.awardEnemyKillGold`): each fortress wave may define `killGold`, paid immediately for every killed enemy. Victory still pays `victoryGold` at the end of the wave.
 
 ## Current Prototype Constraints
 
-- Gold comes from two sources only: active mine workers during payout ticks, and a small passive trickle proportional to the number of unlocked mines.
+- Gold comes from wave rewards and, when enabled by balance values, active mine workers or a small passive trickle proportional to the number of unlocked mines.
 - Preparing through the garrison purchases one weapon plus one armor choice per unit and places the result on the bridgehead.
 - Battle targeting is intentionally simplified: all allies focus enemies first, then the castle.
 - Loss state is not terminal yet; if the frontline dies, the player can keep mining and deploy more units.

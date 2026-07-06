@@ -1847,7 +1847,6 @@ h3 {
   margin: 0 auto;
 }
 
-.fortress-battle-active .fortress-topbar,
 .fortress-battle-active .fortress-shop-panel {
   display: none;
 }
@@ -1892,6 +1891,58 @@ h3 {
   pointer-events: none;
 }
 
+.fortress-action-popover {
+  position: absolute;
+  left: calc((var(--x) / 5) * 100%);
+  top: calc((var(--y) / 7) * 100%);
+  z-index: 6;
+  display: grid;
+  gap: 6px;
+  width: min(190px, 46vw);
+  padding: 8px;
+  border: 1px solid rgba(107, 74, 45, 0.2);
+  border-radius: 8px;
+  background: rgba(255, 250, 235, 0.98);
+  box-shadow: 0 12px 24px rgba(51, 48, 31, 0.18);
+  transform: translate(-50%, -50%);
+}
+
+.fortress-action-popover strong,
+.fortress-popover-note {
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 900;
+  text-align: center;
+}
+
+.fortress-popover-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 36px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 900;
+  background: #ffffff;
+  color: var(--panel-red-dark);
+  box-shadow: inset 0 -2px 0 rgba(107, 74, 45, 0.1);
+}
+
+.fortress-popover-action.primary-action {
+  background: var(--yellow);
+  color: var(--text);
+}
+
+.fortress-popover-action:disabled {
+  opacity: 0.48;
+}
+
+.fortress-popover-action .gear-cost-pill {
+  border: none;
+  background: rgba(255, 255, 255, 0.46);
+}
+
 .fortress-tile.is-obstacle {
   background:
     repeating-linear-gradient(135deg, rgba(62, 142, 77, 0.25) 0 9px, rgba(107, 74, 45, 0.18) 9px 18px),
@@ -1903,11 +1954,54 @@ h3 {
   border-color: rgba(192, 85, 58, 0.34);
 }
 
+.fortress-tile.is-shaped-building {
+  z-index: 2;
+  overflow: visible;
+  isolation: isolate;
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.fortress-building-shape {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  display: grid;
+  gap: 0;
+  pointer-events: none;
+  filter: drop-shadow(0 0 1px rgba(192, 85, 58, 0.7)) drop-shadow(0 3px 0 rgba(107, 74, 45, 0.1));
+}
+
+.fortress-tile.is-shaped-building > :not(.fortress-building-shape) {
+  position: relative;
+  z-index: 1;
+}
+
+.fortress-building-shape-cell {
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  background: #fff7dd;
+  box-shadow: none;
+}
+
 .fortress-tile.is-building.is-damaged {
   background:
     linear-gradient(135deg, rgba(192, 85, 58, 0.16), transparent 44%),
     #fff7dd;
   border-color: rgba(192, 85, 58, 0.6);
+}
+
+.fortress-tile.is-shaped-building.is-damaged {
+  background: transparent;
+  border-color: transparent;
+}
+
+.fortress-tile.is-shaped-building.is-damaged .fortress-building-shape-cell {
+  background:
+    linear-gradient(135deg, rgba(192, 85, 58, 0.16), transparent 44%),
+    #fff7dd;
 }
 
 .fortress-tile.is-building.is-destroyed {
@@ -1918,14 +2012,15 @@ h3 {
   color: rgba(51, 48, 31, 0.62);
 }
 
-.fortress-tile.is-building-part {
-  border-color: rgba(192, 85, 58, 0.24);
+.fortress-tile.is-shaped-building.is-destroyed {
+  background: transparent;
+  border-color: transparent;
 }
 
-.fortress-tile-icon-dim {
-  font-size: clamp(14px, 3vw, 22px);
-  line-height: 1;
-  opacity: 0.5;
+.fortress-tile.is-shaped-building.is-destroyed .fortress-building-shape-cell {
+  background:
+    repeating-linear-gradient(135deg, rgba(51, 48, 31, 0.16) 0 7px, rgba(192, 85, 58, 0.16) 7px 14px),
+    #d9d2c4;
 }
 
 .fortress-tile.is-valid-target {

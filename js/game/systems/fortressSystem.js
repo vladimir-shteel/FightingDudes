@@ -185,11 +185,12 @@ export function upgradeFortressBuilding(state, buildingId) {
     return { ok: false, reason: "This building cannot be upgraded." };
   }
   const definition = CONFIG.fortressBuildings[building.type];
+  const currentLevel = definition.levels[building.level - 1];
   const nextLevel = definition.levels[building.level];
   if (!nextLevel) {
     return { ok: false, reason: "Building is already max level." };
   }
-  if (!spendResources(state.resources, nextLevel.upgradeCost)) {
+  if (!spendResources(state.resources, currentLevel.upgradeCost)) {
     return { ok: false, reason: "Not enough resources for upgrade." };
   }
   building.level += 1;

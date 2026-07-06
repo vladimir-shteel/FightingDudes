@@ -20,6 +20,7 @@ export function createInitialState() {
     ui: {
       selectedUnitId: null,
       dragUnitId: null,
+      fortressPopup: null,
       handledResourceBurstIds: [],
       isCheatsOpen: false
     },

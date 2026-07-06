@@ -70,6 +70,20 @@ function getBlockedTileSetForActor(state, ignoreBuildingId) {
   return obstacles;
 }
 
+function getBuildingAtTile(state, tile) {
+  return state.fortress.buildings.find((building) => (
+    building.hp > 0
+    && building.tiles.some((buildingTile) => buildingTile.x === tile.x && buildingTile.y === tile.y)
+  )) ?? null;
+}
+
+function getActorTile(actor) {
+  return {
+    x: clamp(Math.floor(actor.x), 0, FORTRESS_WIDTH - 1),
+    y: clamp(Math.floor(actor.y), 0, FORTRESS_HEIGHT - 1)
+  };
+}
+
 function chooseGoalTileForBuilding(building) {
   // For rectangular / multi-tile buildings pick the tile closest to top (enemy spawn side) so the enemy
   // ends up in contact with the outer edge and can attack.
@@ -114,6 +128,36 @@ function ensureEnemyPath(state, enemy, deltaSeconds) {
   enemy.path = tilePath.slice(1).map((tile) => ({ x: tile.x + 0.5, y: tile.y + 0.5 }));
   enemy.pathTargetId = enemy.currentTargetId;
   enemy.pathTimer = REPATH_INTERVAL_SECONDS;
+}
+
+function ensureAllyPath(state, ally, target, deltaSeconds) {
+  ally.pathTimer = (ally.pathTimer ?? 0) - deltaSeconds;
+  const needsRepath = !ally.path || ally.path.length === 0
+    || ally.pathTimer <= 0
+    || ally.pathTargetId !== target.id;
+  if (!needsRepath) {
+    return;
+  }
+
+  const startTile = getActorTile(ally);
+  const currentBuilding = getBuildingAtTile(state, startTile);
+  const blocked = getBlockedTileSetForActor(state, currentBuilding?.id ?? null);
+  const goalTile = getActorTile(target);
+  const tilePath = findTilePath(
+    startTile,
+    goalTile,
+    (x, y) => blocked.has(`${x}:${y}`)
+  );
+
+  if (!tilePath) {
+    ally.path = null;
+    ally.pathTargetId = target.id;
+    return;
+  }
+
+  ally.path = tilePath.slice(1).map((tile) => ({ x: tile.x + 0.5, y: tile.y + 0.5 }));
+  ally.pathTargetId = target.id;
+  ally.pathTimer = REPATH_INTERVAL_SECONDS;
 }
 
 function followPath(enemy, deltaSeconds) {
@@ -206,7 +250,10 @@ function createFortressAlly(type, origin) {
     range: base.rangeTiles,
     speed: base.speedTilesPerSecond,
     x: origin.x,
-    y: origin.y
+    y: origin.y,
+    path: null,
+    pathTimer: 0,
+    pathTargetId: null
   };
 }
 
@@ -242,6 +289,7 @@ export function startFortressBattle(state) {
     enemiesToSpawn: wave.enemyCount,
     enemiesSpawned: 0,
     enemiesDefeated: 0,
+    goldEarned: 0,
     result: null
   };
   for (const building of state.fortress.buildings) {
@@ -394,12 +442,18 @@ function tickAllies(state, deltaSeconds) {
     }
     const target = chooseNearest(ally, battle.enemies.filter((enemy) => enemy.hp > 0));
     if (!target) {
+      ally.path = null;
+      ally.pathTargetId = null;
       continue;
     }
     if (target.distance > ally.range) {
-      moveToward(ally, target.item, deltaSeconds);
+      ensureAllyPath(state, ally, target.item, deltaSeconds);
+      if (!followPath(ally, deltaSeconds)) {
+        moveToward(ally, target.item, deltaSeconds);
+      }
       continue;
     }
+    ally.path = null;
     ally.attackTimer -= deltaSeconds;
     if (ally.attackTimer <= 0) {
       if (ally.range > 0.8) {
@@ -430,6 +484,22 @@ function tickProjectiles(state, deltaSeconds) {
   battle.projectiles = battle.projectiles.filter((projectile) => !projectile.done);
 }
 
+function awardEnemyKillGold(state, enemy) {
+  const wave = CONFIG.fortressWaves[state.fortress.waveNumber - 1];
+  const amount = wave?.killGold ?? 0;
+  if (amount <= 0) {
+    return;
+  }
+
+  state.resources.gold += amount;
+  state.fortress.battle.goldEarned = (state.fortress.battle.goldEarned ?? 0) + amount;
+  state.resourceBursts.push({
+    id: `${enemy.id}-gold-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    battlefield: { x: enemy.x, y: enemy.y },
+    payouts: [{ resourceKey: "gold", amount }]
+  });
+}
+
 function finishBattle(state, result) {
   const wave = CONFIG.fortressWaves[state.fortress.waveNumber - 1];
   state.fortress.battle.active = false;
@@ -445,18 +515,19 @@ function finishBattle(state, result) {
 
   if (result === "victory") {
     state.resources.gold += wave.victoryGold;
+    state.fortress.battle.goldEarned = (state.fortress.battle.goldEarned ?? 0) + wave.victoryGold;
     if (state.fortress.waveNumber >= CONFIG.fortressWaves.length) {
       state.game.isOver = true;
       state.game.result = "win";
       state.fortress.message = "Prototype complete. The fortress survived every wave.";
     } else {
       state.fortress.waveNumber += 1;
-      state.fortress.message = `Victory. +${wave.victoryGold} gold.`;
+      state.fortress.message = `Victory. +${wave.victoryGold} gold bonus.`;
       rollUpgradeChoices(state);
     }
   } else {
-    state.resources.gold += wave.defeatGold;
-    state.fortress.message = `HQ destroyed. +${wave.defeatGold} consolation gold.`;
+    const earnedGold = state.fortress.battle.goldEarned ?? 0;
+    state.fortress.message = `HQ destroyed. Kept ${earnedGold} gold from kills.`;
   }
 }
 
@@ -492,6 +563,11 @@ export function tickFortressBattle(state, deltaSeconds) {
   tickProjectiles(state, deltaSeconds);
   resolveUnitCollisions(state);
 
+  for (const enemy of battle.enemies) {
+    if (enemy.hp <= 0) {
+      awardEnemyKillGold(state, enemy);
+    }
+  }
   const enemiesBeforeCleanup = battle.enemies.length;
   battle.enemies = battle.enemies.filter((enemy) => enemy.hp > 0);
   battle.enemiesDefeated += enemiesBeforeCleanup - battle.enemies.length;

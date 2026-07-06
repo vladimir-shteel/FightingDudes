@@ -1,15 +1,15 @@
 {
   "baseProductionPerSecond": 0,
   "goldPerSecondPerWorkerLevel": 0,
-  "collectionIntervalSeconds": 5,
+  "collectionIntervalSeconds": 4,
   "workerProductionByLevel": {
-    "1": 2,
-    "2": 3,
-    "3": 5,
-    "4": 7,
-    "5": 10,
-    "6": 12,
-    "7": 15
+    "1": 6,
+    "2": 9,
+    "3": 14,
+    "4": 21,
+    "5": 31,
+    "6": 45,
+    "7": 64
   },
   "resourceTypes": [
     { "key": "wood", "label": "Wood", "icon": "🪵", "mineName": "Lumber Camp", "unlockCost": 0, "unlockCurrency": "gold" },
@@ -19,9 +19,9 @@
   ],
   "levels": [
     { "level": 1, "slots": 1, "upgradeCost": 24, "upgradeCurrency": "gold", "slotProductionMultipliers": [1] },
-    { "level": 2, "slots": 2, "upgradeCost": 40, "upgradeCurrency": "gold", "slotProductionMultipliers": [1, 1] },
-    { "level": 3, "slots": 3, "upgradeCost": 60, "upgradeCurrency": "gold", "slotProductionMultipliers": [1, 1, 1] },
-    { "level": 4, "slots": 4, "upgradeCost": 80, "upgradeCurrency": "gold", "slotProductionMultipliers": [1, 1, 1, 1] },
-    { "level": 5, "slots": 5, "upgradeCost": 100, "upgradeCurrency": "gold", "slotProductionMultipliers": [1, 1, 1, 1, 1] }
+    { "level": 2, "slots": 2, "upgradeCost": 40, "upgradeCurrency": "gold", "slotProductionMultipliers": [1, 1.1] },
+    { "level": 3, "slots": 3, "upgradeCost": 60, "upgradeCurrency": "gold", "slotProductionMultipliers": [1, 1.1, 1.25] },
+    { "level": 4, "slots": 4, "upgradeCost": 80, "upgradeCurrency": "gold", "slotProductionMultipliers": [1, 1.1, 1.25, 1.45] },
+    { "level": 5, "slots": 5, "upgradeCost": 100, "upgradeCurrency": "gold", "slotProductionMultipliers": [1, 1.1, 1.25, 1.45, 1.7] }
   ]
 }
