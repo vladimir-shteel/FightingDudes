@@ -418,11 +418,11 @@ h3 {
 .middle-row {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 7fr) minmax(220px, 3fr);
-  grid-template-areas: "mines garrison";
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "mines";
   gap: 18px;
   align-items: start;
-  padding-top: 54px;
+  padding-top: 18px;
 }
 
 .middle-row::before,
@@ -2915,4 +2915,10 @@ h3 {
   .upgrade-choice-card {
     min-height: 96px;
   }
+}
+
+.production-screen .middle-row {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "mines";
+  padding-top: 18px;
 }

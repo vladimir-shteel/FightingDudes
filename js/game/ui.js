@@ -23,8 +23,6 @@ import {
   unlockMine,
   upgradeMine
 } from "./systems/mineSystem.js";
-import { sendBridgeheadToBattle, stageUnitOnBridgehead } from "./systems/garrisonSystem.js";
-import { getBattleSummary } from "./systems/battleSystem.js";
 import { startFortressBattle } from "./systems/fortressBattleSystem.js";
 import {
   buyFortressBuilding,
@@ -225,35 +223,16 @@ export function mountUI(state, onStateChanged) {
     selectedUnitValue: document.querySelector("#selectedUnitValue"),
     selectedUnitHint: document.querySelector("#selectedUnitHint"),
     waveValue: document.querySelector("#waveValue"),
-    battleSummary: document.querySelector("#battleSummary"),
-    battleTimer: document.querySelector("#battleTimer"),
-    castleHealth: document.querySelector("#castleHealth"),
-    castleHealthBar: document.querySelector("#castleHealthBar"),
-    battleLog: document.querySelector("#battleLog"),
-    bridgeheadSlots: document.querySelector("#bridgeheadSlots"),
-    sendBridgeheadButton: document.querySelector("#sendBridgeheadButton"),
     battlefield: document.querySelector("#battlefield"),
     cheatPanel: document.querySelector("#cheatPanel"),
     grantResourcesButton: document.querySelector("#grantResourcesButton"),
-    victoryOverlay: document.querySelector("#victoryOverlay"),
-    victoryRestartButton: document.querySelector("#victoryRestartButton"),
     buyCostValue: document.querySelector("#buyCostValue"),
     reservePanel: document.querySelector(".reserve-panel"),
     reserveZone: document.querySelector("#reserveZone"),
     minesGrid: document.querySelector("#minesGrid"),
-    enemyUnits: document.querySelector("#enemyUnits"),
-    battleUnits: document.querySelector("#battleUnits"),
-    garrisonDropzone: document.querySelector("#garrisonDropzone"),
-    gearInfo: document.querySelector("#gearInfo"),
-    weaponCostInfo: document.querySelector("#weaponCostInfo"),
-    armorCostInfo: document.querySelector("#armorCostInfo"),
-    gearTotalCostInfo: document.querySelector("#gearTotalCostInfo"),
-    weaponSelect: document.querySelector("#weaponSelect"),
-    armorSelect: document.querySelector("#armorSelect"),
     buyUnitButton: document.querySelector("#buyUnitButton"),
     massMergeButton: document.querySelector("#massMergeButton"),
     restartButton: document.querySelector("#restartButton"),
-    castleSprite: document.querySelector("#castleSprite"),
     fxLayer: document.querySelector("#fxLayer")
     ,
     screenDeck: document.querySelector("#screenDeck"),
@@ -266,7 +245,11 @@ export function mountUI(state, onStateChanged) {
     fortressField: document.querySelector("#fortressField"),
     fortressShop: document.querySelector("#fortressShop"),
     upgradeOverlay: document.querySelector("#upgradeOverlay"),
-    upgradeChoices: document.querySelector("#upgradeChoices")
+    upgradeChoices: document.querySelector("#upgradeChoices"),
+    runEndOverlay: document.querySelector("#runEndOverlay"),
+    runEndTitle: document.querySelector("#runEndTitle"),
+    runEndText: document.querySelector("#runEndText"),
+    runEndRestartButton: document.querySelector("#runEndRestartButton")
   };
 
   const resourceOrder = [
@@ -308,25 +291,6 @@ export function mountUI(state, onStateChanged) {
     fortressResourceValueMap.set(resourceKey, chip.querySelector("strong"));
   }
 
-  elements.weaponSelect.innerHTML = "";
-  for (const [weaponKey, weapon] of Object.entries(CONFIG.equipment.weapons ?? {})) {
-    const option = document.createElement("option");
-    option.value = weaponKey;
-    option.textContent = weapon.icon ? `${weapon.icon}  ${weapon.label}` : weapon.label;
-    elements.weaponSelect.append(option);
-  }
-
-  elements.armorSelect.innerHTML = "";
-  for (const [armorKey, armor] of Object.entries(CONFIG.equipment.armors ?? {})) {
-    const option = document.createElement("option");
-    option.value = armorKey;
-    option.textContent = armor.icon ? `${armor.icon}  ${armor.label}` : armor.label;
-    elements.armorSelect.append(option);
-  }
-
-  elements.weaponSelect.value = state.ui.selectedWeaponKey;
-  elements.armorSelect.value = state.ui.selectedArmorKey;
-
   const mineProgressCache = new Map();
 
   function getSelectedUnitContext() {
@@ -359,21 +323,6 @@ export function mountUI(state, onStateChanged) {
 
   function selectUnit(unitId) {
     state.ui.selectedUnitId = unitId;
-  }
-
-  function canDeploySelectedUnit() {
-    const selected = getSelectedUnitContext();
-    if (!selected) {
-      return false;
-    }
-
-    const combinedCosts = getSelectedLoadoutCosts(state);
-    if (!combinedCosts) {
-      return false;
-    }
-
-    return canAffordCosts(state.resources, combinedCosts) &&
-      state.bridgeheadUnits.length < (CONFIG.bridgehead?.maxSlots ?? 8);
   }
 
   function updateSelectionTether() {
@@ -466,14 +415,8 @@ export function mountUI(state, onStateChanged) {
     window.location.reload();
   });
 
-  elements.victoryRestartButton.addEventListener("click", () => {
+  elements.runEndRestartButton.addEventListener("click", () => {
     window.location.reload();
-  });
-
-  elements.sendBridgeheadButton.addEventListener("click", () => {
-    const result = sendBridgeheadToBattle(state);
-    state.battle.log = result.reason;
-    onStateChanged();
   });
 
   elements.fortressFightButton.addEventListener("click", () => {
@@ -522,18 +465,6 @@ export function mountUI(state, onStateChanged) {
       return;
     }
     showScreen(dy < 0 ? "top" : "bottom");
-    onStateChanged();
-  });
-
-  elements.weaponSelect.addEventListener("change", () => {
-    state.ui.selectedWeaponKey = elements.weaponSelect.value;
-    state.battle.log = `Selected weapon: ${getWeaponConfig(state.ui.selectedWeaponKey)?.label}.`;
-    onStateChanged();
-  });
-
-  elements.armorSelect.addEventListener("change", () => {
-    state.ui.selectedArmorKey = elements.armorSelect.value;
-    state.battle.log = `Selected armor: ${getArmorConfig(state.ui.selectedArmorKey)?.label}.`;
     onStateChanged();
   });
 
@@ -779,6 +710,9 @@ export function mountUI(state, onStateChanged) {
   }
 
   function renderBattle() {
+    if (!elements.castleHealth || !elements.castleHealthBar || !elements.battleLog) {
+      return;
+    }
     const castleRatio = state.castle.health / state.castle.maxHealth;
     elements.castleHealth.textContent = `${formatNumber(state.castle.health)}/${formatNumber(state.castle.maxHealth)}`;
     elements.castleHealthBar.style.width = `${castleRatio * 100}%`;
@@ -1015,6 +949,9 @@ export function mountUI(state, onStateChanged) {
   }
 
   function renderBridgehead() {
+    if (!elements.bridgeheadSlots || !elements.sendBridgeheadButton) {
+      return;
+    }
     const maxSlots = CONFIG.bridgehead?.maxSlots ?? 8;
     elements.bridgeheadSlots.innerHTML = "";
     elements.sendBridgeheadButton.disabled = state.bridgeheadUnits.length === 0 || state.game.isOver;
@@ -1047,6 +984,10 @@ export function mountUI(state, onStateChanged) {
   }
 
   function renderBattleMeta() {
+    elements.waveValue.textContent = `${state.fortress.waveNumber} / ${CONFIG.fortressWaves.length}`;
+    elements.fortressWaveValue.textContent = `${state.fortress.waveNumber} / ${CONFIG.fortressWaves.length}`;
+    return;
+
     const summary = getBattleSummary(state);
     const totalWaves = CONFIG.waves.length;
     elements.waveValue.textContent = `${state.battle.nextWaveIndex} / ${totalWaves}`;
@@ -1089,30 +1030,12 @@ export function mountUI(state, onStateChanged) {
     elements.selectedUnitChip.classList.add("is-selected");
     elements.selectedUnitValue.textContent = `${selected.unit.name} Lv${selected.unit.level}`;
     elements.selectedUnitHint.textContent = selected.source === "mine"
-      ? "Tap empty slot to move, Worker Pile to return, or Garrison to prepare."
-      : "Tap mine slot, worker, or Garrison.";
+      ? "Tap empty slot to move, Worker Pile to return, or another worker to merge."
+      : "Tap mine slot or matching worker.";
   }
-
-  elements.garrisonDropzone.addEventListener("click", () => {
-    const selected = getSelectedUnitContext();
-    if (!selected) {
-      return;
-    }
-
-    const result = stageUnitOnBridgehead(state, selected.unit.id);
-    state.battle.log = result.reason;
-    if (result.ok) {
-      clearSelectedUnit();
-    }
-    onStateChanged();
-  });
 
   function renderActionHints() {
     const selected = getSelectedUnitContext();
-    const canDeploy = canDeploySelectedUnit();
-
-    elements.garrisonDropzone.classList.toggle("actionable-target", Boolean(selected) && canDeploy);
-    elements.garrisonDropzone.classList.toggle("is-disabled-target", Boolean(selected) && !canDeploy);
     elements.selectedUnitChip.classList.toggle("is-selected", Boolean(selected));
     if (!selected) {
       elements.selectedUnitChip.classList.remove("is-selected");
@@ -1181,6 +1104,9 @@ export function mountUI(state, onStateChanged) {
   }
 
   function renderGearMeta() {
+    if (!elements.weaponSelect || !elements.armorSelect) {
+      return;
+    }
     elements.weaponSelect.value = state.ui.selectedWeaponKey;
     elements.armorSelect.value = state.ui.selectedArmorKey;
     const selectedWeapon = getWeaponConfig(state.ui.selectedWeaponKey);
@@ -1217,6 +1143,9 @@ export function mountUI(state, onStateChanged) {
   }
 
   function playRangedAttackEffect(effect) {
+    if (!elements.battlefield) {
+      return;
+    }
     const rect = elements.battlefield.getBoundingClientRect();
     const startX = rect.left + (effect.fromX / CONFIG.battle.fieldWidth) * rect.width;
     const startY = rect.top + (effect.fromY / CONFIG.battle.fieldHeight) * rect.height;
@@ -1273,7 +1202,9 @@ export function mountUI(state, onStateChanged) {
   }
 
   function renderVictoryState() {
-    elements.victoryOverlay.hidden = state.game.result !== "win";
+    elements.runEndOverlay.hidden = state.game.result !== "win";
+    elements.runEndTitle.textContent = "Prototype Complete";
+    elements.runEndText.textContent = "The fortress survived every wave.";
     document.body.classList.toggle("state-win", state.game.result === "win");
   }
 

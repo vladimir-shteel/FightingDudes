@@ -93,61 +93,6 @@
         </header>
 
         <main class="layout-grid">
-          <section class="panel battle-panel">
-            <div class="panel-header">
-              <div>
-                <p class="eyebrow">Top Zone</p>
-                <h2>Battlefield</h2>
-              </div>
-              <div class="battle-stats">
-                <span id="battleSummary">No units deployed</span>
-                <span id="battleTimer">Next wave: -</span>
-              </div>
-            </div>
-
-            <div class="battle-stage">
-              <div class="battlefield-wrap">
-                <div id="battlefield" class="battlefield">
-                  <div class="battlefield-overlay">
-                    <div class="battlefield-caption">
-                      <h3>Advance To The Castle</h3>
-                      <p>Units spawn on the left, look for targets, close in to attack range and hold position while fighting.</p>
-                    </div>
-                  </div>
-                  <div id="battleUnits" class="battle-actors battle-allies"></div>
-                  <div id="enemyUnits" class="battle-actors battle-enemies"></div>
-                  <div id="castleSprite" class="castle-sprite">
-                    <p class="eyebrow">Enemy Castle</p>
-                    <div class="castle-icon" aria-hidden="true">🏰</div>
-                    <strong id="castleHealth">0 / 0</strong>
-                    <div class="progress-shell">
-                      <div id="castleHealthBar" class="progress-bar castle-bar"></div>
-                    </div>
-                  </div>
-                  <div id="victoryOverlay" class="victory-overlay" hidden>
-                    <div class="victory-card">
-                      <p class="eyebrow">Victory</p>
-                      <h2>Castle Destroyed</h2>
-                      <p>All waves are cleared. Your dudes can finally take a break.</p>
-                      <button id="victoryRestartButton" class="primary-button" type="button">Start Again</button>
-                    </div>
-                  </div>
-                </div>
-                <section class="bridgehead-panel" aria-label="Bridgehead">
-                  <div class="bridgehead-head">
-                    <div>
-                      <p class="eyebrow">Staging</p>
-                      <h3>Bridgehead</h3>
-                    </div>
-                    <button id="sendBridgeheadButton" class="primary-button" type="button">To Battle</button>
-                  </div>
-                  <div id="bridgeheadSlots" class="bridgehead-slots"></div>
-                </section>
-                <p id="battleLog" class="battle-log">Prepare units in the garrison, then send them from the bridgehead.</p>
-              </div>
-            </div>
-          </section>
-
           <section class="middle-row">
             <section class="panel mines-panel">
           <div class="panel-header">
@@ -160,36 +105,6 @@
           <div id="minesGrid" class="mines-grid"></div>
         </section>
 
-        <section class="panel garrison-panel">
-          <div class="panel-header">
-            <div>
-              <p class="eyebrow">Deployment</p>
-              <h2>Garrison</h2>
-            </div>
-            <p class="panel-note">Choose equipment, then prepare a unit here.</p>
-          </div>
-          <div class="garrison-stage">
-          <div class="gear-grid">
-            <div class="gear-select-wrap">
-              <label class="resource-label" for="weaponSelect">Weapon</label>
-              <select id="weaponSelect" class="gear-select"></select>
-              <div id="weaponCostInfo" class="gear-cost-line"></div>
-            </div>
-            <div class="gear-select-wrap">
-              <label class="resource-label" for="armorSelect">Armor</label>
-              <select id="armorSelect" class="gear-select"></select>
-              <div id="armorCostInfo" class="gear-cost-line"></div>
-            </div>
-          </div>
-          <div id="gearTotalCostInfo" class="gear-total-cost"></div>
-          <div class="garrison-dropzones">
-            <div id="garrisonDropzone" class="garrison-dropzone">
-              Tap a unit, then tap here to prepare
-            </div>
-          </div>
-          <div id="gearInfo" class="info-card"></div>
-          </div>
-        </section>
       </section>
 
       <section class="panel reserve-panel">
@@ -219,6 +134,15 @@
       <p class="eyebrow">Victory Reward</p>
       <h2>Choose an Upgrade</h2>
       <div id="upgradeChoices" class="upgrade-choices"></div>
+    </section>
+  </div>
+
+  <div id="runEndOverlay" class="upgrade-overlay" hidden>
+    <section class="upgrade-card run-end-card" aria-label="Run complete">
+      <p class="eyebrow">Fortress Run</p>
+      <h2 id="runEndTitle">Prototype Complete</h2>
+      <p id="runEndText">The fortress survived every wave.</p>
+      <button id="runEndRestartButton" class="primary-button" type="button">Start Again</button>
     </section>
   </div>
 
