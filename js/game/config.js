@@ -5,23 +5,12 @@ export const CONFIG = {
   startingOre: 0,
   unitBuyBaseCost: 0,
   unitBuyExponent: 1,
-  battle: {
-    waveCooldownSeconds: 0
-  },
-  bridgehead: {
-    maxSlots: 8
-  },
-  castle: {
-    maxHealth: 0
-  },
   merge: {
     maxLevel: 1
   },
-  equipment: {},
   fortressBuildings: {},
   fortressUnits: {},
   fortressWaves: [],
-  waves: [],
   unitLevels: [],
   mine: {
     baseProductionPerSecond: 0,
@@ -43,10 +32,8 @@ async function fetchJson(fileName) {
 }
 
 export async function initConfig() {
-  const [balance, equipment, waves, unitLevels, mineLevels, fortressBuildings, fortressUnits, fortressWaves] = await Promise.all([
+  const [balance, unitLevels, mineLevels, fortressBuildings, fortressUnits, fortressWaves] = await Promise.all([
     fetchJson("balance.json"),
-    fetchJson("equipment.json"),
-    fetchJson("waves.json"),
     fetchJson("unit-levels.json"),
     fetchJson("mine-levels.json"),
     fetchJson("fortress-buildings.json"),
@@ -55,11 +42,9 @@ export async function initConfig() {
   ]);
 
   Object.assign(CONFIG, balance, {
-    equipment,
     fortressBuildings,
     fortressUnits,
     fortressWaves,
-    waves,
     unitLevels: unitLevels.levels,
     mine: mineLevels
   });
@@ -95,12 +80,4 @@ export function getResourceIcon(resourceKey) {
   }
 
   return CONFIG.mine.resourceTypes?.find((item) => item.key === resourceKey)?.icon ?? null;
-}
-
-export function getWeaponConfig(key) {
-  return CONFIG.equipment.weapons?.[key] ?? null;
-}
-
-export function getArmorConfig(key) {
-  return CONFIG.equipment.armors?.[key] ?? null;
 }

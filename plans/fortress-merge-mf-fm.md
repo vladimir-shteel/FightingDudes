@@ -280,3 +280,18 @@
 
 1. Завершить косметическую чистку Шага 7: вычистить мёртвые CSS-блоки и решить, оставлять ли старые `equipment.json` / `waves.json` / battle-balance как архивные данные.
 2. После этого пройти ручной QA в браузере по основным пунктам §9.
+
+### Update 2026-07-06: legacy runtime/data cleanup
+
+- [x] Старые видимые панели `Garrison`, `Bridgehead` и старый castle battlefield удалены из DOM.
+- [x] Старый runtime (`battleSystem.js`, `garrisonSystem.js`, `battlePhysics.js`) удалён, legacy battle-loop отключён от `main.js`.
+- [x] Старые `equipment.json`, `waves.json` и battle/castle/bridgehead секции `balance.json` удалены из runtime-конфига.
+- [x] `config.js` загружает только актуальные данные production + fortress (`balance`, `unit-levels`, `mine-levels`, `fortress-*`).
+- [ ] Оставшаяся косметика: удалить мёртвые CSS-блоки старого battlefield/garrison/gear UI, если они больше не нужны.
+
+Проверено после cleanup:
+
+- JS syntax check по всем `js/**/*.js` проходит.
+- Все `data/*.json` валидны.
+- Browser smoke на `http://127.0.0.1:5173/`: стартовый экран грузится без console errors, старых панелей в DOM нет, 4 шахты и 35 fortress-тайлов на месте.
+- Интерактивный smoke: `Buy Worker`, переход на fortress screen и `To Battle` запускают W1 без console errors.

@@ -1,11 +1,9 @@
 import {
   CONFIG,
-  getArmorConfig,
   getMineLevelData,
   getMineMaxLevel,
   getResourceIcon,
   getResourceLabel,
-  getWeaponConfig
 } from "./config.js";
 import { formatNumber } from "./utils.js";
 import {
@@ -57,17 +55,12 @@ function createUnitCard(unit, options = {}) {
   card.dataset.unitId = unit.id;
   card.draggable = draggable;
 
-  const weapon = unit.weaponKey ? getWeaponConfig(unit.weaponKey) : null;
-  const armor = unit.armorKey ? getArmorConfig(unit.armorKey) : null;
+  const icon = unit.icon ?? "W";
   const health = unit.maxHealth ?? unit.baseHealth ?? unit.health ?? 0;
   const attack = unit.attack ?? unit.baseAttack ?? 0;
   const level = unit.level ?? 1;
-  const visualGear = unit.weaponKey ?? (origin === "enemy" ? "enemy" : "worker");
-  const armorText = armor?.label ?? "No armor";
-  const icon = unit.icon ?? "🚧";
-  const weaponIcon = unit.weaponIcon ?? weapon?.icon ?? "";
 
-  card.dataset.gear = visualGear;
+  card.dataset.gear = "worker";
   card.dataset.level = String(level);
   card.dataset.hit = unit.hitUntil && unit.hitUntil > performance.now() / 1000 ? "true" : "false";
 
@@ -78,14 +71,12 @@ function createUnitCard(unit, options = {}) {
     <div class="unit-character" aria-hidden="true">
       <div class="unit-icon">
         <span class="unit-icon-main">${icon}</span>
-        ${weaponIcon ? `<span class="unit-icon-gear">${weaponIcon}</span>` : ""}
-      </div>
+        </div>
       <div class="unit-shadow"></div>
     </div>
     <div class="unit-ui">
       <div class="unit-name">${unit.name}</div>
       <span class="unit-meta">ATK ${Math.round(attack)} | HP ${Math.round(health)}</span>
-      <span class="unit-gear">${armorText}</span>
     </div>
     ${compact ? `<span class="compact-caption">ATK ${Math.round(attack)} | HP ${Math.round(health)}</span>` : ""}
   `;
@@ -115,73 +106,21 @@ function appendTokenHealth(card, currentHealth, maxHealth) {
   card.append(hp);
 }
 
-function formatCosts(costs) {
-  return Object.entries(costs ?? {})
-    .map(([resourceKey, amount]) => `${getResourceLabel(resourceKey)} ${amount}`)
-    .join(" | ");
-}
-
-function getCombinedCosts(weapon, armor) {
-  const combinedCosts = {};
-
-  for (const [resourceKey, amount] of Object.entries(weapon?.costs ?? {})) {
-    combinedCosts[resourceKey] = (combinedCosts[resourceKey] ?? 0) + amount;
-  }
-
-  for (const [resourceKey, amount] of Object.entries(armor?.costs ?? {})) {
-    combinedCosts[resourceKey] = (combinedCosts[resourceKey] ?? 0) + amount;
-  }
-
-  return combinedCosts;
-}
-
-function renderCostMarkup(costs) {
-  const entries = Object.entries(costs ?? {});
-  if (entries.length === 0) {
-    return '<span class="gear-cost-free">Free</span>';
-  }
-
-  return entries.map(([resourceKey, amount]) => `
-    <span class="gear-cost-pill gear-cost-${resourceKey}">
-      ${getResourceIconMarkup(resourceKey, "gear-cost-icon")}
-      <span>${formatNumber(amount)}</span>
-    </span>
-  `).join("");
-}
-
-function canAffordCosts(resources, costs) {
-  return Object.entries(costs ?? {}).every(([resourceKey, amount]) => (resources[resourceKey] ?? 0) >= amount);
-}
-
-function getSelectedLoadoutCosts(state) {
-  const weapon = getWeaponConfig(state.ui.selectedWeaponKey);
-  const armor = getArmorConfig(state.ui.selectedArmorKey);
-  return weapon && armor ? getCombinedCosts(weapon, armor) : null;
-}
-
 function playResourceBurst(elements, burst) {
   let startX;
   let startY;
 
-  if (burst.battlefield && elements.battlefield) {
-    const fieldRect = elements.battlefield.getBoundingClientRect();
-    const px = fieldRect.left + (burst.battlefield.x / CONFIG.battle.fieldWidth) * fieldRect.width;
-    const py = fieldRect.top + (burst.battlefield.y / CONFIG.battle.fieldHeight) * fieldRect.height;
-    startX = px;
-    startY = py;
-  } else {
-    const source = burst.slotIndex >= 0
-      ? elements.minesGrid.querySelector(`[data-mine-slot="${burst.mineId}:${burst.slotIndex}"]`)
-      : elements.minesGrid.querySelector(`[data-mine-passive="${burst.mineId}"]`)
-        ?? elements.minesGrid.querySelector(`[data-mine-card="${burst.mineId}"]`);
-    if (!source) {
-      return;
-    }
-
-    const sourceRect = source.getBoundingClientRect();
-    startX = sourceRect.left + sourceRect.width / 2;
-    startY = sourceRect.top + sourceRect.height / 2;
+  const source = burst.slotIndex >= 0
+    ? elements.minesGrid.querySelector(`[data-mine-slot="${burst.mineId}:${burst.slotIndex}"]`)
+    : elements.minesGrid.querySelector(`[data-mine-passive="${burst.mineId}"]`)
+      ?? elements.minesGrid.querySelector(`[data-mine-card="${burst.mineId}"]`);
+  if (!source) {
+    return;
   }
+
+  const sourceRect = source.getBoundingClientRect();
+  startX = sourceRect.left + sourceRect.width / 2;
+  startY = sourceRect.top + sourceRect.height / 2;
 
   for (const payout of burst.payouts) {
     const displayAmount = Math.round(payout.amount);
@@ -223,7 +162,6 @@ export function mountUI(state, onStateChanged) {
     selectedUnitValue: document.querySelector("#selectedUnitValue"),
     selectedUnitHint: document.querySelector("#selectedUnitHint"),
     waveValue: document.querySelector("#waveValue"),
-    battlefield: document.querySelector("#battlefield"),
     cheatPanel: document.querySelector("#cheatPanel"),
     grantResourcesButton: document.querySelector("#grantResourcesButton"),
     buyCostValue: document.querySelector("#buyCostValue"),
@@ -1004,28 +942,6 @@ export function mountUI(state, onStateChanged) {
     }
   }
 
-  function renderGearMeta() {
-    if (!elements.weaponSelect || !elements.armorSelect) {
-      return;
-    }
-    elements.weaponSelect.value = state.ui.selectedWeaponKey;
-    elements.armorSelect.value = state.ui.selectedArmorKey;
-    const selectedWeapon = getWeaponConfig(state.ui.selectedWeaponKey);
-    const selectedArmor = getArmorConfig(state.ui.selectedArmorKey);
-    const totalCosts = getCombinedCosts(selectedWeapon, selectedArmor);
-    elements.weaponCostInfo.innerHTML = renderCostMarkup(selectedWeapon.costs);
-    elements.armorCostInfo.innerHTML = renderCostMarkup(selectedArmor.costs);
-    elements.gearTotalCostInfo.innerHTML = `
-      <span class="gear-total-label">Total</span>
-      <span class="gear-total-pills">${renderCostMarkup(totalCosts)}</span>
-    `;
-    elements.gearInfo.textContent =
-      `Weapon: ${selectedWeapon.label} (${formatCosts(selectedWeapon.costs) || "free"}) | ` +
-      `ATK x${selectedWeapon.attackMultiplier} | speed x${selectedWeapon.attackSpeedMultiplier} | ` +
-      `range ${Math.round(((CONFIG.battle.baseAttackReach ?? 0) + (selectedWeapon.attackRangeBonus ?? selectedWeapon.attackRange ?? 0)) * 10) / 10}. ` +
-      `Armor: ${selectedArmor.label} (${formatCosts(selectedArmor.costs) || "free"}) | HP +${selectedArmor.healthBonus}.`;
-  }
-
   function flushResourceBursts() {
     const handled = new Set(state.ui.handledResourceBurstIds);
 
@@ -1093,5 +1009,6 @@ export function mountUI(state, onStateChanged) {
 
   return { render, renderFrame };
 }
+
 
 
