@@ -30,6 +30,7 @@ import {
   buyFortressBuilding,
   canAffordResources,
   canPlaceFortressBuilding,
+  findFortressPlacement,
   moveFortressBuilding,
   removeFortressObstacle,
   upgradeFortressBuilding
@@ -478,6 +479,13 @@ export function mountUI(state, onStateChanged) {
   });
 
   function showScreen(screen) {
+    if (state.fortress.battle.active && screen !== "top") {
+      state.fortress.screen = "top";
+      state.fortress.message = "Battle is active. Finish the wave before returning to production.";
+      elements.screenDeck.classList.add("show-top");
+      elements.screenDeck.classList.remove("show-bottom");
+      return;
+    }
     state.fortress.screen = screen;
     elements.screenDeck.classList.toggle("show-top", screen === "top");
     elements.screenDeck.classList.toggle("show-bottom", screen !== "top");
@@ -501,6 +509,9 @@ export function mountUI(state, onStateChanged) {
   });
 
   elements.screenDeck.addEventListener("pointerup", (event) => {
+    if (state.fortress.battle.active) {
+      return;
+    }
     const dy = event.clientY - swipeStartY;
     const dx = event.clientX - swipeStartX;
     if (Math.abs(dy) < window.innerHeight * 0.14 || Math.abs(dy) < Math.abs(dx)) {
@@ -863,6 +874,8 @@ export function mountUI(state, onStateChanged) {
         const definition = CONFIG.fortressBuildings[building.type];
         const nextLevel = definition.levels[building.level];
         tileButton.classList.add("is-building", `building-${building.type}`);
+        tileButton.classList.toggle("is-damaged", building.hp > 0 && building.hp < building.maxHp);
+        tileButton.classList.toggle("is-destroyed", building.hp <= 0);
         tileButton.innerHTML = `
           <span class="fortress-tile-icon">${definition.icon}</span>
           <strong>${definition.name}</strong>
@@ -953,16 +966,18 @@ export function mountUI(state, onStateChanged) {
       }
 
       const isUnlocked = state.fortress.unlockedBuildingTypes.includes(type);
+      const hasSpace = Boolean(findFortressPlacement(state, type));
+      const canBuy = isUnlocked && hasSpace && canAffordResources(state.resources, definition.buyCost);
       const card = document.createElement("article");
-      card.className = `fortress-shop-card ${isUnlocked ? "" : "is-locked"}`;
+      card.className = `fortress-shop-card ${isUnlocked ? "" : "is-locked"} ${!hasSpace ? "has-no-space" : ""}`;
       card.innerHTML = `
         <div class="fortress-shop-icon">${definition.icon}</div>
         <strong>${definition.name}</strong>
         <div class="fortress-shop-cost">${renderFortressCost(definition.buyCost)}</div>
-        <button class="secondary-button" type="button">${isUnlocked ? "Buy" : "Locked"}</button>
+        <button class="secondary-button" type="button">${isUnlocked ? (hasSpace ? "Buy" : "No Space") : "Locked"}</button>
       `;
       const button = card.querySelector("button");
-      button.disabled = !isUnlocked || !canAffordResources(state.resources, definition.buyCost);
+      button.disabled = !canBuy;
       button.addEventListener("click", () => {
         const result = buyFortressBuilding(state, type);
         state.fortress.message = result.reason;
@@ -1215,6 +1230,7 @@ export function mountUI(state, onStateChanged) {
   function renderMeta() {
     showScreen(state.fortress.screen);
     document.body.classList.toggle("fortress-battle-active", state.fortress.battle.active);
+    elements.fortressFightButton.disabled = state.fortress.battle.active || state.game.isOver;
     elements.fortressMessage.textContent = state.fortress.message;
     renderEconomyMeta();
     renderBattleMeta();
@@ -1246,8 +1262,10 @@ export function mountUI(state, onStateChanged) {
   }
 
   function renderFrame() {
+    document.body.classList.toggle("fortress-battle-active", state.fortress.battle.active);
     renderEconomyMeta();
     renderBattleMeta();
+    elements.fortressFightButton.disabled = state.fortress.battle.active || state.game.isOver;
     elements.fortressMessage.textContent = state.fortress.message;
     renderFortressField();
     renderFortressShop();

@@ -40,9 +40,9 @@
     "unlockedByDefault": true,
     "buyCost": { "wood": 16, "ore": 8 },
     "levels": [
-      { "hp": 160, "cooldownSeconds": 12, "unit": "warrior", "upgradeCost": { "wood": 18, "ore": 12 } },
-      { "hp": 220, "cooldownSeconds": 10, "unit": "warrior", "upgradeCost": { "wood": 28, "ore": 20, "iron": 6 } },
-      { "hp": 300, "cooldownSeconds": 8, "unit": "warrior" }
+      { "hp": 160, "cooldownSeconds": 6, "unit": "warrior", "upgradeCost": { "wood": 18, "ore": 12 } },
+      { "hp": 220, "cooldownSeconds": 5, "unit": "warrior", "upgradeCost": { "wood": 28, "ore": 20, "iron": 6 } },
+      { "hp": 300, "cooldownSeconds": 4, "unit": "warrior" }
     ]
   },
   "archery": {
@@ -52,9 +52,33 @@
     "unlockedByDefault": false,
     "buyCost": { "wood": 22, "crystal": 6 },
     "levels": [
-      { "hp": 140, "cooldownSeconds": 18, "unit": "archer", "upgradeCost": { "wood": 26, "crystal": 8 } },
-      { "hp": 190, "cooldownSeconds": 15, "unit": "archer", "upgradeCost": { "wood": 34, "crystal": 14 } },
-      { "hp": 260, "cooldownSeconds": 12, "unit": "archer" }
+      { "hp": 140, "cooldownSeconds": 9, "unit": "archer", "upgradeCost": { "wood": 26, "crystal": 8 } },
+      { "hp": 190, "cooldownSeconds": 8, "unit": "archer", "upgradeCost": { "wood": 34, "crystal": 14 } },
+      { "hp": 260, "cooldownSeconds": 7, "unit": "archer" }
+    ]
+  },
+  "stables": {
+    "name": "Stables",
+    "icon": "R",
+    "footprint": [[0, 0], [0, 1], [0, 2], [1, 2]],
+    "unlockedByDefault": false,
+    "buyCost": { "wood": 24, "iron": 10 },
+    "levels": [
+      { "hp": 150, "cooldownSeconds": 9, "unit": "rider", "upgradeCost": { "wood": 28, "iron": 12 } },
+      { "hp": 210, "cooldownSeconds": 8, "unit": "rider", "upgradeCost": { "wood": 36, "iron": 20, "crystal": 6 } },
+      { "hp": 290, "cooldownSeconds": 7, "unit": "rider" }
+    ]
+  },
+  "mageTower": {
+    "name": "Mage Tower",
+    "icon": "*",
+    "footprint": [[0, 0], [1, 0], [0, 1], [1, 1]],
+    "unlockedByDefault": false,
+    "buyCost": { "ore": 24, "crystal": 10 },
+    "levels": [
+      { "hp": 120, "cooldownSeconds": 7, "unit": "mage", "upgradeCost": { "ore": 30, "crystal": 12 } },
+      { "hp": 170, "cooldownSeconds": 6, "unit": "mage", "upgradeCost": { "ore": 40, "crystal": 20 } },
+      { "hp": 240, "cooldownSeconds": 5, "unit": "mage" }
     ]
   },
   "turret": {

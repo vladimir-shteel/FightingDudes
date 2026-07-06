@@ -106,6 +106,8 @@ export function startFortressBattle(state) {
     projectiles: [],
     spawnTimer: 0,
     enemiesToSpawn: wave.enemyCount,
+    enemiesSpawned: 0,
+    enemiesDefeated: 0,
     result: null
   };
   for (const building of state.fortress.buildings) {
@@ -125,6 +127,7 @@ function tickSpawns(state, deltaSeconds) {
   if (battle.spawnTimer <= 0) {
     battle.enemies.push(createFortressEnemy(state));
     battle.enemiesToSpawn -= 1;
+    battle.enemiesSpawned += 1;
     battle.spawnTimer = wave.spawnIntervalSeconds;
   }
 }
@@ -165,6 +168,16 @@ function tickEnemies(state, deltaSeconds) {
   const battle = state.fortress.battle;
   for (const enemy of battle.enemies) {
     if (enemy.hp <= 0) {
+      continue;
+    }
+
+    const allyTarget = chooseNearest(enemy, battle.allies.filter((ally) => ally.hp > 0));
+    if (allyTarget && allyTarget.distance <= enemy.range + 0.12) {
+      enemy.attackTimer -= deltaSeconds;
+      if (enemy.attackTimer <= 0) {
+        allyTarget.item.hp = clamp(allyTarget.item.hp - enemy.attack, 0, allyTarget.item.maxHp);
+        enemy.attackTimer = enemy.cooldownSeconds;
+      }
       continue;
     }
 
@@ -272,6 +285,25 @@ function finishBattle(state, result) {
   }
 }
 
+function updateBattleMessage(state) {
+  const battle = state.fortress.battle;
+  const wave = CONFIG.fortressWaves[state.fortress.waveNumber - 1];
+  const aliveEnemies = battle.enemies.filter((enemy) => enemy.hp > 0).length;
+  const aliveAllies = battle.allies.filter((ally) => ally.hp > 0).length;
+  const damagedBuildings = state.fortress.buildings
+    .filter((building) => building.hp > 0 && building.hp < building.maxHp)
+    .length;
+  const destroyedBuildings = state.fortress.buildings
+    .filter((building) => building.hp <= 0)
+    .length;
+  const spawned = battle.enemiesSpawned ?? (wave.enemyCount - battle.enemiesToSpawn);
+
+  state.fortress.message =
+    `Wave ${state.fortress.waveNumber}: ${spawned}/${wave.enemyCount} enemies deployed, ` +
+    `${aliveEnemies} alive, ${aliveAllies} allies defending, ` +
+    `${damagedBuildings} damaged / ${destroyedBuildings} destroyed buildings.`;
+}
+
 export function tickFortressBattle(state, deltaSeconds) {
   const battle = state.fortress.battle;
   if (!battle.active) {
@@ -284,7 +316,9 @@ export function tickFortressBattle(state, deltaSeconds) {
   tickAllies(state, deltaSeconds);
   tickProjectiles(state, deltaSeconds);
 
+  const enemiesBeforeCleanup = battle.enemies.length;
   battle.enemies = battle.enemies.filter((enemy) => enemy.hp > 0);
+  battle.enemiesDefeated += enemiesBeforeCleanup - battle.enemies.length;
   battle.allies = battle.allies.filter((ally) => ally.hp > 0);
 
   const hq = state.fortress.buildings.find((building) => building.type === "hq");
@@ -292,5 +326,7 @@ export function tickFortressBattle(state, deltaSeconds) {
     finishBattle(state, "defeat");
   } else if (battle.enemiesToSpawn <= 0 && battle.enemies.length === 0) {
     finishBattle(state, "victory");
+  } else {
+    updateBattleMessage(state);
   }
 }
