@@ -27,6 +27,8 @@ async function bootstrap() {
 
   ui.render();
   window.requestAnimationFrame(gameLoop);
+
+  window.__game = { state, ui, CONFIG };
 }
 
 bootstrap().catch((error) => {

@@ -381,9 +381,26 @@ export function mountUI(state, onStateChanged) {
 
   let swipeStartY = 0;
   let swipeStartX = 0;
+  let swipeStartScreen = null;
+  let swipeStartAtTop = false;
+  let swipeStartAtBottom = false;
+
+  function getVisibleScreenElement() {
+    return state.fortress.screen === "top"
+      ? document.querySelector("#fortressScreen")
+      : document.querySelector("#productionScreen");
+  }
+
   elements.screenDeck.addEventListener("pointerdown", (event) => {
     swipeStartY = event.clientY;
     swipeStartX = event.clientX;
+    const visible = getVisibleScreenElement();
+    swipeStartScreen = state.fortress.screen;
+    const scrollTop = visible?.scrollTop ?? 0;
+    const scrollHeight = visible?.scrollHeight ?? 0;
+    const clientHeight = visible?.clientHeight ?? 0;
+    swipeStartAtTop = scrollTop <= 1;
+    swipeStartAtBottom = scrollTop + clientHeight >= scrollHeight - 1;
   });
 
   elements.screenDeck.addEventListener("pointerup", (event) => {
@@ -395,8 +412,17 @@ export function mountUI(state, onStateChanged) {
     if (Math.abs(dy) < window.innerHeight * 0.14 || Math.abs(dy) < Math.abs(dx)) {
       return;
     }
-    showScreen(dy < 0 ? "top" : "bottom");
-    onStateChanged();
+    // Swipe DOWN at top edge → reveal screen above.
+    if (dy > 0 && swipeStartAtTop && swipeStartScreen === "bottom") {
+      showScreen("top");
+      onStateChanged();
+      return;
+    }
+    // Swipe UP at bottom edge → reveal screen below.
+    if (dy < 0 && swipeStartAtBottom && swipeStartScreen === "top") {
+      showScreen("bottom");
+      onStateChanged();
+    }
   });
 
   function renderReserve() {
@@ -672,11 +698,35 @@ export function mountUI(state, onStateChanged) {
 
     for (const tile of state.fortress.field) {
       const building = getFortressBuildingForTile(tile);
+      let rectangularSpanW = 1;
+      let rectangularSpanH = 1;
+      let isRectangular = false;
+      if (building) {
+        const minX = Math.min(...building.tiles.map((item) => item.x));
+        const maxX = Math.max(...building.tiles.map((item) => item.x));
+        const minY = Math.min(...building.tiles.map((item) => item.y));
+        const maxY = Math.max(...building.tiles.map((item) => item.y));
+        rectangularSpanW = maxX - minX + 1;
+        rectangularSpanH = maxY - minY + 1;
+        isRectangular = building.tiles.length === rectangularSpanW * rectangularSpanH;
+      }
+
+      const isBuildingOrigin = building && isFortressBuildingOrigin(building, tile);
+      if (building && isRectangular && !isBuildingOrigin) {
+        continue;
+      }
+
       const tileButton = document.createElement("button");
       tileButton.type = "button";
       tileButton.className = "fortress-tile";
       tileButton.dataset.x = String(tile.x);
       tileButton.dataset.y = String(tile.y);
+      tileButton.style.gridColumnStart = String(tile.x + 1);
+      tileButton.style.gridRowStart = String(tile.y + 1);
+      if (building && isRectangular) {
+        if (rectangularSpanW > 1) tileButton.style.gridColumnEnd = `span ${rectangularSpanW}`;
+        if (rectangularSpanH > 1) tileButton.style.gridRowEnd = `span ${rectangularSpanH}`;
+      }
 
       if (tile.occupant === "obstacle") {
         tileButton.classList.add("is-obstacle");
@@ -690,7 +740,25 @@ export function mountUI(state, onStateChanged) {
           state.fortress.message = result.reason;
           onStateChanged();
         });
-      } else if (building && isFortressBuildingOrigin(building, tile)) {
+      } else if (building && !isBuildingOrigin) {
+        const definition = CONFIG.fortressBuildings[building.type];
+        tileButton.classList.add("is-building", "is-building-part", `building-${building.type}`);
+        tileButton.classList.toggle("is-damaged", building.hp > 0 && building.hp < building.maxHp);
+        tileButton.classList.toggle("is-destroyed", building.hp <= 0);
+        tileButton.innerHTML = `<span class="fortress-tile-icon-dim" aria-hidden="true">${definition.icon}</span>`;
+        tileButton.addEventListener("click", () => {
+          if (state.fortress.movingBuildingId === building.id) {
+            state.fortress.movingBuildingId = null;
+            state.fortress.message = "Move cancelled.";
+          } else {
+            state.fortress.movingBuildingId = building.id;
+            state.fortress.message = building.type === "hq"
+              ? "HQ cannot be moved."
+              : "Tap a valid free tile to move this building.";
+          }
+          onStateChanged();
+        });
+      } else if (building && isBuildingOrigin) {
         const definition = CONFIG.fortressBuildings[building.type];
         const nextLevel = definition.levels[building.level];
         tileButton.classList.add("is-building", `building-${building.type}`);
@@ -718,7 +786,8 @@ export function mountUI(state, onStateChanged) {
           const upgradeButton = document.createElement("button");
           upgradeButton.type = "button";
           upgradeButton.className = "fortress-upgrade-button";
-          upgradeButton.innerHTML = `Up ${renderFortressCost(nextLevel.upgradeCost)}`;
+          upgradeButton.innerHTML = `<span class="fortress-upgrade-arrow" aria-hidden="true">↑</span>${renderFortressCost(nextLevel.upgradeCost)}`;
+          upgradeButton.setAttribute("aria-label", "Upgrade");
           upgradeButton.disabled = !canAffordResources(state.resources, nextLevel.upgradeCost);
           upgradeButton.addEventListener("click", (event) => {
             event.stopPropagation();
@@ -728,9 +797,6 @@ export function mountUI(state, onStateChanged) {
           });
           tileButton.append(upgradeButton);
         }
-      } else if (building) {
-        tileButton.classList.add("is-building-part");
-        tileButton.disabled = true;
       } else {
         const movingBuilding = state.fortress.buildings.find((item) => item.id === state.fortress.movingBuildingId);
         if (movingBuilding) {
@@ -778,35 +844,75 @@ export function mountUI(state, onStateChanged) {
     }
   }
 
-  function renderFortressShop() {
-    elements.fortressShop.innerHTML = "";
-    for (const [type, definition] of Object.entries(CONFIG.fortressBuildings)) {
-      if (type === "hq") {
-        continue;
-      }
-
-      const isUnlocked = state.fortress.unlockedBuildingTypes.includes(type);
-      const buyCost = getFortressBuildingBuyCost(state, type);
-      const hasSpace = Boolean(findFortressPlacement(state, type));
-      const canBuy = isUnlocked && hasSpace && canAffordResources(state.resources, buyCost);
-      const card = document.createElement("article");
-      card.className = `fortress-shop-card ${isUnlocked ? "" : "is-locked"} ${!hasSpace ? "has-no-space" : ""}`;
-      card.innerHTML = `
-        <div class="fortress-shop-icon">${definition.icon}</div>
-        <strong>${definition.name}</strong>
-        <div class="fortress-shop-cost">${renderFortressCost(buyCost)}</div>
-        <button class="secondary-button" type="button">${isUnlocked ? (hasSpace ? "Buy" : "No Space") : "Locked"}</button>
-      `;
-      const button = card.querySelector("button");
-      button.disabled = !canBuy;
-      button.addEventListener("click", () => {
-        const result = buyFortressBuilding(state, type);
-        state.fortress.message = result.reason;
-        onStateChanged();
-      });
-      elements.fortressShop.append(card);
-    }
+  function buildFortressShopCard(type, definition) {
+    const isUnlocked = state.fortress.unlockedBuildingTypes.includes(type);
+    const buyCost = getFortressBuildingBuyCost(state, type);
+    const hasSpace = Boolean(findFortressPlacement(state, type));
+    const canBuy = isUnlocked && hasSpace && canAffordResources(state.resources, buyCost);
+    const card = document.createElement("article");
+    card.className = `fortress-shop-card ${isUnlocked ? "" : "is-locked"} ${!hasSpace ? "has-no-space" : ""}`;
+    card.innerHTML = `
+      <div class="fortress-shop-icon">${definition.icon}</div>
+      <strong>${definition.name}</strong>
+      <div class="fortress-shop-cost">${renderFortressCost(buyCost)}</div>
+      <button class="secondary-button" type="button">${isUnlocked ? (hasSpace ? "Buy" : "No Space") : "Locked"}</button>
+    `;
+    const button = card.querySelector("button");
+    button.disabled = !canBuy;
+    button.addEventListener("click", () => {
+      const result = buyFortressBuilding(state, type);
+      state.fortress.message = result.reason;
+      onStateChanged();
+    });
+    return card;
   }
+
+  function renderFortressShop() {
+    const shop = elements.fortressShop;
+    const prevScroll = shop.scrollLeft;
+    const wasEmpty = shop.childElementCount === 0;
+    shop.innerHTML = "";
+
+    const types = Object.entries(CONFIG.fortressBuildings).filter(([type]) => type !== "hq");
+    const copies = 3;
+    for (let copy = 0; copy < copies; copy += 1) {
+      for (const [type, definition] of types) {
+        const card = buildFortressShopCard(type, definition);
+        card.dataset.shopCopy = String(copy);
+        shop.append(card);
+      }
+    }
+
+    // Center scroll on the middle copy on first render, preserve on re-renders.
+    requestAnimationFrame(() => {
+      const blockWidth = shop.scrollWidth / copies;
+      if (wasEmpty || prevScroll <= 0) {
+        shop.scrollLeft = blockWidth;
+      } else {
+        shop.scrollLeft = prevScroll;
+      }
+    });
+  }
+
+  function setupFortressShopLoop() {
+    const shop = elements.fortressShop;
+    if (shop.dataset.loopBound === "1") {
+      return;
+    }
+    shop.dataset.loopBound = "1";
+    shop.addEventListener("scroll", () => {
+      if (shop.childElementCount === 0) {
+        return;
+      }
+      const blockWidth = shop.scrollWidth / 3;
+      if (shop.scrollLeft < blockWidth * 0.5) {
+        shop.scrollLeft += blockWidth;
+      } else if (shop.scrollLeft > blockWidth * 2.5) {
+        shop.scrollLeft -= blockWidth;
+      }
+    }, { passive: true });
+  }
+  setupFortressShopLoop();
 
   function renderUpgradeChoices() {
     const choices = state.fortress.pendingUpgradeChoices ?? [];
