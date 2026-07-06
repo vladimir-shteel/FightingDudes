@@ -376,13 +376,13 @@ export function mountUI(state, onStateChanged) {
 
   elements.buyUnitButton.addEventListener("click", () => {
     const result = buyUnit(state);
-    state.battle.log = result.reason;
+    state.fortress.message = result.reason;
     onStateChanged();
   });
 
   elements.massMergeButton.addEventListener("click", () => {
     const result = massMergeReserve(state);
-    state.battle.log = result.reason;
+    state.fortress.message = result.reason;
     clearSelectedUnit();
     onStateChanged();
   });
@@ -391,7 +391,7 @@ export function mountUI(state, onStateChanged) {
     for (const resourceKey of resourceOrder) {
       state.resources[resourceKey] = (state.resources[resourceKey] ?? 0) + 1000;
     }
-    state.battle.log = "Cheat: +1000 to every resource.";
+    state.fortress.message = "Cheat: +1000 to every resource.";
     onStateChanged();
   });
 
@@ -486,7 +486,7 @@ export function mountUI(state, onStateChanged) {
 
         if (currentSelection?.source === "reserve") {
           const result = mergeReservePair(state, currentSelection.unit.id, unit.id);
-          state.battle.log = result.reason;
+          state.fortress.message = result.reason;
           if (result.ok) {
             clearSelectedUnit();
           } else {
@@ -521,7 +521,7 @@ export function mountUI(state, onStateChanged) {
 
       if (currentSelection.source === "mine") {
         const result = returnMineUnitToReserve(state, currentSelection.mineId, currentSelection.slotIndex);
-        state.battle.log = result.reason;
+        state.fortress.message = result.reason;
         if (result.ok) {
           clearSelectedUnit();
         }
@@ -624,7 +624,7 @@ export function mountUI(state, onStateChanged) {
             const result = selected.source === "reserve"
               ? assignReserveUnitToMine(state, selected.unit.id, mine.id, index)
               : moveMineUnitToMineSlot(state, selected.mineId, selected.slotIndex, mine.id, index);
-            state.battle.log = result.reason;
+            state.fortress.message = result.reason;
             if (result.ok) {
               clearSelectedUnit();
             }
@@ -653,7 +653,7 @@ export function mountUI(state, onStateChanged) {
 
             if (selected?.source === "reserve") {
               const result = mergeReserveUnitIntoMineUnit(state, selected.unit.id, mine.id, index);
-              state.battle.log = result.reason;
+              state.fortress.message = result.reason;
               if (result.ok) {
                 clearSelectedUnit();
               } else {
@@ -665,7 +665,7 @@ export function mountUI(state, onStateChanged) {
 
             if (selected?.source === "mine") {
               const result = moveMineUnitToMineSlot(state, selected.mineId, selected.slotIndex, mine.id, index);
-              state.battle.log = result.reason;
+              state.fortress.message = result.reason;
               if (result.ok) {
                 clearSelectedUnit();
               } else {
@@ -701,60 +701,11 @@ export function mountUI(state, onStateChanged) {
       card.append(slots);
       card.querySelector(`[data-upgrade-mine="${mine.id}"]`).addEventListener("click", () => {
         const result = mine.isUnlocked ? upgradeMine(state, mine.id) : unlockMine(state, mine.id);
-        state.battle.log = result.reason;
+        state.fortress.message = result.reason;
         onStateChanged();
       });
 
       elements.minesGrid.append(card);
-    }
-  }
-
-  function renderBattle() {
-    if (!elements.castleHealth || !elements.castleHealthBar || !elements.battleLog) {
-      return;
-    }
-    const castleRatio = state.castle.health / state.castle.maxHealth;
-    elements.castleHealth.textContent = `${formatNumber(state.castle.health)}/${formatNumber(state.castle.maxHealth)}`;
-    elements.castleHealthBar.style.width = `${castleRatio * 100}%`;
-    elements.battleLog.textContent = state.battle.log;
-    elements.castleSprite.classList.toggle("is-hit", (state.castle.hitUntil ?? 0) > performance.now() / 1000);
-
-    elements.battleUnits.innerHTML = "";
-    for (const unit of state.battleUnits) {
-      const card = createUnitCard(unit, { origin: "battle" });
-      card.classList.add("battle-token");
-      card.classList.toggle("is-engaged", unit.state === "engaged");
-      card.classList.toggle("is-hit", (unit.hitUntil ?? 0) > performance.now() / 1000);
-      card.dataset.state = unit.state ?? "marching";
-      card.style.left = `${unit.x}%`;
-      card.style.top = `${((unit.y ?? (CONFIG.battle.fieldHeight / 2)) / CONFIG.battle.fieldHeight) * 100}%`;
-
-      const meta = document.createElement("span");
-      meta.className = "battle-caption";
-      meta.textContent = `${Math.max(0, Math.round(unit.health))}`;
-      card.append(meta);
-      appendTokenHealth(card, unit.health, unit.maxHealth);
-      elements.battleUnits.append(card);
-    }
-
-    elements.enemyUnits.innerHTML = "";
-    for (const enemy of state.enemies) {
-      const card = createUnitCard(enemy, { origin: "enemy" });
-      card.classList.add("battle-token");
-      card.classList.toggle("is-engaged", enemy.state === "engaged");
-      card.classList.toggle("is-hit", (enemy.hitUntil ?? 0) > performance.now() / 1000);
-      card.dataset.state = enemy.state ?? "marching";
-      card.style.left = `${enemy.x}%`;
-      card.style.top = `${((enemy.y ?? (CONFIG.battle.fieldHeight / 2)) / CONFIG.battle.fieldHeight) * 100}%`;
-
-      const meta = document.createElement("span");
-      meta.className = "battle-caption";
-      meta.textContent = enemy.state === "retreating"
-        ? `Ret ${Math.max(0, Math.round(enemy.health))}`
-        : `${Math.max(0, Math.round(enemy.health))}`;
-      card.append(meta);
-      appendTokenHealth(card, enemy.health, enemy.maxHealth);
-      elements.enemyUnits.append(card);
     }
   }
 
@@ -948,29 +899,6 @@ export function mountUI(state, onStateChanged) {
     }
   }
 
-  function renderBridgehead() {
-    if (!elements.bridgeheadSlots || !elements.sendBridgeheadButton) {
-      return;
-    }
-    const maxSlots = CONFIG.bridgehead?.maxSlots ?? 8;
-    elements.bridgeheadSlots.innerHTML = "";
-    elements.sendBridgeheadButton.disabled = state.bridgeheadUnits.length === 0 || state.game.isOver;
-
-    for (let index = 0; index < maxSlots; index += 1) {
-      const slot = document.createElement("div");
-      slot.className = `bridgehead-slot ${state.bridgeheadUnits[index] ? "is-filled" : "is-empty"}`;
-
-      const unit = state.bridgeheadUnits[index];
-      if (unit) {
-        slot.append(createUnitCard(unit, { origin: "battle", compact: true }));
-      } else {
-        slot.innerHTML = '<span class="slot-placeholder">Empty</span>';
-      }
-
-      elements.bridgeheadSlots.append(slot);
-    }
-  }
-
   function renderEconomyMeta() {
     for (const resourceKey of resourceOrder) {
       resourceValueMap.get(resourceKey).textContent = formatNumber(state.resources[resourceKey] ?? 0);
@@ -986,33 +914,6 @@ export function mountUI(state, onStateChanged) {
   function renderBattleMeta() {
     elements.waveValue.textContent = `${state.fortress.waveNumber} / ${CONFIG.fortressWaves.length}`;
     elements.fortressWaveValue.textContent = `${state.fortress.waveNumber} / ${CONFIG.fortressWaves.length}`;
-    return;
-
-    const summary = getBattleSummary(state);
-    const totalWaves = CONFIG.waves.length;
-    elements.waveValue.textContent = `${state.battle.nextWaveIndex} / ${totalWaves}`;
-    elements.fortressWaveValue.textContent = `${state.fortress.waveNumber} / ${CONFIG.fortressWaves.length}`;
-    elements.battleSummary.textContent =
-      `${summary.friendlyCount} allies | ${state.bridgeheadUnits.length} staged | ${summary.enemyCount} enemies | power ${Math.round(summary.squadPower)}`;
-
-    const activeWaveNumber = state.battle.activeWaveIndex !== null
-      ? state.battle.activeWaveIndex + 1
-      : state.battle.nextWaveIndex + 1;
-    const wavePrefix = totalWaves > 0 ? `Wave ${Math.min(activeWaveNumber, totalWaves)}/${totalWaves} · ` : "";
-
-    if (state.battle.status === "cooldown" && !state.game.isOver) {
-      elements.battleTimer.textContent = `${wavePrefix}next in ${Math.ceil(state.battle.waveCooldownRemaining)}s`;
-    } else if (state.battle.status === "fighting") {
-      elements.battleTimer.textContent = `${wavePrefix}in progress`;
-    } else if (state.battle.status === "retreating") {
-      elements.battleTimer.textContent = `${wavePrefix}retreating`;
-    } else if (state.battle.status === "siege") {
-      elements.battleTimer.textContent = "All waves cleared";
-    } else if (state.game.isOver) {
-      elements.battleTimer.textContent = "Run complete";
-    } else {
-      elements.battleTimer.textContent = `${wavePrefix}awaiting`;
-    }
   }
 
   function renderSelectedUnitMeta() {
@@ -1142,47 +1043,6 @@ export function mountUI(state, onStateChanged) {
     }
   }
 
-  function playRangedAttackEffect(effect) {
-    if (!elements.battlefield) {
-      return;
-    }
-    const rect = elements.battlefield.getBoundingClientRect();
-    const startX = rect.left + (effect.fromX / CONFIG.battle.fieldWidth) * rect.width;
-    const startY = rect.top + (effect.fromY / CONFIG.battle.fieldHeight) * rect.height;
-    const endX = rect.left + (effect.toX / CONFIG.battle.fieldWidth) * rect.width;
-    const endY = rect.top + (effect.toY / CONFIG.battle.fieldHeight) * rect.height;
-    const length = Math.hypot(endX - startX, endY - startY);
-    const angle = Math.atan2(endY - startY, endX - startX) * (180 / Math.PI);
-    const line = document.createElement("div");
-
-    line.className = "ranged-shot-line";
-    line.style.left = `${startX}px`;
-    line.style.top = `${startY}px`;
-    line.style.width = `${length}px`;
-    line.style.transform = `rotate(${angle}deg)`;
-    elements.fxLayer.append(line);
-    window.setTimeout(() => line.remove(), 220);
-  }
-
-  function flushBattleEffects() {
-    const handled = new Set(state.ui.handledBattleEffectIds);
-
-    for (const effect of state.battleEffects) {
-      if (handled.has(effect.id)) {
-        continue;
-      }
-      handled.add(effect.id);
-      if (effect.type === "ranged-line") {
-        playRangedAttackEffect(effect);
-      }
-    }
-
-    state.ui.handledBattleEffectIds = [...handled].slice(-160);
-    if (state.battleEffects.length > 80) {
-      state.battleEffects = state.battleEffects.slice(-80);
-    }
-  }
-
   function renderMeta() {
     showScreen(state.fortress.screen);
     document.body.classList.toggle("fortress-battle-active", state.fortress.battle.active);
@@ -1192,8 +1052,6 @@ export function mountUI(state, onStateChanged) {
     renderBattleMeta();
     renderSelectedUnitMeta();
     renderActionHints();
-    renderGearMeta();
-    renderBridgehead();
     elements.cheatPanel.hidden = !state.ui.isCheatsOpen;
     renderVictoryState();
     renderFortressField();
@@ -1213,11 +1071,8 @@ export function mountUI(state, onStateChanged) {
     renderReserve();
     renderMines();
     renderMineProgressFrame();
-    renderBattle();
-    renderBridgehead();
     updateSelectionTether();
     flushResourceBursts();
-    flushBattleEffects();
   }
 
   function renderFrame() {
@@ -1230,14 +1085,13 @@ export function mountUI(state, onStateChanged) {
     renderFortressShop();
     renderUpgradeChoices();
     renderMineProgressFrame();
-    renderBattle();
-    renderBridgehead();
     renderActionHints();
     renderVictoryState();
     updateSelectionTether();
     flushResourceBursts();
-    flushBattleEffects();
   }
 
   return { render, renderFrame };
 }
+
+
