@@ -867,6 +867,8 @@ export function mountUI(state, onStateChanged) {
     return card;
   }
 
+  let isProgrammaticScroll = false;
+
   function renderFortressShop() {
     const shop = elements.fortressShop;
     const prevScroll = shop.scrollLeft;
@@ -883,32 +885,40 @@ export function mountUI(state, onStateChanged) {
       }
     }
 
-    // Center scroll on the middle copy on first render, preserve on re-renders.
     requestAnimationFrame(() => {
       const blockWidth = shop.scrollWidth / copies;
+      // Пропускаем собственную коррекцию, чтобы обработчик не вмешивался
+      isProgrammaticScroll = true;
       if (wasEmpty || prevScroll <= 0) {
         shop.scrollLeft = blockWidth;
       } else {
         shop.scrollLeft = prevScroll;
       }
+      // Даём браузеру применить изменение, затем снимаем флаг
+      requestAnimationFrame(() => {
+        isProgrammaticScroll = false;
+      });
     });
   }
 
   function setupFortressShopLoop() {
     const shop = elements.fortressShop;
-    if (shop.dataset.loopBound === "1") {
-      return;
-    }
+    if (shop.dataset.loopBound === "1") return;
     shop.dataset.loopBound = "1";
+
     shop.addEventListener("scroll", () => {
-      if (shop.childElementCount === 0) {
-        return;
-      }
+      if (isProgrammaticScroll) return;   // защита от рекурсии
+      if (shop.childElementCount === 0) return;
+
       const blockWidth = shop.scrollWidth / 3;
       if (shop.scrollLeft < blockWidth * 0.5) {
+        isProgrammaticScroll = true;
         shop.scrollLeft += blockWidth;
+        requestAnimationFrame(() => { isProgrammaticScroll = false; });
       } else if (shop.scrollLeft > blockWidth * 2.5) {
+        isProgrammaticScroll = true;
         shop.scrollLeft -= blockWidth;
+        requestAnimationFrame(() => { isProgrammaticScroll = false; });
       }
     }, { passive: true });
   }
@@ -1097,7 +1107,6 @@ export function mountUI(state, onStateChanged) {
     elements.fortressFightButton.disabled = state.fortress.battle.active || state.game.isOver;
     elements.fortressMessage.textContent = state.fortress.message;
     renderFortressField();
-    renderFortressShop();
     renderUpgradeChoices();
     renderMineProgressFrame();
     renderActionHints();
