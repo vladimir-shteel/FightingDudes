@@ -1,58 +1,7 @@
-import { CONFIG, getMineLevelData, getMineMaxLevel } from "../config.js";
+import { CONFIG, getMineLevelData } from "../config.js";
 import { clamp } from "../utils.js";
 import { createReserveUnit } from "../factories.js";
 import { removeUnitFromReserve, returnUnitToReserve } from "./reserveSystem.js";
-
-export function getMineUpgradeCost(mine) {
-  const nextLevelData = getMineLevelData(mine.level + 1);
-  return nextLevelData?.upgradeCost ?? null;
-}
-
-export function unlockMine(state, mineId) {
-  const mine = state.mines.find((item) => item.id === mineId);
-  if (!mine) {
-    return { ok: false, reason: "Mine not found." };
-  }
-
-  if (mine.isUnlocked) {
-    return { ok: false, reason: "Mine already unlocked." };
-  }
-
-  if ((state.resources[mine.unlockCurrency] ?? 0) < mine.unlockCost) {
-    return { ok: false, reason: `Not enough ${mine.unlockCurrency} to unlock ${mine.name}.` };
-  }
-
-  state.resources[mine.unlockCurrency] -= mine.unlockCost;
-  mine.isUnlocked = true;
-  return { ok: true, reason: `${mine.name} is now unlocked.` };
-}
-
-export function upgradeMine(state, mineId) {
-  const mine = state.mines.find((item) => item.id === mineId);
-  if (!mine) {
-    return { ok: false, reason: "Mine not found." };
-  }
-
-  if (!mine.isUnlocked) {
-    return { ok: false, reason: "Unlock this mine first." };
-  }
-
-  if (mine.level >= getMineMaxLevel()) {
-    return { ok: false, reason: "Mine already reached max level." };
-  }
-
-  const cost = getMineUpgradeCost(mine);
-  const nextLevelData = getMineLevelData(mine.level + 1);
-  const currencyKey = nextLevelData?.upgradeCurrency ?? "gold";
-
-  if (cost === null || (state.resources[currencyKey] ?? 0) < cost) {
-    return { ok: false, reason: `Not enough ${currencyKey} for mine upgrade.` };
-  }
-
-  state.resources[currencyKey] -= cost;
-  mine.level += 1;
-  return { ok: true, reason: `${mine.name} upgraded to level ${mine.level}.` };
-}
 
 export function assignReserveUnitToMine(state, unitId, mineId, slotIndex) {
   const mine = state.mines.find((item) => item.id === mineId);

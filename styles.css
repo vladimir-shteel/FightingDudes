@@ -839,7 +839,7 @@ h3 {
 }
 
 .unit-card.is-hit .unit-icon {
-  animation: hit-flash 170ms ease;
+  animation: hit-flash 90ms ease;
 }
 
 .unit-badges {
@@ -1984,7 +1984,7 @@ h3 {
 
 .fortress-tile.is-building.is-hit,
 .fortress-tile.is-shaped-building.is-hit .fortress-building-shape {
-  animation: hit-flash 170ms ease;
+  animation: hit-flash 90ms ease;
 }
 
 .fortress-tile.is-shaped-building {
@@ -2217,7 +2217,7 @@ h3 {
 }
 
 .fortress-actor.is-hit {
-  animation: hit-flash 170ms ease;
+  animation: hit-flash 90ms ease;
 }
 
 .fortress-actor span {

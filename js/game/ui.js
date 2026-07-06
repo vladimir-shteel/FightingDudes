@@ -14,12 +14,9 @@ import {
 } from "./systems/reserveSystem.js";
 import {
   assignReserveUnitToMine,
-  getMineUpgradeCost,
   mergeReserveUnitIntoMineUnit,
   moveMineUnitToMineSlot,
-  returnMineUnitToReserve,
-  unlockMine,
-  upgradeMine
+  returnMineUnitToReserve
 } from "./systems/mineSystem.js";
 import { startFortressBattle } from "./systems/fortressBattleSystem.js";
 import {
@@ -534,22 +531,15 @@ export function mountUI(state, onStateChanged) {
       card.dataset.resourceKey = mine.resourceKey;
       card.dataset.mineCard = mine.id;
 
-      const upgradeCost = getMineUpgradeCost(mine);
       const mineLevelData = getMineLevelData(mine.level);
       const openSlots = mineLevelData?.slots ?? 0;
       const slotMultipliers = mineLevelData?.slotProductionMultipliers ?? [];
-      const nextLevelData = getMineLevelData(mine.level + 1);
-      const upgradeCurrency = nextLevelData?.upgradeCurrency ?? "gold";
       const passiveInterval = Math.max(0.001, CONFIG.passiveGoldPayoutIntervalSeconds ?? 1);
       const passiveProgress = mine.isUnlocked
         ? Math.min(1, (mine.passiveProgress ?? 0) / passiveInterval)
         : 0;
       const showPassive = mine.isUnlocked && (CONFIG.passiveGoldPerSecondPerUnlockedMine ?? 0) > 0;
-      const actionLabel = !mine.isUnlocked
-        ? `Unlock <span class="btn-cost">${formatNumber(mine.unlockCost)}${getResourceIconMarkup(mine.unlockCurrency, "btn-cost-icon")}</span>`
-        : upgradeCost === null
-          ? "Max Level"
-          : `Upgrade <span class="btn-cost">${formatNumber(upgradeCost)}${getResourceIconMarkup(upgradeCurrency, "btn-cost-icon")}</span>`;
+      const producesGold = showPassive || (CONFIG.mine.goldPerSecondPerWorkerLevel ?? 0) > 0;
       card.innerHTML = `
         <div class="mine-head">
           <div class="mine-title-wrap">
@@ -557,7 +547,7 @@ export function mountUI(state, onStateChanged) {
               ${getResourceIconMarkup(mine.resourceKey, "mine-resource-icon")}
               <div class="mine-title-text">
                 <h3>${mine.name}</h3>
-                <p class="eyebrow">Produces ${mine.resourceLabel} + Gold</p>
+                <p class="eyebrow">Produces ${mine.resourceLabel}${producesGold ? " + Gold" : ""}</p>
               </div>
             </div>
           </div>

@@ -4,7 +4,7 @@
   "passiveGoldPerSecond": 0,
   "passiveGoldPerSecondPerUnlockedMine": 0,
   "passiveGoldPayoutIntervalSeconds": 4,
-  "startingGold": 100,
+  "startingGold": 65,
   "startingResources": {
     "wood": 70,
     "ore": 35

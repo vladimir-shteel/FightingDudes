@@ -10,7 +10,7 @@ const WAYPOINT_ARRIVAL_DISTANCE = 0.18;
 // attack range (warrior range 0.5, enemy range 0.42). 0.18 → minDistance 0.36, comfortably inside melee.
 const UNIT_COLLISION_RADIUS = 0.18;
 const UNIT_PUSH_STRENGTH = 1.0;
-const HIT_FLASH_SECONDS = 0.18;
+const HIT_FLASH_SECONDS = 0.09;
 
 function getNowSeconds() {
   return typeof performance !== "undefined" ? performance.now() / 1000 : Date.now() / 1000;
