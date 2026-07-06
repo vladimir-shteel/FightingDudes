@@ -61,7 +61,7 @@ jobs:
             rm -rf "${target}/.github"
 
             preview_links="${preview_links}<li><a href=\"./${slug}/\">${slug}</a></li>"
-          done < <(git for-each-ref --format='%(refname:short)' 'refs/remotes/origin/codex/experimental-*' | sort)
+          done < <(git for-each-ref --format='%(refname:short)' 'refs/remotes/origin/codex/*' | sort)
 
           cat > _site/previews/index.html <<HTML
           <!doctype html>
