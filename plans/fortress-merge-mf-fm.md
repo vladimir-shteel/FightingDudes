@@ -295,3 +295,15 @@
 - Все `data/*.json` валидны.
 - Browser smoke на `http://127.0.0.1:5173/`: стартовый экран грузится без console errors, старых панелей в DOM нет, 4 шахты и 35 fortress-тайлов на месте.
 - Интерактивный smoke: `Buy Worker`, переход на fortress screen и `To Battle` запускают W1 без console errors.
+
+### Update 2026-07-06: legacy CSS cleanup
+
+- [x] Мёртвые CSS-блоки старого `battlefield`, `bridgehead`, `garrison`, `castle-sprite`, loadout/gear selects и old battle tokens удалены.
+- [x] Production layout в CSS больше не ожидает несуществующую `garrison` колонку на mobile/portrait breakpoints.
+- [x] В CSS оставлены только переиспользуемые cost-pill классы (`gear-cost-*`), потому что их использует новый fortress shop/upgrade UI.
+
+Проверено после CSS cleanup:
+
+- JS syntax check по всем `js/**/*.js` проходит.
+- Browser smoke на `http://127.0.0.1:5173/`: 4 шахты, 35 fortress-тайлов, старых legacy DOM-панелей нет, console errors нет.
+- Интерактивный smoke: `Buy Worker` + переход на fortress screen + `To Battle` запускают W1 без console errors.

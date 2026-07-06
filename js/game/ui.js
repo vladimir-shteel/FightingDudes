@@ -99,13 +99,6 @@ function createMineProgressMarkup(resourceKey, mineId, slotIndex, progress) {
   `;
 }
 
-function appendTokenHealth(card, currentHealth, maxHealth) {
-  const hp = document.createElement("div");
-  hp.className = "token-health";
-  hp.innerHTML = `<div class="token-health-bar" style="width:${(Math.max(0, currentHealth) / maxHealth) * 100}%"></div>`;
-  card.append(hp);
-}
-
 function playResourceBurst(elements, burst) {
   let startX;
   let startY;

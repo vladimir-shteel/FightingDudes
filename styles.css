@@ -101,10 +101,7 @@ h3 {
 .panel,
 .resource-chip,
 .mine-card,
-.garrison-dropzone,
-.info-card,
-.unit-card,
-.castle-sprite {
+.unit-card {
   position: relative;
   overflow: hidden;
 }
@@ -151,8 +148,7 @@ h3 {
 }
 
 .panel::after,
-.mine-card::after,
-.castle-sprite::after {
+.mine-card::after {
   content: none;
 }
 
@@ -434,10 +430,6 @@ h3 {
   grid-area: mines;
 }
 
-.garrison-panel {
-  grid-area: garrison;
-}
-
 .panel {
   padding: 16px;
   background: var(--paper);
@@ -455,8 +447,7 @@ h3 {
 .panel-note,
 .reserve-note,
 .battle-stats,
-.battle-log,
-.info-card {
+.battle-log {
   color: var(--muted);
   font-size: 14px;
 }
@@ -468,232 +459,6 @@ h3 {
 .battle-stats span {
   display: inline-block;
   min-width: 150px;
-}
-
-.battle-stage {
-  display: block;
-}
-
-.battlefield-wrap {
-  display: grid;
-  gap: 12px;
-}
-
-.bridgehead-panel {
-  display: grid;
-  gap: 10px;
-  padding: 12px;
-  border: 1px solid var(--line);
-  border-radius: 22px;
-  background: var(--paper-strong);
-}
-
-.bridgehead-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.bridgehead-head h3 {
-  margin: 0;
-  font-family: "Russo One", sans-serif;
-  font-size: 20px;
-  letter-spacing: 0;
-}
-
-.bridgehead-head .eyebrow {
-  margin-bottom: 2px;
-}
-
-.bridgehead-slots {
-  display: grid;
-  grid-template-columns: repeat(8, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.bridgehead-slot {
-  min-height: 82px;
-  display: flex;
-  align-items: stretch;
-  justify-content: center;
-  border: 2px dashed #cfc8ac;
-  border-radius: 14px;
-  background: var(--paper);
-}
-
-.bridgehead-slot.is-filled {
-  border-style: solid;
-  border-color: rgba(62, 142, 77, 0.45);
-  background: var(--paper);
-}
-
-.bridgehead-slot .unit-card {
-  width: 100%;
-  cursor: default;
-}
-
-.bridgehead-slot .slot-placeholder {
-  position: static;
-  min-height: 100%;
-  padding: 0 4px;
-}
-
-.battlefield {
-  position: relative;
-  min-height: 430px;
-  overflow: hidden;
-  border-radius: 34px;
-  background: linear-gradient(180deg, #cfe6c4 0%, #cfe6c4 32%, #a8d49a 32%, #a8d49a 73%, #8a6240 73%, #6b4a2d 100%);
-  border: 4px solid rgba(51, 48, 31, 0.18);
-}
-
-.battlefield::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: none;
-  pointer-events: none;
-}
-
-.battlefield::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 18%;
-  height: 10px;
-  background: rgba(128, 86, 38, 0.08);
-  pointer-events: none;
-}
-
-.battlefield-overlay {
-  position: absolute;
-  inset: 0;
-  padding: 18px;
-  pointer-events: none;
-  z-index: 1;
-}
-
-.battlefield-caption {
-  max-width: 320px;
-  padding: 12px 14px;
-  border: 3px solid rgba(122, 63, 29, 0.18);
-  border-radius: 20px;
-  background: rgba(255, 242, 205, 0.76);
-  color: var(--text);
-}
-
-.battlefield-caption .eyebrow,
-.battlefield-caption p {
-  color: var(--muted);
-}
-
-.battlefield-caption p {
-  margin: 6px 0 0;
-  font-size: 13px;
-}
-
-.battle-actors {
-  position: absolute;
-  inset: 0;
-}
-
-.castle-sprite {
-  position: absolute;
-  right: 18px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 190px;
-  min-height: 188px;
-  padding: 8px 14px 16px;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
-  z-index: 3;
-  overflow: visible;
-  container-type: inline-size;
-}
-
-.castle-sprite::before {
-  display: none;
-}
-
-.castle-sprite::after {
-  display: none;
-}
-
-.castle-icon {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  place-items: center;
-  height: 138px;
-  font-size: 118px;
-  line-height: 1;
-  filter: drop-shadow(0 12px 0 rgba(81, 48, 20, 0.16));
-}
-
-.castle-sprite strong {
-  display: block;
-  position: relative;
-  z-index: 1;
-  width: max-content;
-  max-width: none;
-  margin: -6px auto 8px;
-  padding: 5px 10px;
-  border: 3px solid rgba(114, 63, 28, 0.16);
-  border-radius: 999px;
-  background: rgba(255, 248, 229, 0.95);
-  color: var(--text);
-  font-size: clamp(9px, 10cqi, 18px);
-  line-height: 1;
-  white-space: nowrap;
-}
-
-.castle-sprite .eyebrow {
-  position: absolute;
-  left: 50%;
-  top: -22px;
-  transform: translateX(-50%);
-  margin: 0;
-  padding: 6px 10px;
-  border-radius: 999px;
-  background: rgba(255, 244, 220, 0.96);
-  border: 3px solid rgba(122, 63, 29, 0.16);
-  color: var(--panel-red-dark);
-  white-space: nowrap;
-  box-shadow: 0 8px 18px rgba(89, 44, 18, 0.16);
-}
-
-.castle-sprite.is-hit {
-  filter: brightness(1.08) saturate(1.12);
-}
-
-.castle-sprite.is-hit .castle-icon {
-  animation: hit-flash 170ms ease;
-}
-
-.progress-shell {
-  position: relative;
-  z-index: 1;
-  width: 100%;
-  height: 16px;
-  border-radius: 999px;
-  overflow: hidden;
-  background: rgba(102, 62, 34, 0.22);
-  border: 2px solid rgba(112, 60, 27, 0.18);
-}
-
-.progress-bar {
-  height: 100%;
-  border-radius: inherit;
-  transition: width 160ms linear;
-}
-
-.castle-bar {
-  background: linear-gradient(90deg, var(--green), var(--green-dark));
 }
 
 .battle-log {
@@ -951,79 +716,6 @@ h3 {
   transform: none;
 }
 
-.garrison-panel {
-  padding: 14px;
-  clip-path: polygon(0 0, 100% 0, 100% 92%, 64% 100%, 0 100%);
-}
-
-.garrison-panel .panel-header {
-  margin-bottom: 10px;
-}
-
-.garrison-panel .panel-note {
-  max-width: 220px;
-  text-align: right;
-  font-size: 13px;
-}
-
-.garrison-stage {
-  padding: 12px 12px 10px;
-  border-radius: 24px 24px 18px 18px;
-  background: var(--paper-strong);
-  border: 2px solid var(--line);
-  box-shadow: inset 0 -6px 0 rgba(51, 48, 31, 0.05);
-}
-
-.gear-select-wrap {
-  display: grid;
-  gap: 6px;
-}
-
-.garrison-panel .gear-select-wrap .resource-label {
-  color: var(--muted);
-  text-shadow: none;
-}
-
-.gear-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-}
-
-.gear-cost-line,
-.gear-total-cost {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  align-items: center;
-}
-
-.gear-cost-line {
-  min-height: 24px;
-}
-
-.gear-total-cost {
-  margin-top: 8px;
-  padding: 8px 10px;
-  border-radius: 14px;
-  background: var(--paper);
-  border: 1px solid var(--line);
-}
-
-.gear-total-label {
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-
-.gear-total-pills {
-  display: inline-flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
 .gear-cost-pill {
   display: inline-flex;
   align-items: center;
@@ -1072,71 +764,6 @@ h3 {
 .gear-cost-iron {
   color: var(--iron-deep);
   background: #e4e8ef;
-}
-
-.gear-select {
-  padding: 10px 12px;
-  border: 3px solid rgba(113, 60, 27, 0.16);
-  border-radius: 16px;
-  background: var(--paper);
-  color: var(--text);
-  font: inherit;
-  font-size: 14px;
-}
-
-.gear-select option {
-  color: var(--text);
-}
-
-.garrison-dropzones {
-  display: grid;
-  gap: 10px;
-  margin-top: 10px;
-}
-
-.garrison-dropzone {
-  min-height: 92px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  padding: 12px;
-  border: 2px dashed #cfc8ac;
-  border-radius: 22px;
-  background: var(--paper);
-  color: var(--muted);
-  font-size: 14px;
-  position: relative;
-  overflow: hidden;
-}
-
-.garrison-dropzone::before,
-.garrison-dropzone::after {
-  content: none;
-}
-
-.garrison-dropzone > * {
-  position: relative;
-  z-index: 1;
-}
-
-.info-card {
-  min-height: 64px;
-  margin-top: 10px;
-  padding: 10px 12px;
-  border-radius: 18px;
-  background: var(--paper);
-  border: 1px solid var(--line);
-  color: var(--text);
-  font-size: 12px;
-  line-height: 1.35;
-}
-
-.garrison-panel .gear-select-wrap,
-.garrison-panel .garrison-dropzone,
-.garrison-panel .info-card {
-  position: relative;
-  z-index: 1;
 }
 
 .reserve-zone {
@@ -1211,8 +838,7 @@ h3 {
   animation: pop-in 180ms ease;
 }
 
-.unit-card.is-hit .unit-icon,
-.battle-token.is-hit .unit-icon {
+.unit-card.is-hit .unit-icon {
   animation: hit-flash 170ms ease;
 }
 
@@ -1286,21 +912,6 @@ h3 {
 .unit-icon-main {
   font-size: 42px;
   line-height: 1;
-}
-
-.unit-icon-gear {
-  position: absolute;
-  right: -7px;
-  bottom: -3px;
-  display: inline-block;
-  width: auto;
-  height: auto;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  font-size: 21px;
-  line-height: 1;
-  filter: drop-shadow(0 2px 0 rgba(76, 42, 19, 0.18));
 }
 
 .unit-ui {
@@ -1455,34 +1066,11 @@ h3 {
   color: var(--text);
 }
 
-.unit-meta,
-.unit-gear {
+.unit-meta {
   display: block;
   font-size: 11px;
   color: var(--muted);
   min-height: 14px;
-}
-
-.battle-token {
-  position: absolute;
-  width: 88px;
-  padding: 4px 4px 0;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
-  transform: translate(-50%, -60%);
-  transition: left 120ms linear, top 120ms linear, filter 120ms linear;
-  z-index: 2;
-  container-type: inline-size;
-}
-
-.battle-token .unit-badges {
-  position: absolute;
-  left: 50%;
-  top: 4px;
-  width: 86px;
-  transform: translateX(-50%);
 }
 
 .compact-card .unit-badges {
@@ -1501,88 +1089,8 @@ h3 {
   border-width: 2px;
 }
 
-.battle-token .unit-level-badge {
-  min-height: 22px;
-  padding: 3px 7px;
-  font-size: 10px;
-  border-width: 2px;
-}
-
-.battle-token .unit-character {
-  height: 86px;
-  margin: 0;
-}
-
-.battle-token .unit-shadow {
-  width: 54px;
-  height: 16px;
-}
-
-.battle-token .unit-icon {
-  bottom: 10px;
-  transform: translateX(-50%) scale(1.04);
-}
-
-.battle-token .unit-ui {
-  display: none;
-}
-
-.battle-token .battle-caption {
-  display: block;
-  margin: -1px auto 0;
-  width: max-content;
-  max-width: 100%;
-  padding: 2px 7px;
-  border-radius: 999px;
-  border: 2px solid rgba(114, 63, 28, 0.2);
-  background: rgba(255, 248, 229, 0.94);
-  color: #2a1608;
-  font-size: clamp(8px, 16cqi, 12px);
-  font-weight: 800;
-  line-height: 1;
-  text-align: center;
-  white-space: nowrap;
-}
-
-.battle-token .token-health {
-  display: block;
-  margin: 3px auto 0;
-  width: 62%;
-  height: 4px;
-  border-radius: 999px;
-  overflow: hidden;
-  background: rgba(74, 48, 24, 0.34);
-  border: 1px solid rgba(115, 63, 28, 0.18);
-}
-
-.battle-token .token-health-bar {
-  height: 100%;
-  background: linear-gradient(90deg, #74ef27, #5ebf1f);
-}
-
-.battle-token.enemy-card .token-health-bar {
-  background: linear-gradient(90deg, #ff6874, #ef4d5d);
-}
-
-.battle-token.is-engaged .unit-icon {
-  filter: saturate(1.05);
-}
-
-.battle-token[data-state="ready"] .battle-caption {
-  background: #fff2c4;
-}
-
-.battle-token[data-state="retreating"] .battle-caption {
-  background: #ffe3c7;
-}
-
-.battle-token.is-hit .unit-icon,
 .unit-card.is-hit .unit-icon {
   filter: brightness(1.32) saturate(1.18);
-}
-
-.battle-token.enemy-card {
-  z-index: 4;
 }
 
 .resource-fly {
@@ -1673,60 +1181,12 @@ h3 {
   z-index: 19;
 }
 
-.state-win .castle-sprite {
-  filter: saturate(1.08);
-}
-
 .state-win .battle-log {
   color: #d4ff55;
 }
 
 .state-lose .battle-log {
   color: #ffd2a4;
-}
-
-.victory-overlay {
-  position: absolute;
-  inset: 0;
-  z-index: 30;
-  display: grid;
-  place-items: center;
-  padding: 24px;
-  background: rgba(72, 36, 13, 0.55);
-  backdrop-filter: blur(5px);
-}
-
-.victory-overlay[hidden] {
-  display: none;
-}
-
-.victory-card {
-  width: min(520px, 100%);
-  padding: 28px;
-  border: 5px solid rgba(114, 63, 28, 0.24);
-  border-radius: 28px;
-  text-align: center;
-  color: var(--text);
-  background:
-    linear-gradient(180deg, #fff7d6 0%, #ffe5a3 100%);
-  box-shadow: 0 18px 0 rgba(101, 56, 24, 0.18), 0 34px 70px rgba(72, 36, 13, 0.34);
-  animation: victory-pop 240ms ease-out;
-}
-
-.victory-card .eyebrow {
-  color: var(--muted);
-}
-
-.victory-card h2 {
-  margin-bottom: 10px;
-  font-size: clamp(30px, 6vw, 56px);
-}
-
-.victory-card p:not(.eyebrow) {
-  margin: 0 auto 18px;
-  max-width: 360px;
-  font-weight: 800;
-  color: var(--muted);
 }
 
 .upgrade-overlay {
@@ -1957,8 +1417,8 @@ h3 {
   }
 
   .middle-row {
-    grid-template-columns: minmax(0, 1fr) 138px;
-    grid-template-areas: "mines garrison";
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "mines";
     gap: 8px;
     padding-top: 30px;
   }
@@ -1985,18 +1445,6 @@ h3 {
     gap: 5px;
   }
 
-  .battle-panel {
-    padding: 8px;
-  }
-
-  .battle-panel .panel-header h2 {
-    font-size: 16px;
-  }
-
-  .battle-panel .eyebrow {
-    display: none;
-  }
-
   .battle-stats {
     gap: 4px;
     font-size: 10px;
@@ -2011,143 +1459,6 @@ h3 {
     font-size: 10px;
     line-height: 1.2;
     border-radius: 12px;
-  }
-
-  .battlefield {
-    min-height: 240px;
-    border-radius: 22px;
-    border-width: 3px;
-  }
-
-  .bridgehead-panel {
-    padding: 7px;
-    gap: 6px;
-    border-width: 2px;
-    border-radius: 14px;
-  }
-
-  .bridgehead-head {
-    gap: 8px;
-  }
-
-  .bridgehead-head h3 {
-    font-size: 13px;
-  }
-
-  .bridgehead-head .primary-button {
-    padding: 7px 10px;
-    border-radius: 12px;
-    font-size: 11px;
-  }
-
-  .bridgehead-slots {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 5px;
-  }
-
-  .bridgehead-slot {
-    min-height: 58px;
-  }
-
-  .battlefield-overlay {
-    padding: 8px;
-  }
-
-  .battlefield-caption {
-    max-width: 62%;
-    padding: 6px 8px;
-    border-width: 2px;
-    border-radius: 12px;
-  }
-
-  .battlefield-caption h3 {
-    font-size: 11px;
-  }
-
-  .battlefield-caption p {
-    display: none;
-  }
-
-  .castle-sprite {
-    width: 78px;
-    min-height: 108px;
-    right: 6px;
-    padding: 6px 8px 10px;
-  }
-
-  .castle-icon {
-    height: 74px;
-    font-size: 62px;
-  }
-
-  .castle-sprite strong {
-    margin: -3px auto 4px;
-    padding: 3px 7px;
-    border-width: 2px;
-  }
-
-  .castle-sprite .eyebrow {
-    top: -14px;
-    padding: 3px 6px;
-    font-size: 8px;
-    border-width: 2px;
-    display: inline-block;
-  }
-
-  .progress-shell {
-    height: 8px;
-    border-width: 2px;
-  }
-
-  .battle-token {
-    width: 56px;
-  }
-
-  .battle-token .unit-character {
-    height: 54px;
-  }
-
-  .battle-token .unit-icon {
-    min-width: 38px;
-    height: 38px;
-    bottom: 4px;
-  }
-
-  .battle-token .unit-icon-main {
-    font-size: 30px;
-  }
-
-  .battle-token .unit-icon-gear {
-    font-size: 14px;
-    right: -1px;
-    bottom: -1px;
-  }
-
-  .battle-token .unit-shadow {
-    width: 36px;
-    height: 10px;
-  }
-
-  .battle-token .unit-level-badge {
-    min-width: 18px;
-    min-height: 16px;
-    padding: 1px 5px;
-    font-size: 8px;
-  }
-
-  .battle-token .unit-badges {
-    top: 2px;
-    width: 56px;
-  }
-
-  .battle-token .battle-caption {
-    padding: 2px 5px;
-    border-width: 1px;
-  }
-
-  .battle-token .token-health {
-    margin-top: 2px;
-    height: 3px;
   }
 
   .mine-head {
@@ -2306,12 +1617,6 @@ h3 {
     font-size: 22px;
   }
 
-  .compact-card .unit-icon-gear {
-    font-size: 12px;
-    right: -4px;
-    bottom: -2px;
-  }
-
   .compact-card .unit-level-badge {
     min-width: 16px;
     min-height: 14px;
@@ -2377,56 +1682,6 @@ h3 {
     height: 7px;
   }
 
-  .garrison-panel {
-    clip-path: none;
-    padding: 6px;
-    border-radius: 16px;
-  }
-
-  .garrison-panel .panel-header {
-    margin-bottom: 6px;
-    gap: 4px;
-  }
-
-  .garrison-panel .panel-header h2 {
-    font-size: 14px;
-  }
-
-  .garrison-panel .panel-note {
-    display: none;
-  }
-
-  .garrison-stage {
-    padding: 5px;
-    border-radius: 12px;
-  }
-
-  .garrison-panel .resource-label {
-    font-size: 8px;
-    letter-spacing: 0.1em;
-  }
-
-  .gear-grid {
-    grid-template-columns: 1fr;
-    gap: 4px;
-  }
-
-  .gear-select-wrap {
-    gap: 3px;
-  }
-
-  .gear-select {
-    padding: 4px 6px;
-    font-size: 10px;
-    border-width: 2px;
-    border-radius: 10px;
-  }
-
-  .gear-cost-line {
-    min-height: 0;
-    gap: 3px;
-  }
-
   .gear-cost-pill {
     padding: 2px 5px;
     font-size: 9px;
@@ -2443,38 +1698,8 @@ h3 {
     font-size: 9px;
   }
 
-  .gear-total-cost {
-    margin-top: 4px;
-    padding: 4px 6px;
-    border-radius: 10px;
-  }
-
-  .gear-total-label,
   .gear-cost-free {
     font-size: 9px;
-  }
-
-  .garrison-dropzones {
-    margin-top: 5px;
-    gap: 5px;
-  }
-
-  .garrison-dropzone {
-    min-height: 48px;
-    padding: 5px;
-    font-size: 9px;
-    line-height: 1.15;
-    border-radius: 12px;
-    border-width: 2px;
-  }
-
-  .garrison-dropzone::before,
-  .garrison-dropzone::after {
-    display: none;
-  }
-
-  .info-card {
-    display: none;
   }
 
   .reserve-panel {
@@ -2515,7 +1740,7 @@ h3 {
 
 @media (orientation: portrait) and (min-width: 721px) {
   .middle-row {
-    grid-template-columns: minmax(0, 7fr) minmax(150px, 3fr);
+    grid-template-columns: minmax(0, 1fr);
     gap: 10px;
     padding-top: 38px;
   }
@@ -2525,13 +1750,6 @@ h3 {
     gap: 8px;
   }
 
-  .garrison-panel {
-    clip-path: polygon(0 0, 100% 0, 100% 94%, 64% 100%, 0 100%);
-  }
-
-  .gear-grid {
-    grid-template-columns: 1fr;
-  }
 }
 
 /* Fortress Merge integration layer */
