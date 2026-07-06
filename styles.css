@@ -1,33 +1,34 @@
 :root {
-  --bg-top: #f79b1d;
-  --bg-bottom: #d7770a;
-  --paper: #fff2cc;
-  --paper-strong: #ffe9b0;
-  --panel-red: #ba5341;
-  --panel-red-dark: #8f3d2d;
-  --panel-wood: #89623f;
-  --panel-earth: #6c5135;
-  --field-sand: #e3b04a;
-  --field-sand-dark: #cc9738;
-  --field-dirt: #7f6240;
-  --field-dirt-dark: #664d30;
-  --text: #442613;
-  --muted: #885f38;
-  --line: rgba(94, 52, 24, 0.25);
-  --gold: #ffd649;
-  --green: #75ef28;
-  --green-dark: #438022;
-  --blue: #3d90ff;
-  --red: #ff5b66;
-  --stone: #8cb7d8;
-  --stone-deep: #5d87aa;
-  --wood: #c98b43;
-  --wood-deep: #8a5820;
-  --crystal: #63b7ff;
-  --crystal-deep: #2b79d9;
-  --iron: #9ea7b7;
-  --iron-deep: #5f6777;
-  --shadow: 0 14px 0 rgba(101, 56, 24, 0.12), 0 24px 48px rgba(82, 41, 11, 0.18);
+  /* Dairy-farm palette: soft green/cream background, muted wood panels, calmer accents. */
+  --bg-top: #dfeee0;
+  --bg-bottom: #f7f3e3;
+  --paper: #ffffff;
+  --paper-strong: #f6f2e4;
+  --panel-red: #c0553a;
+  --panel-red-dark: #9a4028;
+  --panel-wood: #8a6240;
+  --panel-earth: #6b4a2d;
+  --field-sand: #f2b24c;
+  --field-sand-dark: #d99b2f;
+  --field-dirt: #8a6240;
+  --field-dirt-dark: #6b4a2d;
+  --text: #33301f;
+  --muted: #8a8570;
+  --line: rgba(51, 48, 31, 0.18);
+  --gold: #f2b24c;
+  --green: #3e8e4d;
+  --green-dark: #2f7040;
+  --blue: #4a7ca7;
+  --red: #c0553a;
+  --stone: #a0b4a8;
+  --stone-deep: #6f8a7f;
+  --wood: #8a6240;
+  --wood-deep: #6b4a2d;
+  --crystal: #7aa89a;
+  --crystal-deep: #4a7266;
+  --iron: #b9b4a0;
+  --iron-deep: #7f7b6a;
+  --shadow: 0 3px 0 rgba(0, 0, 0, 0.06), 0 8px 24px rgba(51, 48, 31, 0.08);
 }
 
 * {
@@ -40,39 +41,7 @@ body {
   font-family: "Manrope", sans-serif;
   font-variant-numeric: tabular-nums;
   color: var(--text);
-  background:
-    radial-gradient(circle at 15% 8%, rgba(255, 218, 117, 0.75), transparent 16%),
-    radial-gradient(circle at 80% 14%, rgba(255, 196, 84, 0.7), transparent 18%),
-    linear-gradient(180deg, var(--bg-top) 0%, #ef9318 40%, var(--bg-bottom) 100%);
-}
-
-body::before,
-body::after {
-  content: "";
-  position: fixed;
-  inset: auto;
-  width: 280px;
-  height: 280px;
-  border-radius: 46% 54% 56% 44%;
-  background:
-    radial-gradient(circle at 35% 36%, #ffd246 0 28%, #f5a31e 29% 56%, transparent 57%),
-    radial-gradient(circle at 66% 38%, #ef7722 0 26%, #cf5e17 27% 54%, transparent 55%),
-    linear-gradient(180deg, #a38d2e 0%, #856f25 100%);
-  filter: drop-shadow(0 12px 0 rgba(129, 87, 18, 0.15));
-  opacity: 0.92;
-  pointer-events: none;
-  z-index: 0;
-}
-
-body::before {
-  left: -90px;
-  bottom: -80px;
-}
-
-body::after {
-  right: -70px;
-  top: 90px;
-  transform: scale(0.9);
+  background: linear-gradient(180deg, var(--bg-top) 0%, var(--bg-bottom) 60%);
 }
 
 button {
@@ -101,27 +70,30 @@ h2,
 h3 {
   margin: 0;
   font-family: "Russo One", sans-serif;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.03em;
+  color: var(--text);
 }
 
 h1 {
-  font-size: clamp(30px, 4vw, 48px);
+  font-size: clamp(22px, 2.6vw, 30px);
+  letter-spacing: 0.04em;
 }
 
 h2 {
-  font-size: 22px;
+  font-size: 18px;
 }
 
 h3 {
-  font-size: 16px;
+  font-size: 15px;
 }
 
 .eyebrow {
-  margin: 0 0 6px;
-  color: rgba(255, 244, 220, 0.82);
-  font-size: 11px;
+  margin: 0 0 4px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.22em;
+  letter-spacing: 0.18em;
 }
 
 .topbar,
@@ -151,24 +123,36 @@ h3 {
   gap: 14px;
   align-items: center;
   padding: 12px 16px;
-  background:
-    linear-gradient(180deg, rgba(200, 88, 67, 0.96) 0%, rgba(181, 77, 60, 0.96) 100%);
+  background: linear-gradient(180deg, var(--panel-wood) 0%, var(--panel-earth) 100%);
   backdrop-filter: blur(8px);
-  color: #fff8e5;
+  color: #fbf6ea;
 }
 
-.topbar::after,
-.panel::after,
-.mine-card::after,
-.castle-sprite::after {
+.topbar .eyebrow {
+  color: rgba(255, 244, 220, 0.82);
+}
+
+.topbar h1,
+.topbar h2,
+.topbar h3 {
+  color: #fbf6ea;
+}
+
+.topbar::after {
   content: "";
   position: absolute;
   inset: 0;
   background-image:
-    radial-gradient(circle at 18% 24%, rgba(255, 255, 255, 0.08) 0 14px, transparent 15px),
-    radial-gradient(circle at 78% 68%, rgba(113, 43, 26, 0.12) 0 12px, transparent 13px);
+    radial-gradient(circle at 18% 24%, rgba(255, 255, 255, 0.06) 0 14px, transparent 15px),
+    radial-gradient(circle at 78% 68%, rgba(0, 0, 0, 0.08) 0 12px, transparent 13px);
   background-size: 140px 140px, 160px 160px;
   pointer-events: none;
+}
+
+.panel::after,
+.mine-card::after,
+.castle-sprite::after {
+  content: none;
 }
 
 .resource-bar,
@@ -440,38 +424,9 @@ h3 {
   padding-top: 54px;
 }
 
-.middle-row::before {
-  content: "";
-  position: absolute;
-  left: 14px;
-  right: 14px;
-  top: 0;
-  height: 42px;
-  border-radius: 22px;
-  background:
-    linear-gradient(180deg, rgba(93, 63, 31, 0.14), rgba(93, 63, 31, 0)),
-    repeating-linear-gradient(
-      90deg,
-      #b67c2e 0 14px,
-      #d09a48 14px 18px,
-      #9d6724 18px 28px,
-      transparent 28px 32px
-    );
-  box-shadow: inset 0 -8px 0 rgba(118, 75, 32, 0.22);
-  pointer-events: none;
-  z-index: 0;
-}
-
+.middle-row::before,
 .middle-row::after {
-  content: "";
-  position: absolute;
-  left: 12px;
-  right: 12px;
-  top: 28px;
-  height: 8px;
-  background: repeating-linear-gradient(90deg, #8b5a24 0 4px, transparent 4px 28px);
-  pointer-events: none;
-  opacity: 0.55;
+  content: none;
 }
 
 .mines-panel {
@@ -484,8 +439,8 @@ h3 {
 
 .panel {
   padding: 16px;
-  background: linear-gradient(180deg, #b14e3f 0%, #a64537 100%);
-  color: #fff7e8;
+  background: var(--paper);
+  color: var(--text);
 }
 
 .panel-header {
@@ -501,7 +456,7 @@ h3 {
 .battle-stats,
 .battle-log,
 .info-card {
-  color: rgba(255, 244, 220, 0.84);
+  color: var(--muted);
   font-size: 14px;
 }
 
@@ -527,11 +482,9 @@ h3 {
   display: grid;
   gap: 10px;
   padding: 12px;
-  border: 3px solid rgba(255, 233, 176, 0.22);
+  border: 1px solid var(--line);
   border-radius: 22px;
-  background:
-    linear-gradient(180deg, rgba(255, 242, 205, 0.14), rgba(255, 242, 205, 0.06)),
-    rgba(0, 0, 0, 0.1);
+  background: var(--paper-strong);
 }
 
 .bridgehead-head {
@@ -563,14 +516,15 @@ h3 {
   display: flex;
   align-items: stretch;
   justify-content: center;
-  border: 2px dashed rgba(255, 233, 176, 0.28);
-  background: rgba(59, 35, 21, 0.18);
+  border: 2px dashed #cfc8ac;
+  border-radius: 14px;
+  background: var(--paper);
 }
 
 .bridgehead-slot.is-filled {
   border-style: solid;
-  border-color: rgba(212, 255, 85, 0.34);
-  background: rgba(255, 242, 205, 0.12);
+  border-color: rgba(62, 142, 77, 0.45);
+  background: var(--paper);
 }
 
 .bridgehead-slot .unit-card {
@@ -589,8 +543,8 @@ h3 {
   min-height: 430px;
   overflow: hidden;
   border-radius: 34px;
-  background: linear-gradient(180deg, #ef9b1c 0%, #ef9b1c 32%, #dfaf56 32%, #dfaf56 73%, #6e5338 73%, #6e5338 100%);
-  border: 4px solid rgba(125, 68, 30, 0.18);
+  background: linear-gradient(180deg, #cfe6c4 0%, #cfe6c4 32%, #a8d49a 32%, #a8d49a 73%, #8a6240 73%, #6b4a2d 100%);
+  border: 4px solid rgba(51, 48, 31, 0.18);
 }
 
 .battlefield::before {
@@ -738,13 +692,15 @@ h3 {
 }
 
 .castle-bar {
-  background: linear-gradient(90deg, #72ef27, #53b51f);
+  background: linear-gradient(90deg, var(--green), var(--green-dark));
 }
 
 .battle-log {
   padding: 10px 14px;
   border-radius: 18px;
-  background: rgba(255, 242, 205, 0.16);
+  background: var(--paper-strong);
+  border: 1px solid var(--line);
+  color: var(--muted);
   font-size: 13px;
 }
 
@@ -773,24 +729,16 @@ h3 {
 .mine-card {
   border-radius: 26px;
   padding: 8px;
-  background: linear-gradient(180deg, #83603f 0%, #6f5237 100%);
-  color: #fff8e9;
+  background: var(--paper-strong);
+  color: var(--text);
+  border: 1px solid var(--line);
 }
 
-.mine-card[data-resource-key="ore"] {
-  background: linear-gradient(180deg, #7ba7c9 0%, #678fb0 100%);
-}
-
-.mine-card[data-resource-key="wood"] {
-  background: linear-gradient(180deg, #9a6837 0%, #835528 100%);
-}
-
-.mine-card[data-resource-key="crystal"] {
-  background: linear-gradient(180deg, #5da0dc 0%, #3f80bd 100%);
-}
-
+.mine-card[data-resource-key="ore"],
+.mine-card[data-resource-key="wood"],
+.mine-card[data-resource-key="crystal"],
 .mine-card[data-resource-key="iron"] {
-  background: linear-gradient(180deg, #8e98aa 0%, #747d90 100%);
+  background: var(--paper-strong);
 }
 
 .mine-head {
@@ -903,10 +851,10 @@ h3 {
 
 .slot {
   min-height: 66px;
-  border: 3px dashed rgba(255, 233, 176, 0.34);
+  border: 2px dashed #cfc8ac;
   border-radius: 18px;
   padding: 6px;
-  background: rgba(45, 30, 15, 0.18);
+  background: var(--paper);
 }
 
 .slot-filled {
@@ -914,27 +862,11 @@ h3 {
 }
 
 .slot.is-open {
-  border-color: rgba(149, 240, 67, 0.4);
-}
-
-.mine-card[data-resource-key="ore"] .slot.is-open {
-  border-color: rgba(231, 247, 255, 0.62);
-}
-
-.mine-card[data-resource-key="wood"] .slot.is-open {
-  border-color: rgba(255, 222, 168, 0.52);
-}
-
-.mine-card[data-resource-key="crystal"] .slot.is-open {
-  border-color: rgba(201, 235, 255, 0.58);
-}
-
-.mine-card[data-resource-key="iron"] .slot.is-open {
-  border-color: rgba(236, 239, 245, 0.48);
+  border-color: rgba(62, 142, 77, 0.45);
 }
 
 .slot.is-locked {
-  opacity: 0.5;
+  opacity: 0.55;
 }
 
 .slot-placeholder {
@@ -943,7 +875,7 @@ h3 {
   align-items: center;
   justify-content: center;
   text-align: center;
-  color: rgba(255, 243, 217, 0.8);
+  color: var(--muted);
   font-size: 11px;
 }
 
@@ -973,9 +905,9 @@ h3 {
 }
 
 .primary-button {
-  color: #553200;
-  background: linear-gradient(180deg, #d4ff55 0%, #b8ef41 100%);
-  box-shadow: 0 8px 0 rgba(107, 145, 27, 0.28);
+  color: #fff;
+  background: var(--green);
+  box-shadow: 0 3px 0 var(--green-dark);
 }
 
 .button-cost {
@@ -983,46 +915,39 @@ h3 {
   margin-left: 8px;
   padding: 3px 8px;
   border-radius: 999px;
-  background: rgba(255, 248, 229, 0.8);
-  color: #6d460b;
+  background: var(--paper);
+  color: var(--text);
   font-size: 11px;
   font-weight: 800;
   line-height: 1;
 }
 
 .secondary-button {
-  color: #fff8ea;
-  background: linear-gradient(180deg, #ef9f1e 0%, #d9890d 100%);
-  box-shadow: 0 8px 0 rgba(121, 74, 15, 0.26);
+  color: #fff;
+  background: var(--panel-wood);
+  box-shadow: 0 3px 0 var(--panel-earth);
 }
 
-.mine-card[data-resource-key="ore"] .secondary-button {
-  background: linear-gradient(180deg, #f0fbff 0%, #d8effc 100%);
-  color: var(--stone-deep);
-  box-shadow: 0 8px 0 rgba(71, 115, 148, 0.22);
-}
-
-.mine-card[data-resource-key="wood"] .secondary-button {
-  background: linear-gradient(180deg, #ffd48a 0%, #f1b14f 100%);
-  color: #6f430f;
-}
-
-.mine-card[data-resource-key="crystal"] .secondary-button {
-  background: linear-gradient(180deg, #e8f7ff 0%, #b9e2ff 100%);
-  color: var(--crystal-deep);
-  box-shadow: 0 8px 0 rgba(38, 101, 180, 0.22);
-}
-
+.mine-card[data-resource-key="ore"] .secondary-button,
+.mine-card[data-resource-key="wood"] .secondary-button,
+.mine-card[data-resource-key="crystal"] .secondary-button,
 .mine-card[data-resource-key="iron"] .secondary-button {
-  background: linear-gradient(180deg, #f3f5f9 0%, #d2d9e3 100%);
-  color: var(--iron-deep);
-  box-shadow: 0 8px 0 rgba(84, 92, 110, 0.22);
+  background: var(--panel-wood);
+  color: #fff;
+  box-shadow: 0 3px 0 var(--panel-earth);
 }
 
 .ghost-button {
-  color: #fff8ea;
-  background: linear-gradient(180deg, rgba(255, 242, 205, 0.24), rgba(255, 242, 205, 0.14));
-  box-shadow: 0 8px 0 rgba(81, 38, 17, 0.18);
+  color: var(--muted);
+  background: transparent;
+  border: 2px dashed #cfc8ac;
+  box-shadow: none;
+  padding: 8px 13px;
+}
+
+.ghost-button:hover:not(:disabled) {
+  background: var(--paper-strong);
+  transform: none;
 }
 
 .garrison-panel {
@@ -1043,11 +968,9 @@ h3 {
 .garrison-stage {
   padding: 12px 12px 10px;
   border-radius: 24px 24px 18px 18px;
-  background:
-    linear-gradient(180deg, rgba(255, 241, 205, 0.08), rgba(255, 241, 205, 0.03)),
-    rgba(104, 48, 29, 0.2);
-  border: 2px solid rgba(255, 228, 173, 0.14);
-  box-shadow: inset 0 -10px 0 rgba(113, 53, 31, 0.16);
+  background: var(--paper-strong);
+  border: 2px solid var(--line);
+  box-shadow: inset 0 -6px 0 rgba(51, 48, 31, 0.05);
 }
 
 .gear-select-wrap {
@@ -1056,8 +979,8 @@ h3 {
 }
 
 .garrison-panel .gear-select-wrap .resource-label {
-  color: rgba(255, 248, 229, 0.92);
-  text-shadow: 0 1px 0 rgba(101, 47, 28, 0.35);
+  color: var(--muted);
+  text-shadow: none;
 }
 
 .gear-grid {
@@ -1082,7 +1005,8 @@ h3 {
   margin-top: 8px;
   padding: 8px 10px;
   border-radius: 14px;
-  background: rgba(255, 242, 205, 0.12);
+  background: var(--paper);
+  border: 1px solid var(--line);
 }
 
 .gear-total-label {
@@ -1090,7 +1014,7 @@ h3 {
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: rgba(255, 248, 229, 0.92);
+  color: var(--muted);
 }
 
 .gear-total-pills {
@@ -1105,8 +1029,9 @@ h3 {
   gap: 5px;
   padding: 4px 8px;
   border-radius: 999px;
-  border: 2px solid rgba(115, 63, 28, 0.12);
-  background: rgba(255, 248, 229, 0.92);
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--text);
   font-size: 11px;
   font-weight: 800;
   line-height: 1;
@@ -1120,7 +1045,7 @@ h3 {
 .gear-cost-free {
   font-size: 11px;
   font-weight: 800;
-  color: rgba(255, 248, 229, 0.88);
+  color: var(--green-dark);
 }
 
 .merchant-chip[hidden] {
@@ -1470,38 +1395,18 @@ h3 {
   justify-content: center;
   text-align: center;
   padding: 12px;
-  border: 3px dashed rgba(255, 233, 176, 0.34);
+  border: 2px dashed #cfc8ac;
   border-radius: 22px;
-  background:
-    linear-gradient(180deg, rgba(255, 242, 205, 0.14), rgba(255, 242, 205, 0.06)),
-    rgba(0, 0, 0, 0.1);
-  color: #fff8ea;
+  background: var(--paper);
+  color: var(--muted);
   font-size: 14px;
   position: relative;
   overflow: hidden;
 }
 
-.garrison-dropzone::before {
-  content: "";
-  position: absolute;
-  inset: auto 10px 12px;
-  height: 18px;
-  border-radius: 999px;
-  background: rgba(255, 233, 176, 0.1);
-  box-shadow: inset 0 -5px 0 rgba(111, 53, 31, 0.18);
-}
-
+.garrison-dropzone::before,
 .garrison-dropzone::after {
-  content: "";
-  position: absolute;
-  left: 14px;
-  right: 14px;
-  top: 12px;
-  height: 18px;
-  background:
-    radial-gradient(circle at 18% 65%, rgba(255, 241, 205, 0.12) 0 9px, transparent 10px),
-    radial-gradient(circle at 74% 58%, rgba(255, 241, 205, 0.09) 0 7px, transparent 8px);
-  opacity: 0.8;
+  content: none;
 }
 
 .garrison-dropzone > * {
@@ -1514,7 +1419,9 @@ h3 {
   margin-top: 10px;
   padding: 10px 12px;
   border-radius: 18px;
-  background: rgba(255, 242, 205, 0.16);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  color: var(--text);
   font-size: 12px;
   line-height: 1.35;
 }
