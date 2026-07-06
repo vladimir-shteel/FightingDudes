@@ -10,6 +10,15 @@ const WAYPOINT_ARRIVAL_DISTANCE = 0.18;
 // attack range (warrior range 0.5, enemy range 0.42). 0.18 → minDistance 0.36, comfortably inside melee.
 const UNIT_COLLISION_RADIUS = 0.18;
 const UNIT_PUSH_STRENGTH = 1.0;
+const HIT_FLASH_SECONDS = 0.18;
+
+function getNowSeconds() {
+  return typeof performance !== "undefined" ? performance.now() / 1000 : Date.now() / 1000;
+}
+
+function markHit(target) {
+  target.hitUntil = getNowSeconds() + HIT_FLASH_SECONDS;
+}
 
 function getBuildingCenter(building) {
   const minX = Math.min(...building.tiles.map((tile) => tile.x));
@@ -372,6 +381,7 @@ function tickEnemies(state, deltaSeconds) {
       enemy.attackTimer -= deltaSeconds;
       if (enemy.attackTimer <= 0) {
         allyTarget.item.hp = clamp(allyTarget.item.hp - enemy.attack, 0, allyTarget.item.maxHp);
+        markHit(allyTarget.item);
         enemy.attackTimer = enemy.cooldownSeconds;
       }
       continue;
@@ -384,7 +394,9 @@ function tickEnemies(state, deltaSeconds) {
       const level = CONFIG.fortressBuildings.mine.levels[building.level - 1];
       if (distanceToBuildingEdge(enemy, building) <= 0.55) {
         enemy.hp -= level.damage;
+        markHit(enemy);
         building.hp = 0;
+        markHit(building);
       }
     }
 
@@ -412,6 +424,7 @@ function tickEnemies(state, deltaSeconds) {
       enemy.attackTimer -= deltaSeconds;
       if (enemy.attackTimer <= 0) {
         bestBuilding.hp = clamp(bestBuilding.hp - enemy.attack, 0, bestBuilding.maxHp);
+        markHit(bestBuilding);
         enemy.attackTimer = enemy.cooldownSeconds;
       }
       continue;
@@ -460,6 +473,7 @@ function tickAllies(state, deltaSeconds) {
         battle.projectiles.push(createProjectile(ally, target.item, ally.attack, ally.type));
       } else {
         target.item.hp -= ally.attack;
+        markHit(target.item);
       }
       ally.attackTimer = ally.cooldownSeconds;
     }
@@ -476,6 +490,7 @@ function tickProjectiles(state, deltaSeconds) {
     }
     if (getDistance(projectile, target) <= 0.14) {
       target.hp -= projectile.damage;
+      markHit(target);
       projectile.done = true;
       continue;
     }

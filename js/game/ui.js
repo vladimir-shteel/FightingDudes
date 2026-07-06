@@ -43,6 +43,10 @@ function getResourceIconMarkup(resourceKey, extraClass = "") {
   return `<span class="resource-icon resource-icon-${resourceKey}${suffix}" aria-hidden="true"></span>`;
 }
 
+function isHitFlashing(entity) {
+  return (entity?.hitUntil ?? 0) > performance.now() / 1000;
+}
+
 function createUnitCard(unit, options = {}) {
   const {
     origin = "reserve",
@@ -62,7 +66,8 @@ function createUnitCard(unit, options = {}) {
 
   card.dataset.gear = "worker";
   card.dataset.level = String(level);
-  card.dataset.hit = unit.hitUntil && unit.hitUntil > performance.now() / 1000 ? "true" : "false";
+  card.classList.toggle("is-hit", isHitFlashing(unit));
+  card.dataset.hit = isHitFlashing(unit) ? "true" : "false";
 
   card.innerHTML = `
     <div class="unit-badges">
@@ -789,6 +794,7 @@ export function mountUI(state, onStateChanged) {
         if (!isSolidBuilding) {
           tileButton.classList.add("is-shaped-building");
         }
+        tileButton.classList.toggle("is-hit", isHitFlashing(building));
         tileButton.classList.toggle("is-damaged", building.hp > 0 && building.hp < building.maxHp);
         tileButton.classList.toggle("is-destroyed", building.hp <= 0);
         tileButton.innerHTML = `
@@ -833,6 +839,7 @@ export function mountUI(state, onStateChanged) {
     for (const enemy of state.fortress.battle.enemies) {
       const token = document.createElement("div");
       token.className = "fortress-actor fortress-enemy";
+      token.classList.toggle("is-hit", isHitFlashing(enemy));
       token.style.setProperty("--x", enemy.x);
       token.style.setProperty("--y", enemy.y);
       token.innerHTML = `<span>${enemy.icon}</span><i style="width:${Math.max(0, enemy.hp / enemy.maxHp) * 100}%"></i>`;
@@ -842,6 +849,7 @@ export function mountUI(state, onStateChanged) {
     for (const ally of state.fortress.battle.allies) {
       const token = document.createElement("div");
       token.className = "fortress-actor fortress-ally";
+      token.classList.toggle("is-hit", isHitFlashing(ally));
       token.style.setProperty("--x", ally.x);
       token.style.setProperty("--y", ally.y);
       token.innerHTML = `<span>${ally.icon}</span><i style="width:${Math.max(0, ally.hp / ally.maxHp) * 100}%"></i>`;
@@ -943,10 +951,15 @@ export function mountUI(state, onStateChanged) {
       <div class="fortress-shop-cost">${renderFortressCost(buyCost)}</div>
       <button class="secondary-button" type="button">${isUnlocked ? (hasSpace ? "Buy" : "No Space") : "Locked"}</button>
     `;
+    card.dataset.buildingType = type;
     const button = card.querySelector("button");
     button.disabled = !canBuy;
     const buy = () => {
-      if (!canBuy) {
+      const currentCost = getFortressBuildingBuyCost(state, type);
+      const currentlyCanBuy = state.fortress.unlockedBuildingTypes.includes(type) &&
+        Boolean(findFortressPlacement(state, type)) &&
+        canAffordResources(state.resources, currentCost);
+      if (!currentlyCanBuy) {
         return;
       }
       const result = buyFortressBuilding(state, type);
@@ -965,6 +978,28 @@ export function mountUI(state, onStateChanged) {
       }
     });
     return card;
+  }
+
+  function updateFortressShopAffordability() {
+    for (const card of elements.fortressShop.querySelectorAll("[data-building-type]")) {
+      const type = card.dataset.buildingType;
+      const button = card.querySelector("button");
+      if (!type || !button) {
+        continue;
+      }
+
+      const isUnlocked = state.fortress.unlockedBuildingTypes.includes(type);
+      const hasSpace = Boolean(findFortressPlacement(state, type));
+      const canBuy = isUnlocked &&
+        hasSpace &&
+        canAffordResources(state.resources, getFortressBuildingBuyCost(state, type));
+
+      card.classList.toggle("is-locked", !isUnlocked);
+      card.classList.toggle("has-no-space", !hasSpace);
+      card.tabIndex = canBuy ? 0 : -1;
+      button.disabled = !canBuy;
+      button.textContent = isUnlocked ? (hasSpace ? "Buy" : "No Space") : "Locked";
+    }
   }
 
   let isProgrammaticScroll = false;
@@ -1206,6 +1241,7 @@ export function mountUI(state, onStateChanged) {
     renderBattleMeta();
     elements.fortressFightButton.disabled = state.fortress.battle.active || state.game.isOver;
     elements.fortressMessage.textContent = state.fortress.message;
+    updateFortressShopAffordability();
     renderFortressField();
     renderUpgradeChoices();
     renderMineProgressFrame();

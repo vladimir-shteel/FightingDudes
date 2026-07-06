@@ -1,4 +1,4 @@
-import { CONFIG, getMineMaxLevel } from "../config.js";
+import { CONFIG, getMineMaxLevel, getUnitLevelData } from "../config.js";
 
 function shuffle(items) {
   const copy = [...items];
@@ -17,6 +17,45 @@ function getLockedBuildingTypes(state) {
   return Object.entries(CONFIG.fortressBuildings)
     .filter(([type]) => type !== "hq" && !state.fortress.unlockedBuildingTypes.includes(type))
     .map(([type]) => type);
+}
+
+function raiseUnitToLevel(unit, targetLevel) {
+  if (!unit || unit.level >= targetLevel) {
+    return false;
+  }
+
+  const levelData = getUnitLevelData(targetLevel);
+  if (!levelData) {
+    return false;
+  }
+
+  unit.name = levelData.name;
+  unit.level = targetLevel;
+  unit.icon = levelData.icon ?? unit.icon;
+  unit.baseHealth = levelData.baseHealth;
+  unit.baseAttack = levelData.baseAttack;
+  unit.baseAttackSpeed = levelData.baseAttackSpeed;
+  return true;
+}
+
+function raiseExistingWorkersToLevel(state, targetLevel) {
+  let raisedCount = 0;
+
+  for (const unit of state.reserveUnits) {
+    if (raiseUnitToLevel(unit, targetLevel)) {
+      raisedCount += 1;
+    }
+  }
+
+  for (const mine of state.mines) {
+    for (const unit of mine.workerIds) {
+      if (raiseUnitToLevel(unit, targetLevel)) {
+        raisedCount += 1;
+      }
+    }
+  }
+
+  return raisedCount;
 }
 
 export function rollUpgradeChoices(state) {
@@ -116,6 +155,7 @@ export function applyUpgradeChoice(state, choiceId) {
     CONFIG.merge.maxLevel = Math.min(7, CONFIG.merge.maxLevel + 1);
   } else if (choice.type === "raiseWorkerStart") {
     state.economy.workerStartLevel = Math.min(3, (state.economy.workerStartLevel ?? 1) + 1);
+    raiseExistingWorkersToLevel(state, state.economy.workerStartLevel);
   } else if (choice.type === "workerDiscount") {
     state.economy.workerBuyDiscount = Math.max(0.35, (state.economy.workerBuyDiscount ?? 1) * 0.9);
   } else if (choice.type === "unlockBuilding") {

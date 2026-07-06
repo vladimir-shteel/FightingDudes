@@ -1893,12 +1893,19 @@ h3 {
 
 .fortress-action-popover {
   position: absolute;
-  left: calc((var(--x) / 5) * 100%);
-  top: calc((var(--y) / 7) * 100%);
+  --popover-width: min(190px, 46vw, calc(100% - 12px));
+  --popover-half-width: calc(var(--popover-width) / 2);
+  left: clamp(
+    calc(var(--popover-half-width) + 6px),
+    calc((var(--x) / 5) * 100%),
+    calc(100% - var(--popover-half-width) - 6px)
+  );
+  top: clamp(76px, calc((var(--y) / 7) * 100%), calc(100% - 76px));
   z-index: 6;
   display: grid;
   gap: 6px;
-  width: min(190px, 46vw);
+  width: var(--popover-width);
+  max-width: calc(100% - 12px);
   padding: 8px;
   border: 1px solid rgba(107, 74, 45, 0.2);
   border-radius: 8px;
@@ -1917,16 +1924,22 @@ h3 {
 
 .fortress-popover-action {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: center;
   gap: 5px;
+  min-width: 0;
   min-height: 36px;
+  padding: 6px 8px;
   border-radius: 8px;
   font-size: 12px;
   font-weight: 900;
+  line-height: 1.15;
   background: #ffffff;
   color: var(--panel-red-dark);
   box-shadow: inset 0 -2px 0 rgba(107, 74, 45, 0.1);
+  overflow: hidden;
+  text-align: center;
 }
 
 .fortress-popover-action.primary-action {
@@ -1939,8 +1952,23 @@ h3 {
 }
 
 .fortress-popover-action .gear-cost-pill {
+  flex: 0 1 auto;
+  min-width: 0;
+  padding: 1px 3px;
+  gap: 2px;
   border: none;
   background: rgba(255, 255, 255, 0.46);
+  font-size: 10px;
+  line-height: 1.1;
+}
+
+.fortress-popover-action .gear-cost-icon {
+  width: 11px;
+  height: 11px;
+}
+
+.fortress-popover-action .gear-cost-icon.resource-icon-emoji {
+  font-size: 11px;
 }
 
 .fortress-tile.is-obstacle {
@@ -1952,6 +1980,11 @@ h3 {
 .fortress-tile.is-building {
   background: #fff7dd;
   border-color: rgba(192, 85, 58, 0.34);
+}
+
+.fortress-tile.is-building.is-hit,
+.fortress-tile.is-shaped-building.is-hit .fortress-building-shape {
+  animation: hit-flash 170ms ease;
 }
 
 .fortress-tile.is-shaped-building {
@@ -2181,6 +2214,10 @@ h3 {
   border-radius: 50%;
   background: var(--paper);
   box-shadow: 0 8px 18px rgba(51, 48, 31, 0.18);
+}
+
+.fortress-actor.is-hit {
+  animation: hit-flash 170ms ease;
 }
 
 .fortress-actor span {

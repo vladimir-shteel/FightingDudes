@@ -10,8 +10,13 @@ export function createInitialState() {
   for (const resourceType of CONFIG.mine.resourceTypes) {
     resources[resourceType.key] = 0;
   }
+  for (const [resourceKey, amount] of Object.entries(CONFIG.startingResources ?? {})) {
+    if (resources[resourceKey] !== undefined && typeof amount === "number") {
+      resources[resourceKey] = amount;
+    }
+  }
   if (typeof CONFIG.startingOre === "number" && resources.ore !== undefined) {
-    resources.ore = CONFIG.startingOre;
+    resources.ore = Math.max(resources.ore, CONFIG.startingOre);
   }
 
   return {

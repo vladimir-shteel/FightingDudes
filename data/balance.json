@@ -5,6 +5,10 @@
   "passiveGoldPerSecondPerUnlockedMine": 0,
   "passiveGoldPayoutIntervalSeconds": 4,
   "startingGold": 100,
+  "startingResources": {
+    "wood": 70,
+    "ore": 35
+  },
   "startingOre": 0,
   "unitBuyBaseCost": 5,
   "unitBuyExponent": 1.05,

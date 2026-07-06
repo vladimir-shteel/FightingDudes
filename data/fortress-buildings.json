@@ -14,10 +14,10 @@
     "icon": "🧱",
     "footprint": [[0, 0]],
     "unlockedByDefault": true,
-    "buyCost": { "wood": 200 },
+    "buyCost": { "wood": 90 },
     "levels": [
-      { "hp": 75, "upgradeCost": { "wood": 280 } },
-      { "hp": 145, "upgradeCost": { "wood": 360, "ore": 180 } },
+      { "hp": 65, "upgradeCost": { "wood": 180 } },
+      { "hp": 135, "upgradeCost": { "wood": 300, "ore": 140 } },
       { "hp": 260 }
     ]
   },
@@ -26,10 +26,10 @@
     "icon": "🧱",
     "footprint": [[0, 0], [1, 0], [2, 0]],
     "unlockedByDefault": true,
-    "buyCost": { "wood": 560, "ore": 280 },
+    "buyCost": { "wood": 420, "ore": 220 },
     "levels": [
-      { "hp": 140, "upgradeCost": { "wood": 760, "ore": 380 } },
-      { "hp": 260, "upgradeCost": { "wood": 1050, "ore": 620 } },
+      { "hp": 140, "upgradeCost": { "wood": 640, "ore": 320 } },
+      { "hp": 260, "upgradeCost": { "wood": 980, "ore": 560 } },
       { "hp": 440 }
     ]
   },
@@ -38,10 +38,10 @@
     "icon": "⚔️",
     "footprint": [[0, 0], [1, 0], [0, 1], [1, 1]],
     "unlockedByDefault": true,
-    "buyCost": { "wood": 260, "ore": 140 },
+    "buyCost": { "wood": 150, "ore": 75 },
     "levels": [
-      { "hp": 80, "cooldownSeconds": 6, "unit": "warrior", "upgradeCost": { "wood": 460, "ore": 280 } },
-      { "hp": 80, "cooldownSeconds": 5, "unit": "warrior", "upgradeCost": { "wood": 680, "ore": 440, "iron": 220 } },
+      { "hp": 70, "cooldownSeconds": 7, "unit": "warrior", "upgradeCost": { "wood": 330, "ore": 190 } },
+      { "hp": 80, "cooldownSeconds": 5.5, "unit": "warrior", "upgradeCost": { "wood": 560, "ore": 360, "iron": 160 } },
       { "hp": 80, "cooldownSeconds": 4, "unit": "warrior" }
     ]
   },
@@ -50,35 +50,11 @@
     "icon": "🏹",
     "footprint": [[0, 0], [1, 0], [2, 0], [1, 1]],
     "unlockedByDefault": false,
-    "buyCost": { "wood": 650, "crystal": 300 },
+    "buyCost": { "wood": 360, "ore": 180 },
     "levels": [
-      { "hp": 70, "cooldownSeconds": 8, "unit": "archer", "upgradeCost": { "wood": 820, "crystal": 420 } },
-      { "hp": 70, "cooldownSeconds": 7, "unit": "archer", "upgradeCost": { "wood": 1100, "crystal": 620 } },
+      { "hp": 60, "cooldownSeconds": 9, "unit": "archer", "upgradeCost": { "wood": 640, "ore": 260, "crystal": 180 } },
+      { "hp": 70, "cooldownSeconds": 7.5, "unit": "archer", "upgradeCost": { "wood": 980, "crystal": 520 } },
       { "hp": 70, "cooldownSeconds": 6, "unit": "archer" }
-    ]
-  },
-  "stables": {
-    "name": "Stables",
-    "icon": "🐎",
-    "footprint": [[0, 0], [0, 1], [0, 2], [1, 2]],
-    "unlockedByDefault": false,
-    "buyCost": { "wood": 680, "iron": 360 },
-    "levels": [
-      { "hp": 70, "cooldownSeconds": 8, "unit": "rider", "upgradeCost": { "wood": 880, "iron": 520 } },
-      { "hp": 70, "cooldownSeconds": 7, "unit": "rider", "upgradeCost": { "wood": 1180, "iron": 760, "crystal": 300 } },
-      { "hp": 70, "cooldownSeconds": 6, "unit": "rider" }
-    ]
-  },
-  "mageTower": {
-    "name": "Mage Tower",
-    "icon": "🔮",
-    "footprint": [[0, 0], [1, 0], [0, 1], [1, 1]],
-    "unlockedByDefault": false,
-    "buyCost": { "ore": 680, "crystal": 360 },
-    "levels": [
-      { "hp": 70, "cooldownSeconds": 8, "unit": "mage", "upgradeCost": { "ore": 920, "crystal": 520 } },
-      { "hp": 70, "cooldownSeconds": 7, "unit": "mage", "upgradeCost": { "ore": 1240, "crystal": 820 } },
-      { "hp": 70, "cooldownSeconds": 6, "unit": "mage" }
     ]
   },
   "turret": {
@@ -86,11 +62,35 @@
     "icon": "🎯",
     "footprint": [[0, 0]],
     "unlockedByDefault": false,
-    "buyCost": { "ore": 560, "iron": 300 },
+    "buyCost": { "ore": 420, "iron": 220 },
     "levels": [
-      { "hp": 65, "damage": 12, "cooldownSeconds": 1.1, "upgradeCost": { "ore": 760, "iron": 460 } },
-      { "hp": 65, "damage": 18, "cooldownSeconds": 1, "upgradeCost": { "ore": 1080, "iron": 680 } },
-      { "hp": 65, "damage": 26, "cooldownSeconds": 0.9 }
+      { "hp": 55, "damage": 10, "cooldownSeconds": 1.25, "upgradeCost": { "ore": 620, "iron": 360 } },
+      { "hp": 65, "damage": 17, "cooldownSeconds": 1.05, "upgradeCost": { "ore": 960, "iron": 620 } },
+      { "hp": 70, "damage": 26, "cooldownSeconds": 0.9 }
+    ]
+  },
+  "stables": {
+    "name": "Stables",
+    "icon": "🐎",
+    "footprint": [[0, 0], [0, 1], [0, 2], [1, 2]],
+    "unlockedByDefault": false,
+    "buyCost": { "wood": 520, "iron": 260 },
+    "levels": [
+      { "hp": 75, "cooldownSeconds": 9, "unit": "rider", "upgradeCost": { "wood": 780, "iron": 460 } },
+      { "hp": 80, "cooldownSeconds": 7.5, "unit": "rider", "upgradeCost": { "wood": 1080, "iron": 720, "crystal": 240 } },
+      { "hp": 80, "cooldownSeconds": 6, "unit": "rider" }
+    ]
+  },
+  "mageTower": {
+    "name": "Mage Tower",
+    "icon": "🔮",
+    "footprint": [[0, 0], [1, 0], [0, 1], [1, 1]],
+    "unlockedByDefault": false,
+    "buyCost": { "ore": 560, "crystal": 260 },
+    "levels": [
+      { "hp": 55, "cooldownSeconds": 10, "unit": "mage", "upgradeCost": { "ore": 820, "crystal": 460 } },
+      { "hp": 65, "cooldownSeconds": 8, "unit": "mage", "upgradeCost": { "ore": 1160, "crystal": 760 } },
+      { "hp": 70, "cooldownSeconds": 6, "unit": "mage" }
     ]
   },
   "mine": {
@@ -98,10 +98,10 @@
     "icon": "💣",
     "footprint": [[0, 0]],
     "unlockedByDefault": false,
-    "buyCost": { "iron": 280 },
+    "buyCost": { "iron": 160 },
     "levels": [
-      { "hp": 1, "damage": 35, "upgradeCost": { "iron": 420 } },
-      { "hp": 1, "damage": 55, "upgradeCost": { "iron": 620, "crystal": 260 } },
+      { "hp": 1, "damage": 32, "upgradeCost": { "iron": 320 } },
+      { "hp": 1, "damage": 54, "upgradeCost": { "iron": 560, "crystal": 220 } },
       { "hp": 1, "damage": 85 }
     ]
   }
