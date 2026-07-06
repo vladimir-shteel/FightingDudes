@@ -790,22 +790,28 @@ export function mountUI(state, onStateChanged) {
 
   function renderBattleMeta() {
     const summary = getBattleSummary(state);
-    elements.waveValue.textContent = `${state.battle.nextWaveIndex} / ${CONFIG.waves.length}`;
+    const totalWaves = CONFIG.waves.length;
+    elements.waveValue.textContent = `${state.battle.nextWaveIndex} / ${totalWaves}`;
     elements.battleSummary.textContent =
       `${summary.friendlyCount} allies | ${state.bridgeheadUnits.length} staged | ${summary.enemyCount} enemies | power ${Math.round(summary.squadPower)}`;
 
+    const activeWaveNumber = state.battle.activeWaveIndex !== null
+      ? state.battle.activeWaveIndex + 1
+      : state.battle.nextWaveIndex + 1;
+    const wavePrefix = totalWaves > 0 ? `Wave ${Math.min(activeWaveNumber, totalWaves)}/${totalWaves} · ` : "";
+
     if (state.battle.status === "cooldown" && !state.game.isOver) {
-      elements.battleTimer.textContent = `Next wave: ${Math.ceil(state.battle.waveCooldownRemaining)}s`;
+      elements.battleTimer.textContent = `${wavePrefix}next in ${Math.ceil(state.battle.waveCooldownRemaining)}s`;
     } else if (state.battle.status === "fighting") {
-      elements.battleTimer.textContent = "Wave in progress";
+      elements.battleTimer.textContent = `${wavePrefix}in progress`;
     } else if (state.battle.status === "retreating") {
-      elements.battleTimer.textContent = "Wave retreating";
+      elements.battleTimer.textContent = `${wavePrefix}retreating`;
     } else if (state.battle.status === "siege") {
       elements.battleTimer.textContent = "All waves cleared";
     } else if (state.game.isOver) {
       elements.battleTimer.textContent = "Run complete";
     } else {
-      elements.battleTimer.textContent = "Next wave: -";
+      elements.battleTimer.textContent = `${wavePrefix}awaiting`;
     }
   }
 
