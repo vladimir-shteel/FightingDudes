@@ -12,7 +12,28 @@
   "startingOre": 0,
   "unitBuyBaseCost": 5,
   "unitBuyExponent": 1.05,
+  "productionMultipliers": {
+    "rest": 1,
+    "battle": 1.5
+  },
   "merge": {
     "maxLevel": 5
+  },
+  "rewardDraft": {
+    "permanent": {
+      "goldGainMultiplier": 1.15,
+      "resourceGainMultiplier": 1.15,
+      "baseHealthBonus": 12
+    },
+    "temporary": {
+      "durationWaves": 2,
+      "productionMultiplier": 1.25,
+      "damageMultiplier": 1.2,
+      "defenseMultiplier": 1.15
+    },
+    "oneShot": {
+      "goldInjection": 180,
+      "resourceInjection": 70
+    }
   }
 }

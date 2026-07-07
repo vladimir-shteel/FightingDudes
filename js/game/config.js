@@ -6,6 +6,10 @@ export const CONFIG = {
   startingOre: 0,
   unitBuyBaseCost: 0,
   unitBuyExponent: 1,
+  productionMultipliers: {
+    rest: 1,
+    battle: 1
+  },
   merge: {
     maxLevel: 1
   },
@@ -67,12 +71,36 @@ export function getMineResourceType(index) {
   return CONFIG.mine.resourceTypes[index] ?? null;
 }
 
+export function getMineResourceTypeByKey(resourceKey) {
+  return CONFIG.mine.resourceTypes.find((item) => item.key === resourceKey) ?? null;
+}
+
+export function getMineUnlockWave(resourceKey) {
+  return getMineResourceTypeByKey(resourceKey)?.unlockWave ?? 1;
+}
+
+export function getMineBuyCost(resourceKey) {
+  return getMineResourceTypeByKey(resourceKey)?.buyCost ?? {};
+}
+
+export function getMineSlotUnlockWave(resourceKey, slotIndex) {
+  return getMineResourceTypeByKey(resourceKey)?.slotUnlockWaves?.[slotIndex] ?? Number.POSITIVE_INFINITY;
+}
+
+export function getMineSlotBuyCost(resourceKey, slotIndex) {
+  return getMineResourceTypeByKey(resourceKey)?.slotBuyCosts?.[slotIndex] ?? null;
+}
+
+export function getFortressBuildingUnlockWave(type) {
+  return CONFIG.fortressBuildings[type]?.unlockWave ?? 1;
+}
+
 export function getResourceLabel(resourceKey) {
   if (resourceKey === "gold") {
     return "Gold";
   }
 
-  return CONFIG.mine.resourceTypes?.find((item) => item.key === resourceKey)?.label ?? resourceKey;
+  return getMineResourceTypeByKey(resourceKey)?.label ?? resourceKey;
 }
 
 export function getResourceIcon(resourceKey) {
@@ -80,5 +108,5 @@ export function getResourceIcon(resourceKey) {
     return CONFIG.goldIcon ?? null;
   }
 
-  return CONFIG.mine.resourceTypes?.find((item) => item.key === resourceKey)?.icon ?? null;
+  return getMineResourceTypeByKey(resourceKey)?.icon ?? null;
 }

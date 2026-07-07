@@ -1,7 +1,167 @@
-import { CONFIG, getMineLevelData } from "../config.js";
+import {
+  CONFIG,
+  getMineLevelData,
+  getMineSlotBuyCost,
+  getMineSlotUnlockWave,
+  getMineUnlockWave
+} from "../config.js";
 import { clamp } from "../utils.js";
 import { createReserveUnit } from "../factories.js";
 import { removeUnitFromReserve, returnUnitToReserve } from "./reserveSystem.js";
+import { spendResources } from "./fortressSystem.js";
+import {
+  getFortressBattleProductionMultiplier,
+  getFortressGoldMultiplier,
+  getFortressResourceMultiplier
+} from "./upgradeSystem.js";
+
+function isWaveUnlocked(state, unlockWave) {
+  return (state.fortress.waveNumber ?? 1) >= (unlockWave ?? 1);
+}
+
+function isSlotPurchased(mine, slotIndex) {
+  return Boolean(mine.purchasedSlotIndices?.[slotIndex]);
+}
+
+function setSlotPurchased(mine, slotIndex) {
+  mine.purchasedSlotIndices ??= Array.from({ length: mine.workerIds.length }, () => false);
+  mine.purchasedSlotIndices[slotIndex] = true;
+  mine.level = Math.max(mine.level, slotIndex + 1);
+}
+
+function getProductionMultiplier(state) {
+  const battleMultiplier = state.fortress.battle.active
+    ? getFortressBattleProductionMultiplier(state)
+    : 1;
+  return getFortressResourceMultiplier(state) * battleMultiplier;
+}
+
+export function getMinePurchasedSlotCount(mine) {
+  return (mine.purchasedSlotIndices ?? []).filter(Boolean).length;
+}
+
+export function getMinePurchaseState(state, mine) {
+  const unlockWave = mine.unlockWave ?? getMineUnlockWave(mine.resourceKey);
+  const buyCost = mine.buyCost ?? {};
+
+  if (mine.isUnlocked) {
+    return { kind: "owned", unlockWave, buyCost };
+  }
+
+  if (!isWaveUnlocked(state, unlockWave)) {
+    return { kind: "locked-by-wave", unlockWave, buyCost };
+  }
+
+  return { kind: "available-to-buy", unlockWave, buyCost };
+}
+
+export function getMineSlotState(state, mine, slotIndex) {
+  const unlockWave = mine.slotUnlockWaves?.[slotIndex] ?? getMineSlotUnlockWave(mine.resourceKey, slotIndex);
+  const buyCost = mine.slotBuyCosts?.[slotIndex] ?? getMineSlotBuyCost(mine.resourceKey, slotIndex) ?? {};
+
+  if (isSlotPurchased(mine, slotIndex)) {
+    return { kind: "bought", unlockWave, buyCost };
+  }
+
+  if (!mine.isUnlocked || !isWaveUnlocked(state, unlockWave)) {
+    return { kind: "locked-by-wave", unlockWave, buyCost };
+  }
+
+  return { kind: "available-to-buy", unlockWave, buyCost };
+}
+
+export function buyMine(state, mineId) {
+  const mine = state.mines.find((item) => item.id === mineId);
+  if (!mine) {
+    return { ok: false, reason: "Mine not found." };
+  }
+
+  const purchaseState = getMinePurchaseState(state, mine);
+  if (purchaseState.kind === "owned") {
+    return { ok: false, reason: "Mine is already owned." };
+  }
+  if (purchaseState.kind !== "available-to-buy") {
+    return { ok: false, reason: `Mine unlocks at wave ${purchaseState.unlockWave}.` };
+  }
+  if (!spendResources(state.resources, purchaseState.buyCost)) {
+    return { ok: false, reason: "Not enough gold for this mine." };
+  }
+
+  mine.isUnlocked = true;
+  setSlotPurchased(mine, 0);
+  return { ok: true, reason: `${mine.name} purchased.` };
+}
+
+export function buyMineSlot(state, mineId, slotIndex) {
+  const mine = state.mines.find((item) => item.id === mineId);
+  if (!mine) {
+    return { ok: false, reason: "Mine not found." };
+  }
+  if (slotIndex < 0 || slotIndex >= mine.workerIds.length) {
+    return { ok: false, reason: "Mine slot not found." };
+  }
+
+  const slotState = getMineSlotState(state, mine, slotIndex);
+  if (slotState.kind === "bought") {
+    return { ok: false, reason: "Mine slot is already bought." };
+  }
+  if (slotState.kind !== "available-to-buy") {
+    return { ok: false, reason: `Mine slot unlocks at wave ${slotState.unlockWave}.` };
+  }
+  if (!spendResources(state.resources, slotState.buyCost)) {
+    return { ok: false, reason: "Not enough gold for this mine slot." };
+  }
+
+  setSlotPurchased(mine, slotIndex);
+  return { ok: true, reason: `${mine.name} slot ${slotIndex + 1} purchased.` };
+}
+
+export function unlockMineSlotWithCard(state, mineId, slotIndex) {
+  const mine = state.mines.find((item) => item.id === mineId);
+  if (!mine) {
+    return { ok: false, reason: "Mine not found." };
+  }
+  if (slotIndex < 0 || slotIndex >= mine.workerIds.length) {
+    return { ok: false, reason: "Mine slot not found." };
+  }
+  if (!mine.isUnlocked) {
+    return { ok: false, reason: "Buy the mine first." };
+  }
+  if (isSlotPurchased(mine, slotIndex)) {
+    return { ok: false, reason: "Mine slot is already bought." };
+  }
+
+  setSlotPurchased(mine, slotIndex);
+  return { ok: true, reason: `${mine.name} slot ${slotIndex + 1} unlocked for free.` };
+}
+
+export function unlockFreeMineSlot(state, preferredResourceKey = null) {
+  const mines = preferredResourceKey
+    ? state.mines.filter((mine) => mine.resourceKey === preferredResourceKey)
+    : state.mines;
+
+  for (const mine of mines) {
+    const purchaseState = getMinePurchaseState(state, mine);
+    if (!mine.isUnlocked && purchaseState.kind === "available-to-buy") {
+      mine.isUnlocked = true;
+      setSlotPurchased(mine, 0);
+      return { ok: true, reason: `${mine.name} unlocked for free.` };
+    }
+
+    if (!mine.isUnlocked) {
+      continue;
+    }
+
+    for (let index = 0; index < mine.workerIds.length; index += 1) {
+      if (getMineSlotState(state, mine, index).kind === "available-to-buy") {
+        setSlotPurchased(mine, index);
+        return { ok: true, reason: `${mine.name} slot ${index + 1} unlocked for free.` };
+      }
+    }
+  }
+
+  return { ok: false, reason: "No mine slot is available to unlock." };
+}
 
 export function assignReserveUnitToMine(state, unitId, mineId, slotIndex) {
   const mine = state.mines.find((item) => item.id === mineId);
@@ -13,8 +173,7 @@ export function assignReserveUnitToMine(state, unitId, mineId, slotIndex) {
     return { ok: false, reason: "Mine is locked." };
   }
 
-  const mineLevelData = getMineLevelData(mine.level);
-  if (!mineLevelData || slotIndex >= mineLevelData.slots) {
+  if (getMineSlotState(state, mine, slotIndex).kind !== "bought") {
     return { ok: false, reason: "This mine slot is still locked." };
   }
 
@@ -60,13 +219,10 @@ export function moveMineUnitToMineSlot(state, fromMineId, fromSlotIndex, toMineI
     return { ok: false, reason: "Both mines must be unlocked." };
   }
 
-  const fromMineLevelData = getMineLevelData(fromMine.level);
-  const toMineLevelData = getMineLevelData(toMine.level);
-  if (!fromMineLevelData || !toMineLevelData) {
-    return { ok: false, reason: "Mine level data missing." };
-  }
-
-  if (fromSlotIndex >= fromMineLevelData.slots || toSlotIndex >= toMineLevelData.slots) {
+  if (
+    getMineSlotState(state, fromMine, fromSlotIndex).kind !== "bought" ||
+    getMineSlotState(state, toMine, toSlotIndex).kind !== "bought"
+  ) {
     return { ok: false, reason: "This mine slot is still locked." };
   }
 
@@ -120,7 +276,7 @@ export function removeUnitFromMine(state, unitId) {
 
 export function restoreUnitToMine(state, mineId, slotIndex, unit) {
   const mine = state.mines.find((item) => item.id === mineId);
-  if (!mine) {
+  if (!mine || getMineSlotState(state, mine, slotIndex).kind !== "bought") {
     return false;
   }
 
@@ -137,6 +293,10 @@ export function mergeReserveUnitIntoMineUnit(state, reserveUnitId, mineId, slotI
   const mine = state.mines.find((item) => item.id === mineId);
   if (!mine?.isUnlocked) {
     return { ok: false, reason: "Mine is locked." };
+  }
+
+  if (getMineSlotState(state, mine, slotIndex).kind !== "bought") {
+    return { ok: false, reason: "This mine slot is still locked." };
   }
 
   const mineUnit = mine.workerIds[slotIndex];
@@ -166,6 +326,7 @@ export function mergeReserveUnitIntoMineUnit(state, reserveUnitId, mineId, slotI
 export function tickMineProduction(state, deltaSeconds) {
   const passivePerMine = CONFIG.passiveGoldPerSecondPerUnlockedMine ?? 0;
   const passiveInterval = Math.max(0.001, CONFIG.passiveGoldPayoutIntervalSeconds ?? 1);
+  const goldMultiplier = getFortressGoldMultiplier(state) * getFortressBattleProductionMultiplier(state);
 
   for (const mine of state.mines) {
     if (!mine.isUnlocked) {
@@ -178,7 +339,7 @@ export function tickMineProduction(state, deltaSeconds) {
       if (mine.passiveProgress >= passiveInterval) {
         const payoutSeconds = mine.passiveProgress;
         mine.passiveProgress = 0;
-        const goldAmount = passivePerMine * payoutSeconds;
+        const goldAmount = passivePerMine * payoutSeconds * goldMultiplier;
         state.resources.gold = clamp(
           state.resources.gold + goldAmount,
           0,
@@ -198,7 +359,12 @@ export function tickMineProduction(state, deltaSeconds) {
       continue;
     }
 
-    for (let index = 0; index < mineLevelData.slots; index += 1) {
+    for (let index = 0; index < mine.workerIds.length; index += 1) {
+      if (!isSlotPurchased(mine, index)) {
+        mine.workerProgress[index] = 0;
+        continue;
+      }
+
       const worker = mine.workerIds[index];
       if (!worker) {
         mine.workerProgress[index] = 0;
@@ -215,12 +381,13 @@ export function tickMineProduction(state, deltaSeconds) {
       mine.workerProgress[index] = 0;
       const slotMultiplier = mineLevelData.slotProductionMultipliers[index] ?? 1;
       const productionTable = CONFIG.mine.workerProductionByLevel ?? null;
+      const productionMultiplier = getProductionMultiplier(state);
       const resourceAmount = productionTable
-        ? (productionTable[String(worker.level)] ?? 1) * slotMultiplier
-        : CONFIG.mine.baseProductionPerSecond * worker.level * slotMultiplier * payoutSeconds;
+        ? (productionTable[String(worker.level)] ?? 1) * slotMultiplier * productionMultiplier
+        : CONFIG.mine.baseProductionPerSecond * worker.level * slotMultiplier * payoutSeconds * productionMultiplier;
       const goldAmount = productionTable
         ? 0
-        : (CONFIG.mine.goldPerSecondPerWorkerLevel ?? 0) * worker.level * slotMultiplier * payoutSeconds;
+        : (CONFIG.mine.goldPerSecondPerWorkerLevel ?? 0) * worker.level * slotMultiplier * payoutSeconds * goldMultiplier;
 
       state.resources[mine.resourceKey] = clamp(
         state.resources[mine.resourceKey] + resourceAmount,

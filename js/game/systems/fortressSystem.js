@@ -1,4 +1,4 @@
-import { CONFIG } from "../config.js";
+import { CONFIG, getFortressBuildingUnlockWave } from "../config.js";
 import { clamp, generateId } from "../utils.js";
 
 export const FORTRESS_WIDTH = 5;
@@ -10,6 +10,16 @@ function costEntries(costs = {}) {
 
 function normalizeFootprint(type) {
   return (CONFIG.fortressBuildings[type]?.footprint ?? [[0, 0]]).map(([x, y]) => ({ x, y }));
+}
+
+export function getUnlockedFortressBuildingTypes(waveNumber = 1) {
+  return Object.entries(CONFIG.fortressBuildings)
+    .filter(([type, building]) => building.unlockedByDefault || waveNumber >= getFortressBuildingUnlockWave(type))
+    .map(([type]) => type);
+}
+
+export function syncFortressBuildingUnlocks(state) {
+  state.fortress.unlockedBuildingTypes = getUnlockedFortressBuildingTypes(state.fortress.waveNumber ?? 1);
 }
 
 export function createFortressState() {
@@ -52,11 +62,9 @@ export function createFortressState() {
       enemiesToSpawn: 0,
       result: null
     },
-    pendingUpgradeChoices: null,
+    pendingRewardDraft: null,
     buildingBuyDiscount: 1,
-    unlockedBuildingTypes: Object.entries(CONFIG.fortressBuildings)
-      .filter(([, building]) => building.unlockedByDefault)
-      .map(([type]) => type)
+    unlockedBuildingTypes: getUnlockedFortressBuildingTypes(1)
   };
 }
 
@@ -64,15 +72,20 @@ export function createFortressBuilding(type, origin) {
   const definition = CONFIG.fortressBuildings[type];
   const level = definition.levels[0];
   const footprint = normalizeFootprint(type);
+  const baseHealthBonus = 0;
   return {
     id: generateId("building"),
     type,
     level: 1,
     tiles: footprint.map((tile) => ({ x: origin.x + tile.x, y: origin.y + tile.y })),
-    hp: level.hp,
-    maxHp: level.hp,
+    hp: level.hp + baseHealthBonus,
+    maxHp: level.hp + baseHealthBonus,
     cooldownTimer: 0
   };
+}
+
+function getBaseHealthBonus(state) {
+  return Math.max(0, state?.economy?.baseHealthBonus ?? 0);
 }
 
 export function getTile(state, x, y) {
@@ -161,7 +174,10 @@ export function removeFortressObstacle(state, x, y) {
 }
 
 export function buyFortressBuilding(state, type) {
-  if (!state.fortress.unlockedBuildingTypes.includes(type) || type === "hq") {
+  if (type === "hq") {
+    return { ok: false, reason: "Building is locked." };
+  }
+  if (!state.fortress.unlockedBuildingTypes.includes(type)) {
     return { ok: false, reason: "Building is locked." };
   }
   const definition = CONFIG.fortressBuildings[type];
@@ -174,6 +190,11 @@ export function buyFortressBuilding(state, type) {
     return { ok: false, reason: "Not enough resources for this building." };
   }
   const building = createFortressBuilding(type, origin);
+  const bonusHp = getBaseHealthBonus(state);
+  if (bonusHp > 0) {
+    building.hp += bonusHp;
+    building.maxHp += bonusHp;
+  }
   state.fortress.buildings.push(building);
   occupyBuilding(state, building);
   return { ok: true, reason: `${definition.name} placed.` };
@@ -194,8 +215,9 @@ export function upgradeFortressBuilding(state, buildingId) {
     return { ok: false, reason: "Not enough resources for upgrade." };
   }
   building.level += 1;
-  building.maxHp = nextLevel.hp;
-  building.hp = nextLevel.hp;
+  const bonusHp = getBaseHealthBonus(state);
+  building.maxHp = nextLevel.hp + bonusHp;
+  building.hp = nextLevel.hp + bonusHp;
   return { ok: true, reason: `${definition.name} upgraded to level ${building.level}.` };
 }
 
@@ -211,4 +233,15 @@ export function moveFortressBuilding(state, buildingId, origin) {
   building.tiles = normalizeFootprint(building.type).map((tile) => ({ x: origin.x + tile.x, y: origin.y + tile.y }));
   occupyBuilding(state, building);
   return { ok: true, reason: "Building moved." };
+}
+
+export function applyFortressBaseHealthBonus(state, bonusAmount) {
+  if (!bonusAmount) {
+    return;
+  }
+
+  for (const building of state.fortress.buildings) {
+    building.maxHp += bonusAmount;
+    building.hp += bonusAmount;
+  }
 }

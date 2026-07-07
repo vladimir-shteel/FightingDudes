@@ -1,5 +1,6 @@
 import {
   CONFIG,
+  getFortressBuildingUnlockWave,
   getMineLevelData,
   getMineMaxLevel,
   getResourceIcon,
@@ -13,7 +14,12 @@ import {
   mergeReservePair
 } from "./systems/reserveSystem.js";
 import {
+  buyMine,
+  buyMineSlot,
   assignReserveUnitToMine,
+  getMinePurchaseState,
+  getMinePurchasedSlotCount,
+  getMineSlotState,
   mergeReserveUnitIntoMineUnit,
   moveMineUnitToMineSlot,
   returnMineUnitToReserve
@@ -99,6 +105,19 @@ function createMineProgressMarkup(resourceKey, mineId, slotIndex, progress) {
       </div>
     </div>
   `;
+}
+
+function renderResourceCost(costs) {
+  const entries = Object.entries(costs ?? {}).filter(([, amount]) => amount > 0);
+  if (entries.length === 0) {
+    return '<span class="gear-cost-free">Free</span>';
+  }
+  return entries.map(([resourceKey, amount]) => `
+    <span class="gear-cost-pill gear-cost-${resourceKey}">
+      ${getResourceIconMarkup(resourceKey, "gear-cost-icon")}
+      <span>${formatNumber(amount)}</span>
+    </span>
+  `).join("");
 }
 
 function getVisibleResourceTarget(elements, resourceKey) {
@@ -526,13 +545,14 @@ export function mountUI(state, onStateChanged) {
     const selected = getSelectedUnitContext();
 
     for (const mine of state.mines) {
+      const purchaseState = getMinePurchaseState(state, mine);
+      const purchasedSlotCount = getMinePurchasedSlotCount(mine);
       const card = document.createElement("article");
-      card.className = "mine-card";
+      card.className = `mine-card ${mine.isUnlocked ? "" : "is-locked"}`;
       card.dataset.resourceKey = mine.resourceKey;
       card.dataset.mineCard = mine.id;
 
       const mineLevelData = getMineLevelData(mine.level);
-      const openSlots = mineLevelData?.slots ?? 0;
       const slotMultipliers = mineLevelData?.slotProductionMultipliers ?? [];
       const passiveInterval = Math.max(0.001, CONFIG.passiveGoldPayoutIntervalSeconds ?? 1);
       const passiveProgress = mine.isUnlocked
@@ -540,6 +560,13 @@ export function mountUI(state, onStateChanged) {
         : 0;
       const showPassive = mine.isUnlocked && (CONFIG.passiveGoldPerSecondPerUnlockedMine ?? 0) > 0;
       const producesGold = showPassive || (CONFIG.mine.goldPerSecondPerWorkerLevel ?? 0) > 0;
+      const headerAction = purchaseState.kind === "owned"
+        ? `<span class="tag">Owned</span>`
+        : purchaseState.kind === "available-to-buy"
+          ? `<button class="secondary-button mine-buy-button" type="button">
+              Buy Mine ${renderResourceCost(purchaseState.buyCost)}
+            </button>`
+          : `<span class="tag">Unlocks Wave ${purchaseState.unlockWave}</span>`;
       card.innerHTML = `
         <div class="mine-head">
           <div class="mine-title-wrap">
@@ -551,8 +578,11 @@ export function mountUI(state, onStateChanged) {
               </div>
             </div>
           </div>
+          ${headerAction}
         </div>
         <div class="mine-stats">
+          <span class="tag">${mine.isUnlocked ? `Slots ${purchasedSlotCount}/${getMineMaxLevel()}` : "Locked"}</span>
+          <span class="tag">${mine.isUnlocked ? "Bought" : `Wave ${purchaseState.unlockWave}`}</span>
           ${showPassive ? `
             <div class="mine-passive" data-mine-passive="${mine.id}" title="Passive gold trickle">
               ${getResourceIconMarkup("gold", "mine-passive-icon")}
@@ -569,25 +599,49 @@ export function mountUI(state, onStateChanged) {
         </div>
       `;
 
+      const mineBuyButton = card.querySelector(".mine-buy-button");
+      mineBuyButton?.addEventListener("click", (event) => {
+        event.stopPropagation();
+        const result = buyMine(state, mine.id);
+        state.fortress.message = result.reason;
+        onStateChanged();
+      });
+
       const slots = document.createElement("div");
       slots.className = "mine-slots";
 
       for (let index = 0; index < getMineMaxLevel(); index += 1) {
         const slot = document.createElement("div");
-        const isOpen = index < openSlots;
-        slot.className = `slot ${isOpen ? "is-open" : "is-locked"}`;
+        const slotState = getMineSlotState(state, mine, index);
+        const isBoughtSlot = slotState.kind === "bought";
+        slot.className = `slot ${isBoughtSlot ? "is-open" : "is-locked"} ${slotState.kind === "available-to-buy" ? "is-buyable" : ""}`;
         slot.dataset.mineSlot = `${mine.id}:${index}`;
 
         const slotMultiplier = slotMultipliers[index] ?? 1;
-        const slotBadge = isOpen && mine.isUnlocked
+        const slotBadge = isBoughtSlot && mine.isUnlocked
           ? `<span class="slot-bonus" title="Production bonus for this slot">×${slotMultiplier.toFixed(slotMultiplier % 1 === 0 ? 0 : 2).replace(/\.?0+$/, "")}</span>`
           : "";
 
         const worker = mine.workerIds[index];
         if (!mine.isUnlocked) {
-          slot.innerHTML = '<div class="slot-placeholder">Locked</div>';
-        } else if (!isOpen) {
-          slot.innerHTML = '<div class="slot-placeholder">Locked</div>';
+          slot.innerHTML = purchaseState.kind === "available-to-buy"
+            ? `<div class="slot-placeholder">Buy mine</div>`
+            : `<div class="slot-placeholder">Unlocks Wave ${purchaseState.unlockWave}</div>`;
+        } else if (!isBoughtSlot) {
+          slot.innerHTML = slotState.kind === "available-to-buy"
+            ? `<button class="slot-action secondary-button" type="button">
+                Buy Slot ${index + 1} ${renderResourceCost(slotState.buyCost)}
+              </button>`
+            : `<div class="slot-placeholder">Unlocks Wave ${slotState.unlockWave}</div>`;
+          if (slotState.kind === "available-to-buy") {
+            const button = slot.querySelector("button");
+            button?.addEventListener("click", (event) => {
+              event.stopPropagation();
+              const result = buyMineSlot(state, mine.id, index);
+              state.fortress.message = result.reason;
+              onStateChanged();
+            });
+          }
         } else if (!worker) {
           slot.innerHTML = `${slotBadge}<div class="slot-placeholder">Tap to place</div>`;
           slot.classList.toggle("actionable-target", selected?.source === "reserve" || selected?.source === "mine");
@@ -728,16 +782,7 @@ export function mountUI(state, onStateChanged) {
   }
 
   function renderFortressCost(costs) {
-    const entries = Object.entries(costs ?? {}).filter(([, amount]) => amount > 0);
-    if (entries.length === 0) {
-      return '<span class="gear-cost-free">Free</span>';
-    }
-    return entries.map(([resourceKey, amount]) => `
-      <span class="gear-cost-pill gear-cost-${resourceKey}">
-        ${getResourceIconMarkup(resourceKey, "gear-cost-icon")}
-        <span>${formatNumber(amount)}</span>
-      </span>
-    `).join("");
+    return renderResourceCost(costs);
   }
 
   function renderFortressField() {
@@ -928,6 +973,7 @@ export function mountUI(state, onStateChanged) {
   }
 
   function buildFortressShopCard(type, definition) {
+    const unlockWave = getFortressBuildingUnlockWave(type);
     const isUnlocked = state.fortress.unlockedBuildingTypes.includes(type);
     const buyCost = getFortressBuildingBuyCost(state, type);
     const hasSpace = Boolean(findFortressPlacement(state, type));
@@ -938,8 +984,9 @@ export function mountUI(state, onStateChanged) {
     card.innerHTML = `
       <div class="fortress-shop-icon">${definition.icon}</div>
       <strong>${definition.name}</strong>
+      <span class="tag">${isUnlocked ? "Available" : `Wave ${unlockWave}`}</span>
       <div class="fortress-shop-cost">${renderFortressCost(buyCost)}</div>
-      <button class="secondary-button" type="button">${isUnlocked ? (hasSpace ? "Buy" : "No Space") : "Locked"}</button>
+      <button class="secondary-button" type="button">${isUnlocked ? (hasSpace ? "Buy" : "No Space") : `Locked until Wave ${unlockWave}`}</button>
     `;
     card.dataset.buildingType = type;
     const button = card.querySelector("button");
@@ -978,6 +1025,7 @@ export function mountUI(state, onStateChanged) {
         continue;
       }
 
+      const unlockWave = getFortressBuildingUnlockWave(type);
       const isUnlocked = state.fortress.unlockedBuildingTypes.includes(type);
       const hasSpace = Boolean(findFortressPlacement(state, type));
       const canBuy = isUnlocked &&
@@ -988,7 +1036,13 @@ export function mountUI(state, onStateChanged) {
       card.classList.toggle("has-no-space", !hasSpace);
       card.tabIndex = canBuy ? 0 : -1;
       button.disabled = !canBuy;
-      button.textContent = isUnlocked ? (hasSpace ? "Buy" : "No Space") : "Locked";
+      button.innerHTML = isUnlocked
+        ? (hasSpace ? `Buy ${renderFortressCost(getFortressBuildingBuyCost(state, type))}` : "No Space")
+        : `Locked until Wave ${unlockWave}`;
+      const tag = card.querySelector(".tag");
+      if (tag) {
+        tag.textContent = isUnlocked ? "Available" : `Wave ${unlockWave}`;
+      }
     }
   }
 
@@ -1050,17 +1104,25 @@ export function mountUI(state, onStateChanged) {
   setupFortressShopLoop();
 
   function renderUpgradeChoices() {
-    const choices = state.fortress.pendingUpgradeChoices ?? [];
+    const choices = state.fortress.pendingRewardDraft ?? [];
     elements.upgradeOverlay.hidden = choices.length === 0;
     elements.upgradeChoices.innerHTML = "";
 
     for (const choice of choices) {
       const card = document.createElement("button");
       card.type = "button";
-      card.className = "upgrade-choice-card";
+      card.className = `upgrade-choice-card reward-${choice.category}`;
+      const categoryLabel = choice.category === "oneShot"
+        ? "One Shot"
+        : choice.category.charAt(0).toUpperCase() + choice.category.slice(1);
       card.innerHTML = `
-        <strong>${choice.title}</strong>
-        <span>${choice.description}</span>
+        <div class="reward-card-head">
+          <span class="reward-category-pill">${categoryLabel}</span>
+          <strong>${choice.title}</strong>
+        </div>
+        <span class="reward-effect">${choice.effectText}</span>
+        <span class="reward-duration">${choice.durationText}</span>
+        <p>${choice.description}</p>
       `;
       card.addEventListener("click", () => {
         const result = applyUpgradeChoice(state, choice.id);
@@ -1142,9 +1204,8 @@ export function mountUI(state, onStateChanged) {
         }
       }
 
-      const openSlots = getMineLevelData(mine.level)?.slots ?? 0;
-      for (let index = 0; index < openSlots; index += 1) {
-        if (!mine.workerIds[index]) {
+      for (let index = 0; index < getMineMaxLevel(); index += 1) {
+        if (!mine.purchasedSlotIndices?.[index] || !mine.workerIds[index]) {
           continue;
         }
 
@@ -1196,7 +1257,7 @@ export function mountUI(state, onStateChanged) {
   function renderMeta() {
     showScreen(state.fortress.screen);
     document.body.classList.toggle("fortress-battle-active", state.fortress.battle.active);
-    elements.fortressFightButton.disabled = state.fortress.battle.active || state.game.isOver;
+    elements.fortressFightButton.disabled = state.fortress.battle.active || state.game.isOver || Boolean(state.fortress.pendingRewardDraft?.length);
     elements.fortressMessage.textContent = state.fortress.message;
     renderEconomyMeta();
     renderBattleMeta();
@@ -1229,7 +1290,7 @@ export function mountUI(state, onStateChanged) {
     document.body.classList.toggle("fortress-battle-active", state.fortress.battle.active);
     renderEconomyMeta();
     renderBattleMeta();
-    elements.fortressFightButton.disabled = state.fortress.battle.active || state.game.isOver;
+    elements.fortressFightButton.disabled = state.fortress.battle.active || state.game.isOver || Boolean(state.fortress.pendingRewardDraft?.length);
     elements.fortressMessage.textContent = state.fortress.message;
     updateFortressShopAffordability();
     renderFortressField();

@@ -561,6 +561,14 @@ h3 {
   gap: 6px;
 }
 
+.mine-buy-button {
+  white-space: normal;
+  justify-content: center;
+  text-align: center;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+}
+
 .btn-cost {
   display: inline-flex;
   align-items: center;
@@ -643,6 +651,25 @@ h3 {
   text-align: center;
   color: var(--muted);
   font-size: 11px;
+}
+
+.slot-action {
+  width: 100%;
+  min-height: 100%;
+  padding: 7px 8px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 4px 5px;
+  line-height: 1.1;
+  font-size: 10px;
+}
+
+.slot.is-buyable {
+  border-color: rgba(145, 108, 18, 0.45);
+  background: linear-gradient(180deg, #fffdf2 0%, #fff4cf 100%);
 }
 
 .primary-button,
@@ -1205,7 +1232,7 @@ h3 {
 }
 
 .upgrade-card {
-  width: min(640px, 100%);
+  width: min(860px, 100%);
   border: 4px solid rgba(114, 63, 28, 0.22);
   border-radius: 20px;
   padding: 22px;
@@ -1229,7 +1256,7 @@ h3 {
   display: grid;
   align-content: start;
   gap: 8px;
-  min-height: 130px;
+  min-height: 170px;
   border: 2px solid rgba(114, 63, 28, 0.22);
   border-radius: 14px;
   padding: 14px;
@@ -1239,15 +1266,65 @@ h3 {
   box-shadow: 0 5px 0 rgba(114, 63, 28, 0.12);
 }
 
+.upgrade-choice-card.reward-permanent {
+  border-color: rgba(62, 142, 77, 0.34);
+  background: linear-gradient(180deg, rgba(234, 248, 235, 0.98) 0%, rgba(214, 239, 220, 0.94) 100%);
+}
+
+.upgrade-choice-card.reward-temporary {
+  border-color: rgba(74, 124, 167, 0.34);
+  background: linear-gradient(180deg, rgba(233, 243, 252, 0.98) 0%, rgba(214, 231, 247, 0.94) 100%);
+}
+
+.upgrade-choice-card.reward-oneShot {
+  border-color: rgba(192, 85, 58, 0.34);
+  background: linear-gradient(180deg, rgba(252, 239, 232, 0.98) 0%, rgba(248, 221, 210, 0.94) 100%);
+}
+
+.reward-card-head {
+  display: grid;
+  gap: 6px;
+}
+
+.reward-category-pill {
+  width: fit-content;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(43, 30, 20, 0.1);
+  color: var(--text);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.reward-effect {
+  font-size: 16px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.reward-duration {
+  color: var(--panel-earth);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
 .upgrade-choice-card strong {
   font-size: 16px;
 }
 
-.upgrade-choice-card span {
+.upgrade-choice-card p {
   color: var(--muted);
   font-size: 13px;
   font-weight: 800;
   line-height: 1.3;
+}
+
+.upgrade-choice-card p {
+  margin: 0;
 }
 
 @keyframes pop-in {

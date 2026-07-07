@@ -1,8 +1,15 @@
 import { CONFIG } from "../config.js";
 import { clamp, generateId } from "../utils.js";
-import { FORTRESS_HEIGHT, FORTRESS_WIDTH } from "./fortressSystem.js";
+import { FORTRESS_HEIGHT, FORTRESS_WIDTH, syncFortressBuildingUnlocks } from "./fortressSystem.js";
 import { findTilePath } from "./pathfinding.js";
-import { rollUpgradeChoices } from "./upgradeSystem.js";
+import {
+  beginFortressWave,
+  endFortressWave,
+  getFortressDamageMultiplier,
+  getFortressDefenseMultiplier,
+  getFortressGoldMultiplier,
+  rollUpgradeChoices
+} from "./upgradeSystem.js";
 
 const REPATH_INTERVAL_SECONDS = 0.4;
 const WAYPOINT_ARRIVAL_DISTANCE = 0.18;
@@ -282,6 +289,9 @@ export function startFortressBattle(state) {
   if (state.fortress.battle.active || state.game.isOver) {
     return { ok: false, reason: "Battle is already running." };
   }
+  if ((state.fortress.pendingRewardDraft?.length ?? 0) > 0) {
+    return { ok: false, reason: "Choose a reward before starting the next wave." };
+  }
 
   const wave = CONFIG.fortressWaves[state.fortress.waveNumber - 1];
   if (!wave) {
@@ -305,6 +315,7 @@ export function startFortressBattle(state) {
     building.hp = building.maxHp;
     building.cooldownTimer = 0.5;
   }
+  beginFortressWave(state);
   return { ok: true, reason: `Fortress wave ${state.fortress.waveNumber} started.` };
 }
 
@@ -370,6 +381,8 @@ function distanceToBuildingEdge(enemy, building) {
 
 function tickEnemies(state, deltaSeconds) {
   const battle = state.fortress.battle;
+  const defenseMultiplier = getFortressDefenseMultiplier(state);
+  const damageMultiplier = getFortressDamageMultiplier(state);
   for (const enemy of battle.enemies) {
     if (enemy.hp <= 0) {
       enemy.path = null;
@@ -380,7 +393,11 @@ function tickEnemies(state, deltaSeconds) {
     if (allyTarget && allyTarget.distance <= enemy.range + 0.12) {
       enemy.attackTimer -= deltaSeconds;
       if (enemy.attackTimer <= 0) {
-        allyTarget.item.hp = clamp(allyTarget.item.hp - enemy.attack, 0, allyTarget.item.maxHp);
+        allyTarget.item.hp = clamp(
+          allyTarget.item.hp - (enemy.attack / defenseMultiplier),
+          0,
+          allyTarget.item.maxHp
+        );
         markHit(allyTarget.item);
         enemy.attackTimer = enemy.cooldownSeconds;
       }
@@ -393,7 +410,7 @@ function tickEnemies(state, deltaSeconds) {
       }
       const level = CONFIG.fortressBuildings.mine.levels[building.level - 1];
       if (distanceToBuildingEdge(enemy, building) <= 0.55) {
-        enemy.hp -= level.damage;
+        enemy.hp -= level.damage * damageMultiplier;
         markHit(enemy);
         building.hp = 0;
         markHit(building);
@@ -423,7 +440,11 @@ function tickEnemies(state, deltaSeconds) {
       enemy.path = null;
       enemy.attackTimer -= deltaSeconds;
       if (enemy.attackTimer <= 0) {
-        bestBuilding.hp = clamp(bestBuilding.hp - enemy.attack, 0, bestBuilding.maxHp);
+        bestBuilding.hp = clamp(
+          bestBuilding.hp - (enemy.attack / defenseMultiplier),
+          0,
+          bestBuilding.maxHp
+        );
         markHit(bestBuilding);
         enemy.attackTimer = enemy.cooldownSeconds;
       }
@@ -472,7 +493,7 @@ function tickAllies(state, deltaSeconds) {
       if (ally.range > 0.8) {
         battle.projectiles.push(createProjectile(ally, target.item, ally.attack, ally.type));
       } else {
-        target.item.hp -= ally.attack;
+        target.item.hp -= ally.attack * getFortressDamageMultiplier(state);
         markHit(target.item);
       }
       ally.attackTimer = ally.cooldownSeconds;
@@ -482,6 +503,7 @@ function tickAllies(state, deltaSeconds) {
 
 function tickProjectiles(state, deltaSeconds) {
   const battle = state.fortress.battle;
+  const damageMultiplier = getFortressDamageMultiplier(state);
   for (const projectile of battle.projectiles) {
     const target = battle.enemies.find((enemy) => enemy.id === projectile.targetId && enemy.hp > 0);
     if (!target) {
@@ -489,7 +511,7 @@ function tickProjectiles(state, deltaSeconds) {
       continue;
     }
     if (getDistance(projectile, target) <= 0.14) {
-      target.hp -= projectile.damage;
+      target.hp -= projectile.damage * damageMultiplier;
       markHit(target);
       projectile.done = true;
       continue;
@@ -506,12 +528,13 @@ function awardEnemyKillGold(state, enemy) {
     return;
   }
 
-  state.resources.gold += amount;
-  state.fortress.battle.goldEarned = (state.fortress.battle.goldEarned ?? 0) + amount;
+  const payout = amount * getFortressGoldMultiplier(state);
+  state.resources.gold += payout;
+  state.fortress.battle.goldEarned = (state.fortress.battle.goldEarned ?? 0) + payout;
   state.resourceBursts.push({
     id: `${enemy.id}-gold-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
     battlefield: { x: enemy.x, y: enemy.y },
-    payouts: [{ resourceKey: "gold", amount }]
+    payouts: [{ resourceKey: "gold", amount: payout }]
   });
 }
 
@@ -529,15 +552,18 @@ function finishBattle(state, result) {
   }
 
   if (result === "victory") {
-    state.resources.gold += wave.victoryGold;
-    state.fortress.battle.goldEarned = (state.fortress.battle.goldEarned ?? 0) + wave.victoryGold;
+    const victoryGold = wave.victoryGold * getFortressGoldMultiplier(state);
+    state.resources.gold += victoryGold;
+    state.fortress.battle.goldEarned = (state.fortress.battle.goldEarned ?? 0) + victoryGold;
+    endFortressWave(state);
     if (state.fortress.waveNumber >= CONFIG.fortressWaves.length) {
       state.game.isOver = true;
       state.game.result = "win";
       state.fortress.message = "Prototype complete. The fortress survived every wave.";
     } else {
       state.fortress.waveNumber += 1;
-      state.fortress.message = `Victory. +${wave.victoryGold} gold bonus.`;
+      syncFortressBuildingUnlocks(state);
+      state.fortress.message = `Victory. +${victoryGold} gold bonus.`;
       rollUpgradeChoices(state);
     }
   } else {

@@ -1,8 +1,32 @@
 import { CONFIG } from "../config.js";
 import { createReserveUnit } from "../factories.js";
 
+function getWorkerPower(unit) {
+  const level = Math.max(1, unit?.level ?? 1);
+  return 2 ** (level - 1);
+}
+
+function getTotalWorkerPower(state) {
+  let total = 0;
+
+  for (const unit of state.reserveUnits) {
+    total += getWorkerPower(unit);
+  }
+
+  for (const mine of state.mines) {
+    for (const unit of mine.workerIds) {
+      if (unit) {
+        total += getWorkerPower(unit);
+      }
+    }
+  }
+
+  return total;
+}
+
 export function getUnitBuyCost(state) {
-  const baseCost = CONFIG.unitBuyBaseCost + (state.economy.unitsPurchased ?? 0);
+  const workerPower = getTotalWorkerPower(state);
+  const baseCost = CONFIG.unitBuyBaseCost * ((CONFIG.unitBuyExponent ?? 1) ** workerPower);
   return Math.max(1, Math.floor(baseCost * (state.economy.workerBuyDiscount ?? 1)));
 }
 

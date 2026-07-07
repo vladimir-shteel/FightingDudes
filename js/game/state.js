@@ -35,7 +35,15 @@ export function createInitialState() {
     economy: {
       unitsPurchased: 0,
       workerStartLevel: 1,
-      workerBuyDiscount: 1
+      workerBuyDiscount: 1,
+      goldMultiplier: 1,
+      productionMultiplier: CONFIG.productionMultipliers?.rest ?? 1,
+      battleProductionMultiplier: CONFIG.productionMultipliers?.battle ?? 1,
+      damageMultiplier: 1,
+      defenseMultiplier: 1,
+      baseHealthBonus: 0,
+      queuedTemporaryBonuses: [],
+      temporaryBonuses: []
     },
     game: {
       isOver: false,
