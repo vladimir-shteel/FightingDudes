@@ -10,8 +10,8 @@
     {
       "name": "root",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "http.server", "8766"],
-      "port": 8766
+      "runtimeArgs": ["-m", "http.server", "8768"],
+      "port": 8768
     }
   ]
 }

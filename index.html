@@ -32,6 +32,7 @@
             </div>
           </div>
         </header>
+        <div class="wave-telegraph" id="waveTelegraph"></div>
 
         <main class="fortress-layout">
           <section class="panel fortress-panel">
@@ -41,10 +42,12 @@
                 <h2>5x7 Fortress Grid</h2>
               </div>
               <div class="fortress-actions">
+                <button id="fortressBuffsButton" class="info-chip" type="button" aria-expanded="false" aria-controls="fortressBuffsPanel">Buffs ⓘ</button>
                 <button id="fortressFightButton" class="primary-button" type="button">To Battle</button>
               </div>
             </div>
             <p id="fortressMessage" class="battle-log">Clear space, place buildings, then send prepared units to battle.</p>
+            <div id="bossHpBar" class="boss-hp-bar" hidden></div>
             <div id="fortressField" class="fortress-field" aria-label="Fortress build field"></div>
           </section>
           <section class="panel fortress-shop-panel">
@@ -121,7 +124,10 @@
           </div>
         </div>
         <div class="reserve-note">
-          Merge two matching workers into one higher-level worker.
+          <span class="reserve-note-text">Merge two matching workers into one higher-level worker.</span>
+        </div>
+        <div class="reserve-info-row">
+          <button id="traitInfoButton" class="info-chip" type="button" aria-expanded="false" aria-controls="traitInfoPanel">Traits ⓘ</button>
         </div>
         <div id="reserveZone" class="reserve-zone"></div>
       </section>
@@ -130,11 +136,25 @@
     </section>
   </div>
 
+  <!-- Kept as a body-level sibling so `position: fixed` is measured against the
+       viewport, not the transformed `.screen-deck` (which uses translateY for the
+       swipe transition and would otherwise offset any fixed descendant). -->
+  <div id="traitInfoPanel" class="trait-info-panel" hidden></div>
+  <div id="fortressBuffsPanel" class="trait-info-panel" hidden></div>
+
   <div id="upgradeOverlay" class="upgrade-overlay" hidden>
     <section class="upgrade-card" aria-label="Choose reward">
       <p class="eyebrow">Victory Reward</p>
       <h2>Choose a Reward</h2>
       <div id="upgradeChoices" class="upgrade-choices"></div>
+    </section>
+  </div>
+
+  <div id="capstoneOverlay" class="upgrade-overlay" hidden>
+    <section class="upgrade-card" aria-label="Choose worker capstone">
+      <p class="eyebrow">Max Level Worker</p>
+      <h2>Choose a Capstone</h2>
+      <div id="capstoneChoices" class="upgrade-choices"></div>
     </section>
   </div>
 

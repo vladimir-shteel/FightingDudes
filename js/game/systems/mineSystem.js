@@ -15,11 +15,17 @@ import {
   getFortressResourceMultiplier
 } from "./upgradeSystem.js";
 import {
+  getCapstoneDemandMultiplierBonus,
+  getCapstoneGoldenBonus,
+  getCapstonePassiveGoldPerSecond,
+  getCapstoneWarlordProductionMultiplier,
+  getCapstoneYieldMultiplier,
   getWorkerGoldenConversion,
   getWorkerRushMultiplier,
   getWorkerYieldMultiplier,
   isWorkerBattleShiftLocked,
-  mergeWorkerTraitVectors
+  mergeWorkerTraitVectors,
+  pickCapstoneCandidates
 } from "./workerTraitSystem.js";
 
 function isWaveUnlocked(state, unlockWave) {
@@ -272,13 +278,16 @@ export function moveMineUnitToMineSlot(state, fromMineId, fromSlotIndex, toMineI
   }
 
   if (unit.level === targetUnit.level && unit.level < CONFIG.merge.maxLevel) {
+    const mergedLevel = unit.level + 1;
+    const mergedTraits = mergeWorkerTraitVectors(unit.traits, targetUnit.traits);
     fromMine.workerIds[fromSlotIndex] = null;
     fromMine.workerProgress[fromSlotIndex] = 0;
-    toMine.workerIds[toSlotIndex] = createReserveUnit(unit.level + 1, {
-      traits: mergeWorkerTraitVectors(unit.traits, targetUnit.traits)
+    toMine.workerIds[toSlotIndex] = createReserveUnit(mergedLevel, {
+      traits: mergedTraits,
+      pendingCapstone: mergedLevel === CONFIG.merge.maxLevel ? pickCapstoneCandidates(mergedTraits) : null
     });
     toMine.workerProgress[toSlotIndex] = 0;
-    return { ok: true, reason: `Merged into level ${unit.level + 1} worker.` };
+    return { ok: true, reason: `Merged into level ${mergedLevel} worker.` };
   }
 
   fromMine.workerIds[fromSlotIndex] = targetUnit;
@@ -353,11 +362,22 @@ export function mergeReserveUnitIntoMineUnit(state, reserveUnitId, mineId, slotI
   }
 
   removeUnitFromReserve(state, reserveUnitId);
-  mine.workerIds[slotIndex] = createReserveUnit(mineUnit.level + 1, {
-    traits: mergeWorkerTraitVectors(mineUnit.traits, reserveUnit.traits)
+  const mergedLevel = mineUnit.level + 1;
+  const mergedTraits = mergeWorkerTraitVectors(mineUnit.traits, reserveUnit.traits);
+  mine.workerIds[slotIndex] = createReserveUnit(mergedLevel, {
+    traits: mergedTraits,
+    pendingCapstone: mergedLevel === CONFIG.merge.maxLevel ? pickCapstoneCandidates(mergedTraits) : null
   });
   mine.workerProgress[slotIndex] = 0;
-  return { ok: true, reason: `Merged into level ${mineUnit.level + 1} worker.` };
+  return { ok: true, reason: `Merged into level ${mergedLevel} worker.` };
+}
+
+function countShiftCommitsInMine(mine) {
+  return (mine.workerIds ?? []).filter((w) => w?.battleShiftCommitted).length;
+}
+
+export function getShiftMaxPerMine() {
+  return CONFIG.workerTraits?.battleShift?.maxCommitsPerMine ?? Number.POSITIVE_INFINITY;
 }
 
 export function toggleWorkerBattleShift(state, mineId, slotIndex) {
@@ -370,13 +390,41 @@ export function toggleWorkerBattleShift(state, mineId, slotIndex) {
     return { ok: false, reason: "No worker in that slot." };
   }
 
-  worker.battleShiftCommitted = !worker.battleShiftCommitted;
-  return {
-    ok: true,
-    reason: worker.battleShiftCommitted
-      ? `${worker.name} committed to the next battle shift.`
-      : `${worker.name} left the battle shift.`
+  // Toggle OFF is always allowed.
+  if (worker.battleShiftCommitted) {
+    worker.battleShiftCommitted = false;
+    return { ok: true, reason: `${worker.name} left the battle shift.` };
+  }
+
+  // Toggle ON: worker must be rested and mine must not be at its per-mine cap.
+  if (!worker.isRested) {
+    return { ok: false, reason: `${worker.name} is not rested — must sit a full wave in reserve first.` };
+  }
+  const cap = getShiftMaxPerMine();
+  if (countShiftCommitsInMine(mine) >= cap) {
+    return { ok: false, reason: `Only ${cap} shift(s) per mine.` };
+  }
+
+  worker.battleShiftCommitted = true;
+  return { ok: true, reason: `${worker.name} committed to the next battle shift.` };
+}
+
+export function markReserveWorkersRested(state) {
+  for (const unit of state.reserveUnits) {
+    unit.isRested = true;
+  }
+}
+
+export function consumeShiftRestFlags(state) {
+  const consume = (unit) => {
+    if (unit?.battleShiftCommitted) {
+      unit.isRested = false;
+    }
   };
+  for (const unit of state.reserveUnits) consume(unit);
+  for (const mine of state.mines) {
+    for (const worker of mine.workerIds) consume(worker);
+  }
 }
 
 export function clearWorkerBattleShifts(state) {
@@ -451,8 +499,8 @@ export function tickMineProduction(state, deltaSeconds) {
       const slotMultiplier = mineLevelData.slotProductionMultipliers[index] ?? 1;
       const productionTable = CONFIG.mine.workerProductionByLevel ?? null;
       const productionMultiplier = getProductionMultiplier(state);
-      const traitMultiplier = getWorkerYieldMultiplier(worker);
-      const demandMultiplier = getDemandMultiplier(state, mine);
+      const traitMultiplier = getWorkerYieldMultiplier(worker) * getCapstoneYieldMultiplier(worker) * getCapstoneWarlordProductionMultiplier(state, worker);
+      const demandMultiplier = getDemandMultiplier(state, mine) * getCapstoneDemandMultiplierBonus(worker);
       const shiftMultiplier = worker.battleShiftCommitted && state.fortress.battle.active
         ? getWorkerRushMultiplier(worker)
         : 1;
@@ -460,10 +508,12 @@ export function tickMineProduction(state, deltaSeconds) {
       const resourceAmount = productionTable
         ? (productionTable[String(worker.level)] ?? 1) * slotMultiplier * productionMultiplier * totalWorkerMultiplier
         : CONFIG.mine.baseProductionPerSecond * worker.level * slotMultiplier * payoutSeconds * productionMultiplier * totalWorkerMultiplier;
-      const traitGoldAmount = resourceAmount * getWorkerGoldenConversion(worker) * getFortressGoldMultiplier(state);
-      const goldAmount = productionTable
+      const traitGoldAmount = resourceAmount * (getWorkerGoldenConversion(worker) + getCapstoneGoldenBonus(worker)) * getFortressGoldMultiplier(state);
+      const capstonePassiveGoldAmount = getCapstonePassiveGoldPerSecond(worker) * payoutSeconds * goldMultiplier;
+      const goldAmount = (productionTable
         ? traitGoldAmount
-        : ((CONFIG.mine.goldPerSecondPerWorkerLevel ?? 0) * worker.level * slotMultiplier * payoutSeconds * goldMultiplier) + traitGoldAmount;
+        : ((CONFIG.mine.goldPerSecondPerWorkerLevel ?? 0) * worker.level * slotMultiplier * payoutSeconds * goldMultiplier) + traitGoldAmount)
+        + capstonePassiveGoldAmount;
 
       state.resources[mine.resourceKey] = clamp(
         state.resources[mine.resourceKey] + resourceAmount,

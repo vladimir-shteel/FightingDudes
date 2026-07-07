@@ -24,7 +24,8 @@ import {
   mergeReserveUnitIntoMineUnit,
   moveMineUnitToMineSlot,
   returnMineUnitToReserve,
-  toggleWorkerBattleShift
+  toggleWorkerBattleShift,
+  getShiftMaxPerMine
 } from "./systems/mineSystem.js";
 import { startFortressBattle } from "./systems/fortressBattleSystem.js";
 import {
@@ -32,19 +33,71 @@ import {
   canAffordResources,
   canPlaceFortressBuilding,
   findFortressPlacement,
+  getBuildingActiveCost,
+  getBuildingActiveDefinition,
   getFortressBuildingBuyCost,
+  getFortressRepairCost,
+  mergeFortressBuildings,
   moveFortressBuilding,
   removeFortressObstacle,
-  upgradeFortressBuilding
+  repairFortressBuilding,
+  triggerBuildingActive
 } from "./systems/fortressSystem.js";
 import { applyUpgradeChoice } from "./systems/upgradeSystem.js";
 import {
+  applyWorkerCapstone,
   getDominantTraitKey,
   getTraitIcon,
   getTraitLabel,
+  getWorkerCapstoneEffect,
+  getWorkerGoldenConversion,
   getWorkerRushMultiplier,
+  getWorkerYieldMultiplier,
   WORKER_TRAIT_KEYS
 } from "./systems/workerTraitSystem.js";
+
+function buildTraitInfoMarkup() {
+  const traits = CONFIG.workerTraits ?? {};
+  const lines = traits.lines ?? {};
+  const shift = traits.battleShift ?? {};
+  const yieldPer = lines.yield?.resourceMultiplierPerPoint ?? 0;
+  const goldenPer = lines.golden?.goldPerResourcePerPoint ?? 0;
+  const rushPer = lines.rush?.battleMultiplierPerPoint ?? 0;
+  const shiftBase = shift.baseMultiplier ?? 1;
+  const rows = [
+    {
+      key: "yield",
+      label: lines.yield?.label ?? "Yield",
+      icon: lines.yield?.icon ?? "Y",
+      text: `Each point adds +${(yieldPer * 100).toFixed(0)}% to that worker's mine output. Pill number = points.`
+    },
+    {
+      key: "golden",
+      label: lines.golden?.label ?? "Golden",
+      icon: lines.golden?.icon ?? "G",
+      text: `Each point converts +${(goldenPer * 100).toFixed(1)}% of that worker's production into gold on top of the resource.`
+    },
+    {
+      key: "rush",
+      label: lines.rush?.label ?? "Rush",
+      icon: lines.rush?.icon ?? "R",
+      text: `Boosts the battle Shift multiplier. Base ${shiftBase}×; each point adds +${(rushPer * 100).toFixed(0)}%. Applies only to committed workers during battle.`
+    }
+  ];
+  const rowsHtml = rows.map((row) => `
+    <div class="trait-info-row">
+      <span class="unit-trait unit-trait-${row.key}">${row.icon}</span>
+      <div>
+        <strong>${row.label}</strong>
+        <p>${row.text}</p>
+      </div>
+    </div>
+  `).join("");
+  return `
+    <p class="trait-info-hint">Traits roll when a worker is bought and stack on merge (dominant line gets a bonus point). At max level a worker picks a capstone.</p>
+    ${rowsHtml}
+  `;
+}
 
 function getResourceIconMarkup(resourceKey, extraClass = "") {
   const icon = getResourceIcon(resourceKey);
@@ -57,6 +110,67 @@ function getResourceIconMarkup(resourceKey, extraClass = "") {
 
 function isHitFlashing(entity) {
   return (entity?.hitUntil ?? 0) > performance.now() / 1000;
+}
+
+function buildFortressBuffsMarkup(state) {
+  const eco = state.economy ?? {};
+  const goldMul = eco.goldMultiplier ?? 1;
+  const prodMul = eco.productionMultiplier ?? 1;
+  const hpBonus = eco.baseHealthBonus ?? 0;
+  const permRows = [];
+  if (goldMul > 1) permRows.push({ icon: "🪙", label: "Gold Dividend", effect: `Gold ×${goldMul.toFixed(2)}` });
+  if (prodMul > 1) permRows.push({ icon: "⛏️", label: "Supply Line", effect: `Mine output ×${prodMul.toFixed(2)}` });
+  if (hpBonus > 0) permRows.push({ icon: "🛡️", label: "Fortified Core", effect: `+${hpBonus} base HP` });
+
+  const tempActive = eco.temporaryBonuses ?? [];
+  const tempQueued = eco.queuedTemporaryBonuses ?? [];
+  const kindMeta = {
+    production: { icon: "⛏️", label: "Harvest Surge", metric: "Production" },
+    damage: { icon: "⚔️", label: "War Drums", metric: "Damage" },
+    defense: { icon: "🛡️", label: "Shield Wall", metric: "Defense" }
+  };
+  const tempActiveRows = tempActive.map((b) => {
+    const meta = kindMeta[b.kind] ?? { icon: "✨", label: b.kind, metric: b.kind };
+    return `<div class="trait-info-row"><span class="unit-trait">${meta.icon}</span><div><strong>${meta.label}</strong><p>${meta.metric} ×${b.multiplier} · ${b.remainingWaves} wave${b.remainingWaves === 1 ? "" : "s"} left</p></div></div>`;
+  });
+  const tempQueuedRows = tempQueued.map((b) => {
+    const meta = kindMeta[b.kind] ?? { icon: "✨", label: b.kind, metric: b.kind };
+    return `<div class="trait-info-row"><span class="unit-trait">${meta.icon}</span><div><strong>${meta.label} (queued)</strong><p>Starts next wave · ${meta.metric} ×${b.multiplier} for ${b.remainingWaves} wave${b.remainingWaves === 1 ? "" : "s"}</p></div></div>`;
+  });
+
+  const permHtml = permRows.length
+    ? permRows.map((r) => `<div class="trait-info-row"><span class="unit-trait">${r.icon}</span><div><strong>${r.label}</strong><p>${r.effect}</p></div></div>`).join("")
+    : `<p class="trait-info-hint">No permanent rewards yet.</p>`;
+  const tempHtml = tempActiveRows.length || tempQueuedRows.length
+    ? [...tempActiveRows, ...tempQueuedRows].join("")
+    : `<p class="trait-info-hint">No temporary buffs active.</p>`;
+
+  return `
+    <strong>Permanent</strong>
+    ${permHtml}
+    <strong>Temporary</strong>
+    ${tempHtml}
+    <p class="trait-info-hint">Rewards from wave victories stack here. Temporary buffs count down after each wave you win.</p>
+  `;
+}
+
+function describeBuildingActive(active) {
+  if (!active) return "";
+  const effect = active.effect ?? {};
+  switch (effect.kind) {
+    case "shield":
+      return `Shields nearby buildings (radius ${effect.radius}) for ${effect.durationSeconds}s, reducing damage taken by ${Math.round((effect.damageReduction ?? 0) * 100)}%.`;
+    case "spawnSquad":
+      return `Rallies ${effect.count}× ${effect.unit} at the fortress.`;
+    case "volley":
+      return `Fires ${effect.count} arrows dealing ${effect.damage} damage each.`;
+    case "buildingDamageBoost":
+      return `Overcharges this building for ${effect.durationSeconds}s: ×${effect.multiplier} damage.`;
+    case "frost":
+      return `Slows enemies within radius to ${Math.round((effect.slowMultiplier ?? 0) * 100)}% speed for ${effect.durationSeconds}s.`;
+    default:
+      return "";
+  }
 }
 
 function createUnitCard(unit, options = {}) {
@@ -79,24 +193,46 @@ function createUnitCard(unit, options = {}) {
   const dominantTrait = getDominantTraitKey(traits);
   const traitBadges = WORKER_TRAIT_KEYS
     .filter((key) => (traits[key] ?? 0) > 0)
-    .map((key) => `
-      <span class="unit-trait unit-trait-${key}" title="${getTraitLabel(key)} ${traits[key]}">
-        ${getTraitIcon(key)}${traits[key]}
-      </span>
-    `)
+    .map((key) => {
+      const points = traits[key];
+      const lineCfg = CONFIG.workerTraits?.lines?.[key] ?? {};
+      let tip;
+      if (key === "yield") tip = `Yield ${points} · +${Math.round((lineCfg.resourceMultiplierPerPoint ?? 0) * points * 100)}% mine output`;
+      else if (key === "golden") tip = `Golden ${points} · +${((lineCfg.goldPerResourcePerPoint ?? 0) * points * 100).toFixed(1)}% of production paid as gold`;
+      else if (key === "rush") tip = `Rush ${points} · +${Math.round((lineCfg.battleMultiplierPerPoint ?? 0) * points * 100)}% Shift multiplier`;
+      else tip = `${getTraitLabel(key)} ${points}`;
+      return `<span class="unit-trait unit-trait-${key}" title="${tip}"><span class="unit-trait-icon">${getTraitIcon(key)}</span><span class="unit-trait-num">${points}</span></span>`;
+    })
     .join("");
 
   card.dataset.gear = "worker";
   card.dataset.level = String(level);
   card.dataset.trait = dominantTrait;
   card.classList.toggle("is-shifted", Boolean(unit.battleShiftCommitted));
+  card.classList.toggle("is-rested", Boolean(unit.isRested));
   card.classList.toggle("is-hit", isHitFlashing(unit));
+  card.classList.toggle("has-pending-capstone", Boolean(unit.pendingCapstone?.length));
   card.dataset.hit = isHitFlashing(unit) ? "true" : "false";
 
+  const capstoneEffect = getWorkerCapstoneEffect(unit);
+  const capstoneBadge = capstoneEffect
+    ? `<span class="unit-capstone-badge" title="${capstoneEffect.label}">${capstoneEffect.label}</span>`
+    : "";
+
+  let statusBadge = "";
+  if (unit.battleShiftCommitted) {
+    statusBadge = `<span class="unit-status-badge is-shift" title="On battle Shift">👷</span>`;
+  } else if (unit.isRested) {
+    statusBadge = `<span class="unit-status-badge is-rested" title="Rested — energetic, ready for Shift">⚡</span>`;
+  }
   card.innerHTML = `
     <div class="unit-badges">
-      <span class="unit-level-badge">${level}</span>
-      ${traitBadges}
+      <div class="unit-badges-row">
+        <span class="unit-level-badge">${level}</span>
+        ${statusBadge}
+        ${capstoneBadge}
+      </div>
+      ${!compact && traitBadges ? `<div class="unit-traits">${traitBadges}</div>` : ""}
     </div>
     <div class="unit-character" aria-hidden="true">
       <div class="unit-icon">
@@ -108,7 +244,7 @@ function createUnitCard(unit, options = {}) {
       <div class="unit-name">${unit.name}</div>
       <span class="unit-meta">ATK ${Math.round(attack)} | HP ${Math.round(health)}</span>
     </div>
-    ${compact ? `<span class="compact-caption">${getTraitLabel(dominantTrait)} · ${Math.round(getWorkerRushMultiplier(unit) * 100) / 100}x Shift</span>` : ""}
+    ${compact && traitBadges ? `<div class="unit-traits compact-traits">${traitBadges}</div>` : ""}
   `;
 
   return card;
@@ -243,6 +379,10 @@ export function mountUI(state, onStateChanged) {
     buyUnitButton: document.querySelector("#buyUnitButton"),
     massMergeButton: document.querySelector("#massMergeButton"),
     restartButton: document.querySelector("#restartButton"),
+    traitInfoButton: document.querySelector("#traitInfoButton"),
+    traitInfoPanel: document.querySelector("#traitInfoPanel"),
+    fortressBuffsButton: document.querySelector("#fortressBuffsButton"),
+    fortressBuffsPanel: document.querySelector("#fortressBuffsPanel"),
     fxLayer: document.querySelector("#fxLayer")
     ,
     screenDeck: document.querySelector("#screenDeck"),
@@ -250,17 +390,25 @@ export function mountUI(state, onStateChanged) {
     showProductionButton: document.querySelector("#showProductionButton"),
     fortressResourceList: document.querySelector("#fortressResourceList"),
     fortressWaveValue: document.querySelector("#fortressWaveValue"),
+    waveTelegraph: document.querySelector("#waveTelegraph"),
     fortressFightButton: document.querySelector("#fortressFightButton"),
     fortressMessage: document.querySelector("#fortressMessage"),
+    bossHpBar: document.querySelector("#bossHpBar"),
     fortressField: document.querySelector("#fortressField"),
     fortressShop: document.querySelector("#fortressShop"),
     upgradeOverlay: document.querySelector("#upgradeOverlay"),
     upgradeChoices: document.querySelector("#upgradeChoices"),
+    capstoneOverlay: document.querySelector("#capstoneOverlay"),
+    capstoneChoices: document.querySelector("#capstoneChoices"),
     runEndOverlay: document.querySelector("#runEndOverlay"),
     runEndTitle: document.querySelector("#runEndTitle"),
     runEndText: document.querySelector("#runEndText"),
     runEndRestartButton: document.querySelector("#runEndRestartButton")
   };
+
+  if (elements.selectedUnitChip) {
+    elements.selectedUnitChip.style.display = "none";
+  }
 
   const resourceOrder = [
     "gold",
@@ -335,53 +483,221 @@ export function mountUI(state, onStateChanged) {
     state.ui.selectedUnitId = unitId;
   }
 
-  function updateSelectionTether() {
-    const existing = elements.fxLayer.querySelector(".selection-tether");
-    const selected = getSelectedUnitContext();
+  function openWorkerActionPopup(unitId) {
+    state.ui.workerActionPopup = { unitId };
+  }
 
-    if (!selected) {
-      existing?.remove();
+  function closeWorkerActionPopup() {
+    state.ui.workerActionPopup = null;
+  }
+
+  function getWorkerActionContext() {
+    const popup = state.ui.workerActionPopup;
+    if (!popup) {
+      return null;
+    }
+    const reserveUnit = state.reserveUnits.find((unit) => unit.id === popup.unitId);
+    if (reserveUnit) {
+      return { unit: reserveUnit, source: "reserve" };
+    }
+    for (const mine of state.mines) {
+      for (let index = 0; index < mine.workerIds.length; index += 1) {
+        const worker = mine.workerIds[index];
+        if (worker?.id === popup.unitId) {
+          return { unit: worker, source: "mine", mineId: mine.id, slotIndex: index };
+        }
+      }
+    }
+    state.ui.workerActionPopup = null;
+    return null;
+  }
+
+  // First tap on a worker card opens this popover instead of directly entering
+  // move-mode; move-mode itself is entered from the popover's "Move / Merge" button.
+  function handleWorkerCardTap(unitId) {
+    const currentSelection = getSelectedUnitContext();
+    if (currentSelection) {
+      // Already mid move/merge — let the existing target-select handlers run.
+      return false;
+    }
+    if (state.ui.workerActionPopup?.unitId === unitId) {
+      closeWorkerActionPopup();
+    } else {
+      openWorkerActionPopup(unitId);
+    }
+    onStateChanged();
+    return true;
+  }
+
+  function renderWorkerActionPopover() {
+    const existing = document.querySelector(".worker-action-popover");
+    existing?.remove();
+
+    const context = getWorkerActionContext();
+    if (!context || state.ui.selectedUnitId) {
       return;
     }
 
-    const source = document.querySelector(`.unit-card[data-unit-id="${selected.unit.id}"]`);
-    if (!source || !elements.selectedUnitChip) {
-      existing?.remove();
+    const anchor = document.querySelector(`.unit-card[data-unit-id="${context.unit.id}"]`);
+    if (!anchor) {
+      closeWorkerActionPopup();
       return;
     }
 
-    const sourceRect = source.getBoundingClientRect();
+    const unit = context.unit;
+    const anchorRect = anchor.getBoundingClientRect();
+    const popover = document.createElement("div");
+    popover.className = "worker-action-popover";
+
+    const yieldPct = Math.round((getWorkerYieldMultiplier(unit) - 1) * 100);
+    const goldenPct = Math.round(getWorkerGoldenConversion(unit) * 1000) / 10;
+    const rushMult = Math.round(getWorkerRushMultiplier(unit) * 100) / 100;
+    const capstoneEffect = getWorkerCapstoneEffect(unit);
+
+    const inMine = context.source === "mine";
+    const mine = inMine ? state.mines.find((m) => m.id === context.mineId) : null;
+    const shiftCap = getShiftMaxPerMine();
+    const shiftsInMine = mine ? mine.workerIds.filter((w) => w?.battleShiftCommitted).length : 0;
+    const battleActive = state.fortress.battle.active;
+    let shiftBtn = "";
+    if (inMine) {
+      if (unit.battleShiftCommitted) {
+        shiftBtn = `<button class="fortress-popover-action" type="button" data-popover-shift-off ${battleActive ? "disabled" : ""}>Cancel Shift (×${rushMult})</button>`;
+      } else {
+        const capReached = shiftsInMine >= shiftCap;
+        const disabled = battleActive || !unit.isRested || capReached;
+        const label = !unit.isRested
+          ? `Shift — needs rest`
+          : capReached
+            ? `Shift — mine cap ${shiftCap}/${shiftCap}`
+            : `Commit Shift (×${rushMult})`;
+        shiftBtn = `<button class="fortress-popover-action" type="button" data-popover-shift-on ${disabled ? "disabled" : ""}>${label}</button>`;
+      }
+    }
+    popover.innerHTML = `
+      <strong>${unit.name} · Lv${unit.level}${unit.battleShiftCommitted ? " 👷" : unit.isRested ? " ⚡" : ""}</strong>
+      <div class="worker-popover-traits">
+        <span class="unit-trait unit-trait-yield" title="Yield">Y +${yieldPct}%</span>
+        <span class="unit-trait unit-trait-golden" title="Golden">G ${goldenPct}%</span>
+        <span class="unit-trait unit-trait-rush" title="Rush">R ${rushMult}× Shift</span>
+      </div>
+      ${capstoneEffect ? `<span class="worker-popover-capstone">${capstoneEffect.label}</span>` : ""}
+      <button class="fortress-popover-action primary-action" type="button" data-popover-move>Move / Merge</button>
+      ${shiftBtn}
+      ${unit.pendingCapstone?.length ? `<button class="fortress-popover-action" type="button" data-popover-capstone>Choose Capstone</button>` : ""}
+      ${inMine ? `<button class="fortress-popover-action" type="button" data-popover-return>Return to Reserve</button>` : ""}
+      <button class="fortress-popover-action" type="button" data-popover-close>Close</button>
+    `;
+
+    const applyShift = () => {
+      const result = toggleWorkerBattleShift(state, context.mineId, context.slotIndex);
+      state.fortress.message = result.reason;
+      closeWorkerActionPopup();
+      onStateChanged();
+    };
+    popover.querySelector("[data-popover-shift-on]")?.addEventListener("click", applyShift);
+    popover.querySelector("[data-popover-shift-off]")?.addEventListener("click", applyShift);
+
+    popover.querySelector("[data-popover-move]").addEventListener("click", () => {
+      selectUnit(unit.id);
+      closeWorkerActionPopup();
+      refreshSelectionOnly();
+    });
+
+    popover.querySelector("[data-popover-capstone]")?.addEventListener("click", () => {
+      closeWorkerActionPopup();
+      onStateChanged();
+    });
+
+    popover.querySelector("[data-popover-return]")?.addEventListener("click", () => {
+      const result = returnMineUnitToReserve(state, context.mineId, context.slotIndex);
+      state.fortress.message = result.reason;
+      closeWorkerActionPopup();
+      onStateChanged();
+    });
+
+    popover.querySelector("[data-popover-close]").addEventListener("click", () => {
+      closeWorkerActionPopup();
+      refreshSelectionOnly();
+    });
+
+    document.body.append(popover);
+
+    const popoverRect = popover.getBoundingClientRect();
     const viewportW = window.innerWidth || document.documentElement.clientWidth;
     const viewportH = window.innerHeight || document.documentElement.clientHeight;
-    const isSourceVisible =
-      sourceRect.bottom > 0 &&
-      sourceRect.right > 0 &&
-      sourceRect.top < viewportH &&
-      sourceRect.left < viewportW;
-
-    if (isSourceVisible) {
-      existing?.remove();
-      return;
+    let left = anchorRect.left + anchorRect.width / 2 - popoverRect.width / 2;
+    left = Math.max(6, Math.min(left, viewportW - popoverRect.width - 6));
+    let top = anchorRect.bottom + 8;
+    if (top + popoverRect.height > viewportH - 6) {
+      top = anchorRect.top - popoverRect.height - 8;
     }
+    top = Math.max(6, top);
+    popover.style.left = `${left}px`;
+    popover.style.top = `${top}px`;
 
-    const targetRect = elements.selectedUnitChip.getBoundingClientRect();
-    const startX = sourceRect.left + sourceRect.width / 2;
-    const startY = sourceRect.top + sourceRect.height / 2;
-    const endX = targetRect.left + targetRect.width / 2;
-    const endY = targetRect.top + targetRect.height / 2;
-    const length = Math.hypot(endX - startX, endY - startY);
-    const angle = Math.atan2(endY - startY, endX - startX) * (180 / Math.PI);
-    const tether = existing ?? document.createElement("div");
+    window.setTimeout(() => {
+      const dismissOnOutsideClick = (event) => {
+        if (popover.contains(event.target) || anchor.contains(event.target)) {
+          return;
+        }
+        closeWorkerActionPopup();
+        refreshSelectionOnly();
+        document.removeEventListener("pointerdown", dismissOnOutsideClick, true);
+      };
+      document.addEventListener("pointerdown", dismissOnOutsideClick, true);
+    }, 0);
+  }
 
-    tether.className = "selection-tether";
-    tether.style.left = `${startX}px`;
-    tether.style.top = `${startY}px`;
-    tether.style.width = `${length}px`;
-    tether.style.transform = `rotate(${angle}deg)`;
+  function renderMoveModeCancelButton() {
+    // Cancel Move button removed — tap the same worker (or the Worker Pile) to abort.
+    document.querySelector(".worker-move-cancel")?.remove();
+  }
 
-    if (!existing) {
-      elements.fxLayer.append(tether);
-    }
+  function refreshSelectionOnly() {
+    const selected = getSelectedUnitContext();
+    const selectedId = state.ui.selectedUnitId;
+    const selectedLevel = selected?.unit.level ?? null;
+    const selectedSource = selected?.source ?? null;
+    const inMoveMode = !!selected;
+
+    document.querySelectorAll("#reserveZone .unit-card").forEach((card) => {
+      const uid = card.dataset.unitId;
+      const level = Number(card.dataset.level ?? 0);
+      card.classList.toggle("selection-source", selectedId === uid);
+      card.classList.toggle(
+        "actionable-target",
+        selectedSource === "reserve" && level === selectedLevel && selectedId !== uid
+      );
+    });
+
+    elements.reservePanel?.classList.toggle("actionable-target", selectedSource === "mine");
+
+    document.querySelectorAll(".mines-grid .slot").forEach((slot) => {
+      if (!slot.classList.contains("is-open")) return;
+      const workerCard = slot.querySelector(".unit-card");
+      if (workerCard) {
+        const uid = workerCard.dataset.unitId;
+        const level = Number(workerCard.dataset.level ?? 0);
+        workerCard.classList.toggle("selection-source", selectedId === uid);
+        workerCard.classList.toggle(
+          "actionable-target",
+          inMoveMode && level === selectedLevel && selectedId !== uid
+        );
+        slot.classList.toggle("actionable-target", false);
+      } else {
+        slot.classList.toggle("actionable-target", inMoveMode);
+      }
+    });
+
+    updateSelectionTether();
+    renderWorkerActionPopover();
+  }
+
+  function updateSelectionTether() {
+    // The SELECTED chip this tether pointed to is hidden now that the worker
+    // action popover replaces it — nothing to tether to anymore.
+    elements.fxLayer.querySelector(".selection-tether")?.remove();
   }
 
   elements.buyUnitButton.addEventListener("click", () => {
@@ -396,6 +712,59 @@ export function mountUI(state, onStateChanged) {
     clearSelectedUnit();
     onStateChanged();
   });
+
+  function attachAnchoredTooltip(button, panel, buildMarkup) {
+    if (!button || !panel) return;
+    let outsideHandler = null;
+    const close = () => {
+      panel.hidden = true;
+      button.setAttribute("aria-expanded", "false");
+      if (outsideHandler) {
+        document.removeEventListener("pointerdown", outsideHandler, true);
+        outsideHandler = null;
+      }
+    };
+    const position = () => {
+      const anchorRect = button.getBoundingClientRect();
+      const panelRect = panel.getBoundingClientRect();
+      const viewportW = window.innerWidth || document.documentElement.clientWidth;
+      const viewportH = window.innerHeight || document.documentElement.clientHeight;
+      let left = anchorRect.left + anchorRect.width / 2 - panelRect.width / 2;
+      left = Math.max(6, Math.min(left, viewportW - panelRect.width - 6));
+      let top = anchorRect.bottom + 8;
+      if (top + panelRect.height > viewportH - 6) {
+        top = anchorRect.top - panelRect.height - 8;
+      }
+      top = Math.max(6, top);
+      panel.style.left = `${left}px`;
+      panel.style.top = `${top}px`;
+    };
+    const open = () => {
+      panel.innerHTML = `
+        <button class="trait-info-close" type="button" aria-label="Close">✕</button>
+        ${buildMarkup()}
+      `;
+      panel.hidden = false;
+      button.setAttribute("aria-expanded", "true");
+      position();
+      panel.querySelector(".trait-info-close")?.addEventListener("click", close);
+      window.setTimeout(() => {
+        outsideHandler = (event) => {
+          if (panel.contains(event.target)) return;
+          if (event.target === button) return;
+          close();
+        };
+        document.addEventListener("pointerdown", outsideHandler, true);
+      }, 0);
+    };
+    button.addEventListener("click", () => {
+      if (panel.hidden) open();
+      else close();
+    });
+  }
+
+  attachAnchoredTooltip(elements.traitInfoButton, elements.traitInfoPanel, buildTraitInfoMarkup);
+  attachAnchoredTooltip(elements.fortressBuffsButton, elements.fortressBuffsPanel, () => buildFortressBuffsMarkup(state));
 
   elements.grantResourcesButton.addEventListener("click", () => {
     for (const resourceKey of resourceOrder) {
@@ -507,7 +876,7 @@ export function mountUI(state, onStateChanged) {
 
         if (currentSelection?.unit.id === unit.id) {
           clearSelectedUnit();
-          onStateChanged();
+          refreshSelectionOnly();
           return;
         }
 
@@ -523,8 +892,12 @@ export function mountUI(state, onStateChanged) {
           return;
         }
 
-        selectUnit(unit.id);
-        onStateChanged();
+        if (currentSelection) {
+          // Move-mode active but this card isn't a valid target — leave move-mode on.
+          return;
+        }
+
+        handleWorkerCardTap(unit.id);
       });
 
       if (selected?.unit.id === unit.id) {
@@ -607,7 +980,7 @@ export function mountUI(state, onStateChanged) {
         <div class="mine-stats">
           <span class="tag">${mine.isUnlocked ? `Slots ${purchasedSlotCount}/${getMineMaxLevel()}` : "Locked"}</span>
           <span class="tag">${mine.isUnlocked ? "Bought" : `Wave ${purchaseState.unlockWave}`}</span>
-          ${demandResource === mine.resourceKey ? `<span class="tag demand-tag">Wave Demand ×${CONFIG.waveDemand?.slotProductionMultiplier ?? 1}</span>` : ""}
+          ${demandResource === mine.resourceKey ? `<span class="tag demand-tag" title="Wave Demand"><span class="demand-tag-full">Wave Demand </span>×${CONFIG.waveDemand?.slotProductionMultiplier ?? 1}</span>` : ""}
           ${showPassive ? `
             <div class="mine-passive" data-mine-passive="${mine.id}" title="Passive gold trickle">
               ${getResourceIconMarkup("gold", "mine-passive-icon")}
@@ -639,7 +1012,9 @@ export function mountUI(state, onStateChanged) {
         const slot = document.createElement("div");
         const slotState = getMineSlotState(state, mine, index);
         const isBoughtSlot = slotState.kind === "bought";
-        slot.className = `slot ${isBoughtSlot ? "is-open" : "is-locked"} ${slotState.kind === "available-to-buy" ? "is-buyable" : ""}`;
+        const isBuyableSlot = slotState.kind === "available-to-buy";
+        const baseState = isBoughtSlot ? "is-open" : isBuyableSlot ? "" : "is-locked";
+        slot.className = `slot ${baseState} ${isBuyableSlot ? "is-buyable" : ""}`.trim();
         slot.dataset.mineSlot = `${mine.id}:${index}`;
 
         const slotMultiplier = slotMultipliers[index] ?? 1;
@@ -704,7 +1079,7 @@ export function mountUI(state, onStateChanged) {
 
             if (selected?.unit.id === worker.id) {
               clearSelectedUnit();
-              onStateChanged();
+              refreshSelectionOnly();
               return;
             }
 
@@ -732,29 +1107,15 @@ export function mountUI(state, onStateChanged) {
               return;
             }
 
-            selectUnit(worker.id);
-            onStateChanged();
+            handleWorkerCardTap(worker.id);
           });
           slotShell.append(workerCard);
           slotShell.insertAdjacentHTML(
             "beforeend",
             createMineProgressMarkup(mine.resourceKey, mine.id, index, progress)
           );
-          const shiftButton = document.createElement("button");
-          shiftButton.type = "button";
-          shiftButton.className = `shift-toggle ${worker.battleShiftCommitted ? "is-committed" : ""}`;
-          shiftButton.disabled = state.fortress.battle.active;
-          shiftButton.textContent = worker.battleShiftCommitted ? `Shift ×${Math.round(getWorkerRushMultiplier(worker) * 100) / 100}` : "Shift";
-          shiftButton.title = state.fortress.battle.active
-            ? "Battle shift is locked until combat ends"
-            : "Commit this worker to boosted production during the next battle";
-          shiftButton.addEventListener("click", (event) => {
-            event.stopPropagation();
-            const result = toggleWorkerBattleShift(state, mine.id, index);
-            state.fortress.message = result.reason;
-            onStateChanged();
-          });
-          slotShell.append(shiftButton);
+          // Shift toggle now lives in the worker action popover — kept out of the slot cell
+          // to declutter the mines grid. `worker.battleShiftCommitted` still styles the card.
           if (selected?.unit.id === worker.id) {
             slotShell.classList.add("selection-source");
           } else if (
@@ -827,12 +1188,36 @@ export function mountUI(state, onStateChanged) {
     return renderResourceCost(costs);
   }
 
+  function renderBossHpBar() {
+    if (!elements.bossHpBar) {
+      return;
+    }
+    const bosses = state.fortress.battle.active
+      ? state.fortress.battle.enemies.filter((enemy) => enemy.tag === "boss" && enemy.hp > 0)
+      : [];
+    if (bosses.length === 0) {
+      elements.bossHpBar.hidden = true;
+      elements.bossHpBar.innerHTML = "";
+      return;
+    }
+    elements.bossHpBar.hidden = false;
+    elements.bossHpBar.innerHTML = bosses.map((boss) => {
+      const definition = CONFIG.fortressEnemies[boss.archetype];
+      const pct = Math.max(0, boss.hp / boss.maxHp) * 100;
+      return `
+        <div class="boss-hp-row">
+          <span class="boss-hp-name">${definition?.icon ?? ""} ${definition?.name ?? "Boss"}</span>
+          <div class="boss-hp-track"><i style="width:${pct}%"></i></div>
+          <span class="boss-hp-value">${Math.round(boss.hp)}/${boss.maxHp}</span>
+        </div>
+      `;
+    }).join("");
+  }
+
   function renderFortressField() {
     elements.fortressField.innerHTML = "";
     elements.fortressField.classList.toggle("is-battle-active", state.fortress.battle.active);
-    if (state.fortress.battle.active) {
-      state.ui.fortressPopup = null;
-    }
+    renderBossHpBar();
 
     for (const tile of state.fortress.field) {
       const building = getFortressBuildingForTile(tile);
@@ -874,23 +1259,57 @@ export function mountUI(state, onStateChanged) {
         tileButton.classList.toggle("is-hit", isHitFlashing(building));
         tileButton.classList.toggle("is-damaged", building.hp > 0 && building.hp < building.maxHp);
         tileButton.classList.toggle("is-destroyed", building.hp <= 0);
+        const activeDefinition = state.fortress.battle.active ? getBuildingActiveDefinition(building) : null;
         tileButton.innerHTML = `
           ${isSolidBuilding ? "" : renderFortressBuildingShape(building, buildingBounds)}
           <span class="fortress-tile-icon">${definition.icon}</span>
           <strong>${definition.name}</strong>
           <small>Lv ${building.level} · HP ${Math.round(building.hp)}/${building.maxHp}</small>
         `;
-        tileButton.addEventListener("click", () => {
-          if (state.fortress.movingBuildingId === building.id) {
-            state.fortress.movingBuildingId = null;
-            state.ui.fortressPopup = null;
-            state.fortress.message = "Move cancelled.";
-          } else {
-            state.ui.fortressPopup = { kind: "building", buildingId: building.id, x: tile.x, y: tile.y };
-          }
-          onStateChanged();
-        });
 
+        if (activeDefinition && building.hp > 0) {
+          const onCooldown = (building.activeCooldown ?? 0) > 0;
+          const indicator = document.createElement("span");
+          indicator.className = "fortress-active-indicator";
+          indicator.innerHTML = onCooldown
+            ? `<span class="fortress-active-cooldown">${Math.ceil(building.activeCooldown)}s</span>`
+            : `<span class="fortress-active-icon">⚡</span>`;
+          tileButton.append(indicator);
+        }
+
+        const movingBuildingId = state.fortress.movingBuildingId;
+        if (movingBuildingId && movingBuildingId !== building.id) {
+          const movingBuilding = state.fortress.buildings.find((item) => item.id === movingBuildingId);
+          const canMerge =
+            movingBuilding &&
+            movingBuilding.type === building.type &&
+            movingBuilding.type !== "hq" &&
+            movingBuilding.level === building.level &&
+            Boolean(definition.levels[building.level]);
+          if (canMerge) {
+            tileButton.classList.add("is-merge-target");
+            tileButton.addEventListener("click", () => {
+              const result = mergeFortressBuildings(state, movingBuildingId, building.id);
+              state.fortress.message = result.reason;
+              state.fortress.movingBuildingId = null;
+              onStateChanged();
+            });
+          } else {
+            tileButton.classList.add("is-invalid-target");
+            tileButton.disabled = true;
+          }
+        } else {
+          tileButton.addEventListener("click", () => {
+            if (state.fortress.movingBuildingId === building.id) {
+              state.fortress.movingBuildingId = null;
+              state.ui.fortressPopup = null;
+              state.fortress.message = "Move cancelled.";
+            } else {
+              state.ui.fortressPopup = { kind: "building", buildingId: building.id, x: tile.x, y: tile.y };
+            }
+            onStateChanged();
+          });
+        }
       } else {
         const movingBuilding = state.fortress.buildings.find((item) => item.id === state.fortress.movingBuildingId);
         if (movingBuilding) {
@@ -948,7 +1367,11 @@ export function mountUI(state, onStateChanged) {
 
   function renderFortressPopup() {
     const popupState = state.ui.fortressPopup;
-    if (!popupState || state.fortress.battle.active) {
+    if (!popupState) {
+      return;
+    }
+    const battleActive = state.fortress.battle.active;
+    if (popupState.kind === "obstacle" && battleActive) {
       return;
     }
 
@@ -978,23 +1401,55 @@ export function mountUI(state, onStateChanged) {
         return;
       }
       const definition = CONFIG.fortressBuildings[building.type];
-      const currentLevel = definition.levels[building.level - 1];
       const nextLevel = definition.levels[building.level];
-      const upgradeCost = currentLevel?.upgradeCost ?? {};
-      const canUpgrade = nextLevel && canAffordResources(state.resources, upgradeCost);
+      const needsRepair = building.hp < building.maxHp && building.type !== "mine";
+      const repairCost = needsRepair ? getFortressRepairCost(state, building) : {};
+      const canRepair = needsRepair && canAffordResources(state.resources, repairCost);
+      const active = getBuildingActiveDefinition(building);
+      const activeDescription = describeBuildingActive(active);
+      const activeCost = active ? getBuildingActiveCost(building) : {};
+      const activeOnCooldown = active && (building.activeCooldown ?? 0) > 0;
+      const activeAffordable = active && canAffordResources(state.resources, activeCost);
+      const activeBlock = active ? `
+        <div class="fortress-popover-active">
+          <strong class="fortress-popover-active-title">⚡ ${active.label}</strong>
+          <span class="fortress-popover-active-desc">${activeDescription}</span>
+          <span class="fortress-popover-active-meta">Cost ${renderFortressCost(activeCost)} · Cooldown ${active.cooldownSeconds}s</span>
+        </div>
+      ` : "";
+      const useButton = active && battleActive ? `
+        <button class="fortress-popover-action primary-action" type="button" data-popup-use ${activeOnCooldown || !activeAffordable ? "disabled" : ""}>
+          ${activeOnCooldown ? `On cooldown ${Math.ceil(building.activeCooldown)}s` : `Use ${active.label}`}
+        </button>
+      ` : "";
+      const upgradeNote = battleActive ? "" : (nextLevel
+        ? `<span class="fortress-popover-note">Move a same-level ${definition.name} onto this one to upgrade.</span>`
+        : `<span class="fortress-popover-note">Max level</span>`);
+      const outOfBattleButtons = battleActive ? "" : `
+        ${needsRepair ? `
+          <button class="fortress-popover-action" type="button" data-popup-repair ${canRepair ? "" : "disabled"}>
+            Repair ${renderFortressCost(repairCost)}
+          </button>
+        ` : ""}
+        <button class="fortress-popover-action" type="button" data-popup-move ${building.type === "hq" ? "disabled" : ""}>Move / Merge</button>
+      `;
       popup.innerHTML = `
         <strong>${definition.name} Lv ${building.level}</strong>
-        ${nextLevel ? `
-          <button class="fortress-popover-action primary-action" type="button" ${canUpgrade ? "" : "disabled"}>
-            Upgrade ${renderFortressCost(upgradeCost)}
-          </button>
-        ` : `<span class="fortress-popover-note">Max level</span>`}
-        <button class="fortress-popover-action" type="button" data-popup-move ${building.type === "hq" ? "disabled" : ""}>Move</button>
+        ${upgradeNote}
+        ${activeBlock}
+        ${useButton}
+        ${outOfBattleButtons}
         <button class="fortress-popover-action" type="button" data-popup-close>Close</button>
       `;
 
-      popup.querySelector(".primary-action")?.addEventListener("click", () => {
-        const result = upgradeFortressBuilding(state, building.id);
+      popup.querySelector("[data-popup-use]")?.addEventListener("click", () => {
+        const result = triggerBuildingActive(state, building.id);
+        state.fortress.message = result.reason;
+        if (result.ok) closeFortressPopup();
+        onStateChanged();
+      });
+      popup.querySelector("[data-popup-repair]")?.addEventListener("click", () => {
+        const result = repairFortressBuilding(state, building.id);
         state.fortress.message = result.reason;
         closeFortressPopup();
         onStateChanged();
@@ -1175,6 +1630,57 @@ export function mountUI(state, onStateChanged) {
     }
   }
 
+  function findPendingCapstoneWorker() {
+    for (const unit of state.reserveUnits) {
+      if (unit.pendingCapstone?.length) {
+        return unit;
+      }
+    }
+    for (const mine of state.mines) {
+      for (const worker of mine.workerIds) {
+        if (worker?.pendingCapstone?.length) {
+          return worker;
+        }
+      }
+    }
+    return null;
+  }
+
+  function renderCapstoneChoices() {
+    const worker = findPendingCapstoneWorker();
+    elements.capstoneOverlay.hidden = !worker;
+    elements.capstoneChoices.innerHTML = "";
+
+    if (!worker) {
+      return;
+    }
+
+    const capstoneLines = CONFIG.workerTraits?.capstones ?? {};
+    const allCapstones = Object.values(capstoneLines).flat();
+
+    for (const capstoneId of worker.pendingCapstone) {
+      const capstone = allCapstones.find((entry) => entry.id === capstoneId);
+      if (!capstone) {
+        continue;
+      }
+      const card = document.createElement("button");
+      card.type = "button";
+      card.className = "upgrade-choice-card";
+      card.innerHTML = `
+        <div class="reward-card-head">
+          <strong>${capstone.label}</strong>
+        </div>
+        <p>${capstone.description}</p>
+      `;
+      card.addEventListener("click", () => {
+        const result = applyWorkerCapstone(state, worker.id, capstone.id);
+        state.fortress.message = result.reason;
+        onStateChanged();
+      });
+      elements.capstoneChoices.append(card);
+    }
+  }
+
   function renderEconomyMeta() {
     const demandResource = getCurrentWaveDemandResource(state);
     for (const resourceKey of resourceOrder) {
@@ -1193,34 +1699,35 @@ export function mountUI(state, onStateChanged) {
   function renderBattleMeta() {
     elements.waveValue.textContent = `${state.fortress.waveNumber} / ${CONFIG.fortressWaves.length}`;
     elements.fortressWaveValue.textContent = `${state.fortress.waveNumber} / ${CONFIG.fortressWaves.length}`;
+    renderWaveTelegraph();
   }
 
-  function renderSelectedUnitMeta() {
-    const selected = getSelectedUnitContext();
-
-    if (!selected) {
-      elements.selectedUnitChip.classList.add("is-empty");
-      elements.selectedUnitChip.classList.remove("is-selected");
-      elements.selectedUnitValue.textContent = "None";
-      elements.selectedUnitHint.textContent = "Tap a unit to choose it.";
+  function renderWaveTelegraph() {
+    if (!elements.waveTelegraph) {
       return;
     }
-
-    elements.selectedUnitChip.classList.remove("is-empty");
-    elements.selectedUnitChip.classList.add("is-selected");
-    elements.selectedUnitValue.textContent = `${selected.unit.name} Lv${selected.unit.level}`;
-    elements.selectedUnitHint.textContent = selected.source === "mine"
-      ? "Tap empty slot to move, Worker Pile to return, or another worker to merge."
-      : "Tap mine slot or matching worker.";
+    const currentIndex = state.fortress.waveNumber - 1;
+    const waves = CONFIG.fortressWaves.slice(currentIndex, currentIndex + 3);
+    elements.waveTelegraph.innerHTML = waves.map((wave, offset) => {
+      const archetypes = (wave.composition ?? [{ archetype: "grunt" }])
+        .map((entry) => CONFIG.fortressEnemies[entry.archetype]?.icon ?? "")
+        .join(" ");
+      const bossBadge = wave.isBoss ? `<span class="wave-telegraph-boss">BOSS</span>` : "";
+      return `
+        <div class="wave-telegraph-chip${offset === 0 ? " is-current" : ""}">
+          <span class="wave-telegraph-label">W${currentIndex + offset + 1}</span>
+          <span class="wave-telegraph-icons">${archetypes}</span>
+          ${bossBadge}
+        </div>
+      `;
+    }).join("");
   }
 
-  function renderActionHints() {
-    const selected = getSelectedUnitContext();
-    elements.selectedUnitChip.classList.toggle("is-selected", Boolean(selected));
-    if (!selected) {
-      elements.selectedUnitChip.classList.remove("is-selected");
-    }
-  }
+  // Top-panel SELECTED chip replaced by the worker action popover; keep as no-ops
+  // since renderMeta/renderFrame still call them.
+  function renderSelectedUnitMeta() {}
+
+  function renderActionHints() {}
 
   function renderMineProgressFrame() {
     const collectionInterval = Math.max(0.001, CONFIG.mine.collectionIntervalSeconds ?? 1);
@@ -1299,10 +1806,26 @@ export function mountUI(state, onStateChanged) {
     }
   }
 
+  function updateEarlyStartHint(button, gameState) {
+    const early = gameState.fortress.earlyStart;
+    if (!early || early.window <= 0 || gameState.fortress.battle.active) {
+      button.removeAttribute("data-early-bonus");
+      button.removeAttribute("title");
+      return;
+    }
+    const fraction = Math.max(0, Math.min(1, early.remaining / early.window));
+    const bonus = Math.round(early.bonus * fraction);
+    button.dataset.earlyBonus = String(bonus);
+    button.title = bonus > 0
+      ? `Early-start bonus: +${bonus} gold (${early.remaining.toFixed(1)}s left)`
+      : "Early-start bonus expired.";
+  }
+
   function renderMeta() {
     showScreen(state.fortress.screen);
     document.body.classList.toggle("fortress-battle-active", state.fortress.battle.active);
     elements.fortressFightButton.disabled = state.fortress.battle.active || state.game.isOver || Boolean(state.fortress.pendingRewardDraft?.length);
+    updateEarlyStartHint(elements.fortressFightButton, state);
     elements.fortressMessage.textContent = state.fortress.message;
     renderEconomyMeta();
     renderBattleMeta();
@@ -1313,6 +1836,7 @@ export function mountUI(state, onStateChanged) {
     renderFortressField();
     renderFortressShop();
     renderUpgradeChoices();
+    renderCapstoneChoices();
   }
 
   function renderVictoryState() {
@@ -1328,22 +1852,36 @@ export function mountUI(state, onStateChanged) {
     renderMines();
     renderMineProgressFrame();
     updateSelectionTether();
+    renderWorkerActionPopover();
+    renderMoveModeCancelButton();
     flushResourceBursts();
   }
 
+  let lastBattleActive = false;
   function renderFrame() {
     document.body.classList.toggle("fortress-battle-active", state.fortress.battle.active);
     renderEconomyMeta();
     renderBattleMeta();
     elements.fortressFightButton.disabled = state.fortress.battle.active || state.game.isOver || Boolean(state.fortress.pendingRewardDraft?.length);
+    updateEarlyStartHint(elements.fortressFightButton, state);
     elements.fortressMessage.textContent = state.fortress.message;
     updateFortressShopAffordability();
-    renderFortressField();
-    renderUpgradeChoices();
+    // Full fortress field rebuild is heavy — only do it while battle is animating.
+    // Outside battle, `render()` on state change is authoritative and instant.
+    // Also do a one-shot rebuild the tick a battle ends, so stale enemy/ally sprites clear.
+    const battleActive = state.fortress.battle.active;
+    if (battleActive) {
+      renderFortressField();
+    } else if (lastBattleActive) {
+      // Battle just ended this tick — do a full render so the field DOM,
+      // reward draft overlay, and capstone overlay all catch up in one shot.
+      render();
+    }
+    lastBattleActive = battleActive;
     renderMineProgressFrame();
     renderActionHints();
-    renderVictoryState();
     updateSelectionTether();
+    renderMoveModeCancelButton();
     flushResourceBursts();
   }
 

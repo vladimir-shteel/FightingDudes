@@ -1,7 +1,9 @@
 # Balance simulators
 
+⚠️ **Data has drifted.** Scripts must be re-synced whenever `data/*.json` changes. See PARAMS.md for the current sync target.
+
 Инструменты для проверки баланса Fortress-режима. Чистый Python 3, без зависимостей
-(`random`, `math`, `heapq`). Запуск из этой папки: `python <файл>.py`.
+(`random`, `math`, `heapq`, читают JSON). Запуск из этой папки: `python <файл>.py`.
 
 > 📘 **Новичку в балансе проекта — начни с [`PLAYBOOK.md`](PLAYBOOK.md):** ментальная
 > модель, три метрики здоровья, таблица «симптом → диагноз → ручка», как читать вывод.

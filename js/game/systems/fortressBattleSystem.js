@@ -1,7 +1,12 @@
 import { CONFIG } from "../config.js";
 import { clamp, generateId } from "../utils.js";
-import { FORTRESS_HEIGHT, FORTRESS_WIDTH, syncFortressBuildingUnlocks } from "./fortressSystem.js";
-import { clearWorkerBattleShifts } from "./mineSystem.js";
+import {
+  applyBuildingAttrition,
+  FORTRESS_HEIGHT,
+  FORTRESS_WIDTH,
+  syncFortressBuildingUnlocks
+} from "./fortressSystem.js";
+import { clearWorkerBattleShifts, consumeShiftRestFlags, markReserveWorkersRested } from "./mineSystem.js";
 import { findTilePath } from "./pathfinding.js";
 import {
   beginFortressWave,
@@ -234,12 +239,14 @@ function resolveUnitCollisions(state) {
   }
 }
 
-function createFortressEnemy(state) {
-  const base = CONFIG.fortressUnits.enemy;
+function createFortressEnemy(state, archetypeKey) {
+  const base = CONFIG.fortressEnemies[archetypeKey];
   const waveBonus = Math.max(0, state.fortress.waveNumber - 1);
   const hp = base.hp + waveBonus * 3;
   return {
     id: generateId("fortress-enemy"),
+    archetype: archetypeKey,
+    tag: base.tag,
     icon: base.icon,
     hp,
     maxHp: hp,
@@ -248,12 +255,38 @@ function createFortressEnemy(state) {
     attackTimer: 0,
     range: base.rangeTiles,
     speed: base.speedTilesPerSecond,
+    baseSpeed: base.speedTilesPerSecond,
+    frostRemaining: 0,
+    frostMultiplier: 1,
+    mechanic: base.mechanic ?? null,
+    auraTimer: 0,
+    summonTimer: base.mechanic?.kind === "summon" ? base.mechanic.intervalSeconds : 0,
     x: Math.random() * (FORTRESS_WIDTH - 0.5) + 0.25,
     y: -0.45
   };
 }
 
-function createFortressAlly(type, origin) {
+function expandComposition(wave) {
+  const composition = wave.composition ?? [{ archetype: "grunt", count: wave.enemyCount }];
+  const groups = composition.map((entry) => ({ archetype: entry.archetype, remaining: entry.count }));
+  const queue = [];
+  let anyRemaining = groups.some((group) => group.remaining > 0);
+  while (anyRemaining) {
+    anyRemaining = false;
+    for (const group of groups) {
+      if (group.remaining > 0) {
+        queue.push(group.archetype);
+        group.remaining -= 1;
+        if (group.remaining > 0) {
+          anyRemaining = true;
+        }
+      }
+    }
+  }
+  return queue;
+}
+
+export function createFortressAlly(type, origin) {
   const base = CONFIG.fortressUnits[type];
   return {
     id: generateId("fortress-ally"),
@@ -272,6 +305,31 @@ function createFortressAlly(type, origin) {
     pathTimer: 0,
     pathTargetId: null
   };
+}
+
+export function spawnAllyForBuilding(state, building, unitKey, count) {
+  const battle = state.fortress.battle;
+  if (!battle.active) {
+    return;
+  }
+  const center = getBuildingCenter(building);
+  for (let index = 0; index < count; index += 1) {
+    const offset = (index - (count - 1) / 2) * 0.4;
+    battle.allies.push(createFortressAlly(unitKey, { x: center.x + offset, y: Math.max(0, center.y - 0.65) }));
+  }
+}
+
+export function volleyFromBuilding(state, building, count, damage) {
+  const battle = state.fortress.battle;
+  if (!battle.active) {
+    return;
+  }
+  const center = getBuildingCenter(building);
+  const aliveEnemies = battle.enemies.filter((enemy) => enemy.hp > 0);
+  const targets = [...aliveEnemies].sort((a, b) => getDistance(center, a) - getDistance(center, b)).slice(0, count);
+  for (const target of targets) {
+    battle.projectiles.push(createProjectile(center, target, damage, "volley"));
+  }
 }
 
 function createProjectile(source, target, damage, type) {
@@ -299,6 +357,20 @@ export function startFortressBattle(state) {
     return { ok: false, reason: "All fortress waves are complete." };
   }
 
+  const spawnQueue = expandComposition(wave);
+
+  const earlyStart = state.fortress.earlyStart;
+  if (earlyStart && earlyStart.window > 0) {
+    const fraction = Math.max(0, Math.min(1, earlyStart.remaining / earlyStart.window));
+    const rawBonus = Math.round(earlyStart.bonus * fraction);
+    if (rawBonus > 0) {
+      const paidBonus = Math.round(rawBonus * getFortressGoldMultiplier(state));
+      state.resources.gold += paidBonus;
+      state.fortress.message = `Early start +${paidBonus} gold.`;
+    }
+  }
+  state.fortress.earlyStart = null;
+
   state.fortress.movingBuildingId = null;
   state.fortress.battle = {
     active: true,
@@ -306,32 +378,43 @@ export function startFortressBattle(state) {
     allies: [],
     projectiles: [],
     spawnTimer: 0,
-    enemiesToSpawn: wave.enemyCount,
+    spawnQueue,
+    enemiesToSpawn: spawnQueue.length,
     enemiesSpawned: 0,
     enemiesDefeated: 0,
     goldEarned: 0,
     result: null
   };
   for (const building of state.fortress.buildings) {
-    building.hp = building.maxHp;
     building.cooldownTimer = 0.5;
   }
   beginFortressWave(state);
+  // Committed workers spend their rest to power the Shift.
+  consumeShiftRestFlags(state);
   return { ok: true, reason: `Fortress wave ${state.fortress.waveNumber} started.` };
 }
 
 function tickSpawns(state, deltaSeconds) {
   const battle = state.fortress.battle;
   const wave = CONFIG.fortressWaves[state.fortress.waveNumber - 1];
-  if (battle.enemiesToSpawn <= 0) {
+  if (!battle.spawnQueue || battle.spawnQueue.length === 0) {
     return;
   }
   battle.spawnTimer -= deltaSeconds;
   if (battle.spawnTimer <= 0) {
-    battle.enemies.push(createFortressEnemy(state));
-    battle.enemiesToSpawn -= 1;
+    const archetype = battle.spawnQueue.shift();
+    battle.enemies.push(createFortressEnemy(state, archetype));
+    battle.enemiesToSpawn = battle.spawnQueue.length;
     battle.enemiesSpawned += 1;
     battle.spawnTimer = wave.spawnIntervalSeconds;
+  }
+}
+
+function tickBuildingActiveTimers(state, deltaSeconds) {
+  for (const building of state.fortress.buildings) {
+    building.activeCooldown = Math.max(0, (building.activeCooldown ?? 0) - deltaSeconds);
+    building.activeBoostRemaining = Math.max(0, (building.activeBoostRemaining ?? 0) - deltaSeconds);
+    building.shieldRemaining = Math.max(0, (building.shieldRemaining ?? 0) - deltaSeconds);
   }
 }
 
@@ -359,7 +442,8 @@ function tickBuildingActions(state, deltaSeconds) {
       if (building.cooldownTimer <= 0) {
         const target = chooseNearest(center, battle.enemies.filter((enemy) => enemy.hp > 0));
         if (target && target.distance <= 3.2) {
-          battle.projectiles.push(createProjectile(center, target.item, level.damage, "turret"));
+          const boostMultiplier = building.activeBoostRemaining > 0 ? (building.activeBoost?.multiplier ?? 1) : 1;
+          battle.projectiles.push(createProjectile(center, target.item, level.damage * boostMultiplier, "turret"));
           building.cooldownTimer = level.cooldownSeconds;
         }
       }
@@ -388,6 +472,13 @@ function tickEnemies(state, deltaSeconds) {
     if (enemy.hp <= 0) {
       enemy.path = null;
       continue;
+    }
+
+    if (enemy.frostRemaining > 0) {
+      enemy.frostRemaining = Math.max(0, enemy.frostRemaining - deltaSeconds);
+      enemy.speed = enemy.baseSpeed * enemy.frostMultiplier;
+    } else {
+      enemy.speed = enemy.baseSpeed;
     }
 
     const allyTarget = chooseNearest(enemy, battle.allies.filter((ally) => ally.hp > 0));
@@ -441,8 +532,10 @@ function tickEnemies(state, deltaSeconds) {
       enemy.path = null;
       enemy.attackTimer -= deltaSeconds;
       if (enemy.attackTimer <= 0) {
+        const breachMult = enemy.mechanic?.kind === "breach" ? enemy.mechanic.damageMultVsBuildings : 1;
+        const shieldMult = bestBuilding.shieldRemaining > 0 ? (1 - (bestBuilding.shieldReduction ?? 0)) : 1;
         bestBuilding.hp = clamp(
-          bestBuilding.hp - (enemy.attack / defenseMultiplier),
+          bestBuilding.hp - (enemy.attack * breachMult * shieldMult / defenseMultiplier),
           0,
           bestBuilding.maxHp
         );
@@ -465,6 +558,52 @@ function tickEnemies(state, deltaSeconds) {
         }
       }
       moveToward(enemy, { x: closestTile.x + 0.5, y: closestTile.y + 0.5 }, deltaSeconds);
+    }
+  }
+}
+
+function tickBossMechanic(state, enemy, deltaSeconds) {
+  if (!enemy.mechanic || enemy.hp <= 0) {
+    return;
+  }
+  const battle = state.fortress.battle;
+
+  if (enemy.mechanic.kind === "aura") {
+    enemy.auraTimer = (enemy.auraTimer ?? 0) + deltaSeconds;
+    if (enemy.auraTimer < 1) {
+      return;
+    }
+    enemy.auraTimer -= 1;
+    const damage = enemy.mechanic.damagePerSecond;
+    for (const ally of battle.allies) {
+      if (ally.hp <= 0) {
+        continue;
+      }
+      if (getDistance(enemy, ally) <= enemy.mechanic.radius) {
+        ally.hp = clamp(ally.hp - damage, 0, ally.maxHp);
+        markHit(ally);
+      }
+    }
+    for (const building of state.fortress.buildings) {
+      if (building.hp <= 0) {
+        continue;
+      }
+      if (distanceToBuildingEdge(enemy, building) <= enemy.mechanic.radius) {
+        building.hp = clamp(building.hp - damage, 0, building.maxHp);
+        markHit(building);
+      }
+    }
+    return;
+  }
+
+  if (enemy.mechanic.kind === "summon") {
+    enemy.summonTimer = (enemy.summonTimer ?? enemy.mechanic.intervalSeconds) - deltaSeconds;
+    if (enemy.summonTimer <= 0) {
+      const summon = createFortressEnemy(state, enemy.mechanic.archetype);
+      summon.x = enemy.x + 0.4;
+      summon.y = enemy.y + 0.2;
+      battle.enemies.push(summon);
+      enemy.summonTimer = enemy.mechanic.intervalSeconds;
     }
   }
 }
@@ -547,9 +686,29 @@ function finishBattle(state, result) {
   state.fortress.battle.allies = [];
   state.fortress.battle.projectiles = [];
 
-  for (const building of state.fortress.buildings) {
-    building.hp = building.maxHp;
-    building.cooldownTimer = 0;
+  if (result === "defeat") {
+    const postDefeatHpFraction = CONFIG.attrition?.postDefeatHpFraction ?? 0.4;
+    const floorPerDefeat = CONFIG.attrition?.floorPerDefeat ?? 0;
+    for (const building of state.fortress.buildings) {
+      if (building.hp > 0) {
+        building.cooldownTimer = 0;
+        continue;
+      }
+      // Attrition: each defeat adds floorPerDefeat to damageFloor. Restore fraction
+      // shrinks as damageFloor grows. maxHp is untouched — repair or victory clears
+      // the floor and brings hp back to full.
+      building.damageFloor = (building.damageFloor ?? 0) + floorPerDefeat;
+      const restoreFraction = Math.max(0, postDefeatHpFraction - building.damageFloor);
+      building.hp = Math.max(1, Math.floor(building.maxHp * restoreFraction));
+      building.cooldownTimer = 0;
+    }
+  } else {
+    // Victory clears attrition entirely: all buildings restored to full and damageFloor reset.
+    for (const building of state.fortress.buildings) {
+      building.damageFloor = 0;
+      building.hp = building.maxHp;
+      building.cooldownTimer = 0;
+    }
   }
 
   if (result === "victory") {
@@ -566,6 +725,12 @@ function finishBattle(state, result) {
       syncFortressBuildingUnlocks(state);
       state.fortress.message = `Victory. +${victoryGold} gold bonus.`;
       rollUpgradeChoices(state);
+      const nextWave = CONFIG.fortressWaves[state.fortress.waveNumber - 1];
+      const bonus = nextWave?.startBonusGold ?? 0;
+      const window = nextWave?.startBonusWindowSeconds ?? 0;
+      state.fortress.earlyStart = bonus > 0 && window > 0
+        ? { remaining: window, window, bonus }
+        : null;
     }
   } else {
     const earnedGold = state.fortress.battle.goldEarned ?? 0;
@@ -573,6 +738,8 @@ function finishBattle(state, result) {
   }
 
   clearWorkerBattleShifts(state);
+  // Workers who sat out this battle in reserve earn a rest flag for the next one.
+  markReserveWorkersRested(state);
 }
 
 function updateBattleMessage(state) {
@@ -597,12 +764,19 @@ function updateBattleMessage(state) {
 export function tickFortressBattle(state, deltaSeconds) {
   const battle = state.fortress.battle;
   if (!battle.active) {
+    if (state.fortress.earlyStart) {
+      state.fortress.earlyStart.remaining = Math.max(0, state.fortress.earlyStart.remaining - deltaSeconds);
+    }
     return;
   }
 
   tickSpawns(state, deltaSeconds);
+  tickBuildingActiveTimers(state, deltaSeconds);
   tickBuildingActions(state, deltaSeconds);
   tickEnemies(state, deltaSeconds);
+  for (const enemy of battle.enemies) {
+    tickBossMechanic(state, enemy, deltaSeconds);
+  }
   tickAllies(state, deltaSeconds);
   tickProjectiles(state, deltaSeconds);
   resolveUnitCollisions(state);

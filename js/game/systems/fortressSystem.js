@@ -1,5 +1,6 @@
 import { CONFIG, getFortressBuildingUnlockWave } from "../config.js";
 import { clamp, generateId } from "../utils.js";
+import { spawnAllyForBuilding, volleyFromBuilding } from "./fortressBattleSystem.js";
 
 export const FORTRESS_WIDTH = 5;
 export const FORTRESS_HEIGHT = 7;
@@ -64,6 +65,7 @@ export function createFortressState() {
     },
     pendingRewardDraft: null,
     buildingBuyDiscount: 1,
+    earlyStart: null,
     unlockedBuildingTypes: getUnlockedFortressBuildingTypes(1)
   };
 }
@@ -80,12 +82,116 @@ export function createFortressBuilding(type, origin) {
     tiles: footprint.map((tile) => ({ x: origin.x + tile.x, y: origin.y + tile.y })),
     hp: level.hp + baseHealthBonus,
     maxHp: level.hp + baseHealthBonus,
-    cooldownTimer: 0
+    damageFloor: 0,
+    cooldownTimer: 0,
+    activeCooldown: 0,
+    activeBoostRemaining: 0,
+    activeBoost: null,
+    shieldRemaining: 0,
+    shieldReduction: 0
   };
+}
+
+export function getBuildingActiveDefinition(building) {
+  const definition = CONFIG.fortressBuildings[building.type];
+  if (!definition || building.level !== definition.levels.length) {
+    return null;
+  }
+  const maxLevel = definition.levels[definition.levels.length - 1];
+  return maxLevel?.active ?? null;
+}
+
+export function getBuildingActiveCost(building) {
+  const active = getBuildingActiveDefinition(building);
+  return active?.cost ?? {};
+}
+
+export function triggerBuildingActive(state, buildingId) {
+  if (!state.fortress.battle.active) {
+    return { ok: false, reason: "Actives can only be used during battle." };
+  }
+  const building = state.fortress.buildings.find((item) => item.id === buildingId);
+  if (!building || building.hp <= 0) {
+    return { ok: false, reason: "Building not found." };
+  }
+  const active = getBuildingActiveDefinition(building);
+  if (!active) {
+    return { ok: false, reason: "This building has no active ability." };
+  }
+  if ((building.activeCooldown ?? 0) > 0) {
+    return { ok: false, reason: "Active is on cooldown." };
+  }
+  const cost = active.cost ?? {};
+  if (!canAffordResources(state.resources, cost)) {
+    return { ok: false, reason: "Not enough resources for this active." };
+  }
+  if (!spendResources(state.resources, cost)) {
+    return { ok: false, reason: "Not enough resources for this active." };
+  }
+
+  building.activeCooldown = active.cooldownSeconds;
+
+  const effect = active.effect ?? {};
+  if (effect.kind === "buildingDamageBoost") {
+    building.activeBoost = { multiplier: effect.multiplier };
+    building.activeBoostRemaining = effect.durationSeconds;
+  } else if (effect.kind === "spawnSquad") {
+    spawnAllyForBuilding(state, building, effect.unit, effect.count);
+  } else if (effect.kind === "volley") {
+    volleyFromBuilding(state, building, effect.count, effect.damage);
+  } else if (effect.kind === "frost") {
+    for (const enemy of state.fortress.battle.enemies) {
+      if (enemy.hp <= 0) {
+        continue;
+      }
+      enemy.frostRemaining = effect.durationSeconds;
+      enemy.frostMultiplier = effect.slowMultiplier;
+    }
+  } else if (effect.kind === "shield") {
+    const center = {
+      x: building.tiles.reduce((sum, tile) => sum + tile.x, 0) / building.tiles.length,
+      y: building.tiles.reduce((sum, tile) => sum + tile.y, 0) / building.tiles.length
+    };
+    for (const other of state.fortress.buildings) {
+      if (other.hp <= 0) {
+        continue;
+      }
+      const otherCenter = {
+        x: other.tiles.reduce((sum, tile) => sum + tile.x, 0) / other.tiles.length,
+        y: other.tiles.reduce((sum, tile) => sum + tile.y, 0) / other.tiles.length
+      };
+      const distance = Math.hypot(center.x - otherCenter.x, center.y - otherCenter.y);
+      if (distance <= effect.radius) {
+        other.shieldRemaining = effect.durationSeconds;
+        other.shieldReduction = effect.damageReduction;
+      }
+    }
+  }
+
+  const definition = CONFIG.fortressBuildings[building.type];
+  return { ok: true, reason: `${definition.name} used ${active.label}.` };
 }
 
 function getBaseHealthBonus(state) {
   return Math.max(0, state?.economy?.baseHealthBonus ?? 0);
+}
+
+export function getBuildingBaseHp(building) {
+  const definition = CONFIG.fortressBuildings[building.type];
+  return definition.levels[building.level - 1].hp;
+}
+
+export function getBuildingMaxHpCap(state, building) {
+  // Attrition never reduces maxHp — only current HP. See finishBattle: defeats leave hp low,
+  // maxHp stays as (baseHp + baseHealthBonus). Repair fills to full maxHp.
+  const baseHp = getBuildingBaseHp(building);
+  const bonusHp = getBaseHealthBonus(state);
+  return Math.max(1, baseHp + bonusHp);
+}
+
+export function applyBuildingAttrition(building, state) {
+  building.maxHp = getBuildingMaxHpCap(state, building);
+  building.hp = Math.min(building.hp, building.maxHp);
 }
 
 export function getTile(state, x, y) {
@@ -215,10 +321,93 @@ export function upgradeFortressBuilding(state, buildingId) {
     return { ok: false, reason: "Not enough resources for upgrade." };
   }
   building.level += 1;
+  building.damageFloor = 0;
   const bonusHp = getBaseHealthBonus(state);
   building.maxHp = nextLevel.hp + bonusHp;
   building.hp = nextLevel.hp + bonusHp;
   return { ok: true, reason: `${definition.name} upgraded to level ${building.level}.` };
+}
+
+export function getFortressRepairCost(state, building) {
+  const missing = building.maxHp - building.hp;
+  if (missing <= 0) {
+    return {};
+  }
+  const definition = CONFIG.fortressBuildings[building.type];
+  const buyCost = costEntries(definition?.buyCost ?? {});
+  const rate = CONFIG.attrition?.repairCostPerHpFractionOfBuyCost ?? 0;
+  if (buyCost.length === 0) {
+    return { wood: Math.max(1, Math.ceil(missing * 1)) };
+  }
+  return Object.fromEntries(
+    buyCost.map(([resourceKey, amount]) => [resourceKey, Math.max(1, Math.ceil(missing * rate * amount))])
+  );
+}
+
+export function repairFortressBuilding(state, buildingId) {
+  const building = state.fortress.buildings.find((item) => item.id === buildingId);
+  if (!building) {
+    return { ok: false, reason: "Building not found." };
+  }
+  if (building.type === "mine") {
+    return { ok: false, reason: "This building cannot be repaired." };
+  }
+  if (state.fortress.battle.active) {
+    return { ok: false, reason: "Cannot repair during battle." };
+  }
+  if (building.hp >= building.maxHp) {
+    return { ok: false, reason: "Building is already at full health." };
+  }
+  const cost = getFortressRepairCost(state, building);
+  if (!spendResources(state.resources, cost)) {
+    return { ok: false, reason: "Not enough resources to repair." };
+  }
+  building.hp = building.maxHp;
+  building.damageFloor = 0;
+  const definition = CONFIG.fortressBuildings[building.type];
+  return { ok: true, reason: `${definition.name} repaired.` };
+}
+
+export function mergeFortressBuildings(state, sourceId, targetId) {
+  const source = state.fortress.buildings.find((item) => item.id === sourceId);
+  const target = state.fortress.buildings.find((item) => item.id === targetId);
+  if (!source || !target) {
+    return { ok: false, reason: "Building not found." };
+  }
+  if (source.type !== target.type) {
+    return { ok: false, reason: "Buildings must be the same type to merge." };
+  }
+  if (source.type === "hq") {
+    return { ok: false, reason: "HQ cannot be merged." };
+  }
+  if (source.level !== target.level) {
+    return { ok: false, reason: "Buildings must be the same level to merge." };
+  }
+  const definition = CONFIG.fortressBuildings[target.type];
+  const nextLevel = definition.levels[target.level];
+  if (!nextLevel) {
+    return { ok: false, reason: "Building is already max level." };
+  }
+  if (state.fortress.battle.active) {
+    return { ok: false, reason: "Cannot merge during battle." };
+  }
+
+  clearBuilding(state, source);
+  state.fortress.buildings = state.fortress.buildings.filter((item) => item.id !== source.id);
+
+  target.level += 1;
+  target.damageFloor = 0;
+  const bonusHp = getBaseHealthBonus(state);
+  target.maxHp = nextLevel.hp + bonusHp;
+  target.hp = target.maxHp;
+  target.cooldownTimer = 0;
+  target.activeCooldown = 0;
+  target.activeBoostRemaining = 0;
+  target.activeBoost = null;
+  target.shieldRemaining = 0;
+  target.shieldReduction = 0;
+
+  return { ok: true, reason: `${definition.name} merged to level ${target.level}.` };
 }
 
 export function moveFortressBuilding(state, buildingId, origin) {

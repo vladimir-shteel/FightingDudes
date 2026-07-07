@@ -1,5 +1,6 @@
 import { CONFIG, getMineMaxLevel, getUnitLevelData } from "../config.js";
 import { applyFortressBaseHealthBonus } from "./fortressSystem.js";
+import { getCapstoneBattleDamageBonus } from "./workerTraitSystem.js";
 
 function shuffle(items) {
   const copy = [...items];
@@ -229,6 +230,7 @@ function upgradeFirstBuilding(state) {
   }
 
   building.level += 1;
+  building.damageFloor = 0;
   building.maxHp = nextLevel.hp + (state.economy.baseHealthBonus ?? 0);
   building.hp = building.maxHp;
   return { ok: true, reason: `${definition.name} upgraded to level ${building.level}.` };
@@ -437,8 +439,24 @@ export function getFortressBattleProductionMultiplier(state) {
   return Math.max(1, state.economy.battleProductionMultiplier ?? 1);
 }
 
+function getCommittedSkirmisherBonus(state) {
+  if (!state.fortress.battle.active) {
+    return 0;
+  }
+  let bonus = 0;
+  for (const mine of state.mines) {
+    for (const worker of mine.workerIds) {
+      if (worker?.battleShiftCommitted) {
+        bonus += getCapstoneBattleDamageBonus(worker);
+      }
+    }
+  }
+  return bonus;
+}
+
 export function getFortressDamageMultiplier(state) {
-  return Math.max(1, state.economy.damageMultiplier ?? 1);
+  const base = Math.max(1, state.economy.damageMultiplier ?? 1);
+  return base * (1 + getCommittedSkirmisherBonus(state));
 }
 
 export function getFortressDefenseMultiplier(state) {

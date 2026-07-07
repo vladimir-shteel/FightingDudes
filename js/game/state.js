@@ -26,6 +26,7 @@ export function createInitialState() {
       selectedUnitId: null,
       dragUnitId: null,
       fortressPopup: null,
+      workerActionPopup: null,
       handledResourceBurstIds: [],
       isCheatsOpen: false
     },

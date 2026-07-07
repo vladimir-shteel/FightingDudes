@@ -1,5 +1,9 @@
-"""Faithful port of the FightingDudes fortress battle engine for balance analysis."""
-import math, random, heapq
+"""Faithful port of the FightingDudes fortress battle engine for balance analysis.
+Data: Synced with fortress-enemies.json, fortress-waves.json (24 waves with composition).
+Boss mechanics (aura, summon, breach) stubbed where too complex.
+"""
+import math, random, heapq, json
+from pathlib import Path
 
 W, H = 5, 7
 REPATH = 0.4
@@ -8,16 +12,45 @@ COLL_R = 0.18
 PUSH = 1.0
 
 # --- config from data/ ---
+# Read from fortress-enemies.json if available; fallback to hardcoded.
+try:
+    data_dir = Path(__file__).parent.parent.parent / "data"
+    with open(data_dir / "fortress-enemies.json", encoding="utf-8") as f:
+        ENEMIES_DATA = json.load(f)
+except:
+    ENEMIES_DATA = {
+        "grunt":   dict(hp=28, attack=10, cd=0.8, rng=0.42, spd=0.95),
+        "runner":  dict(hp=18, attack=6, cd=0.7, rng=0.42, spd=1.55),
+        "armored": dict(hp=75, attack=13, cd=1.1, rng=0.42, spd=0.7),
+        "archerE": dict(hp=22, attack=9, cd=1.4, rng=2.4, spd=0.9),
+        "orcKing": dict(hp=420, attack=18, cd=1.1, rng=0.5, spd=0.65),
+        "necromancer": dict(hp=320, attack=12, cd=1.4, rng=2.0, spd=0.7),
+        "breacher": dict(hp=560, attack=26, cd=1.3, rng=0.45, spd=0.55),
+    }
+
+# Normalize to (hp, attack, cd, rng, spd) tuples for simulation
+def make_enemy_stats(archetype_key, wave=1):
+    """Get enemy stats, applying wave scaling if needed."""
+    base = ENEMIES_DATA.get(archetype_key, ENEMIES_DATA.get("grunt"))
+    hp = base.get("hp", 28)
+    attack = base.get("attack", 10)
+    cd = base.get("cooldownSeconds", 0.8)
+    rng = base.get("rangeTiles", 0.42)
+    spd = base.get("speedTilesPerSecond", 0.95)
+    # Wave scaling: matches fortressBattleSystem.createFortressEnemy exactly.
+    hp += 3 * (wave - 1)
+    attack += (wave - 1) // 3
+    return dict(hp=hp, attack=attack, cd=cd, rng=rng, spd=spd, archetype=archetype_key)
+
 FUNITS = {
   "warrior": dict(hp=42, attack=8, cd=0.75, rng=0.5, spd=1.45),
   "archer":  dict(hp=24, attack=7, cd=1.2, rng=2.6, spd=1.2),
   "rider":   dict(hp=58, attack=12, cd=1.1, rng=0.45, spd=1.9),
   "mage":    dict(hp=18, attack=10, cd=1.0, rng=2.4, spd=1.15),
-  "enemy":   dict(hp=28, attack=10, cd=0.8, rng=0.42, spd=0.95),
 }
 
-# building levels: for spawners -> unit+cd ; turret -> damage+cd ; mine -> damage
-BUILD = {
+# Prefer data/fortress-buildings.json — fallback to the frozen constants below if the file is missing.
+_BUILD_FALLBACK = {
   "hq":      dict(footprint=[(0,0),(1,0),(2,0),(0,1),(1,1),(2,1)], levels=[dict(hp=420)]),
   "wall":    dict(footprint=[(0,0)], levels=[dict(hp=65),dict(hp=135),dict(hp=260)]),
   "bigWall": dict(footprint=[(0,0),(1,0),(2,0)], levels=[dict(hp=140),dict(hp=260),dict(hp=440)]),
@@ -29,15 +62,59 @@ BUILD = {
   "mine":    dict(footprint=[(0,0)], levels=[dict(hp=1,damage=32),dict(hp=1,damage=54),dict(hp=1,damage=85)]),
 }
 
-WAVES = [
-  dict(enemyCount=4, spawn=1.15, killGold=3, victoryGold=12),
-  dict(enemyCount=6, spawn=1.0, killGold=3, victoryGold=16),
-  dict(enemyCount=8, spawn=0.9, killGold=4, victoryGold=22),
-  dict(enemyCount=11, spawn=0.8, killGold=4, victoryGold=28),
-  dict(enemyCount=14, spawn=0.7, killGold=5, victoryGold=36),
-  dict(enemyCount=18, spawn=0.65, killGold=5, victoryGold=48),
-  dict(enemyCount=24, spawn=0.55, killGold=6, victoryGold=64),
-]
+def _load_buildings():
+    try:
+        with open(data_dir / "fortress-buildings.json", encoding="utf-8") as f:
+            raw = json.load(f)
+        out = {}
+        for t, spec in raw.items():
+            footprint = [tuple(p) for p in spec.get("footprint", [[0, 0]])]
+            levels = []
+            for lv in spec.get("levels", []):
+                entry = {"hp": lv.get("hp", 1)}
+                if "cooldownSeconds" in lv:
+                    entry["cd"] = lv["cooldownSeconds"]
+                if "damage" in lv:
+                    entry["damage"] = lv["damage"]
+                if "unit" in lv:
+                    entry["unit"] = lv["unit"]
+                levels.append(entry)
+            out[t] = dict(footprint=footprint, levels=levels)
+        return out
+    except Exception:
+        return _BUILD_FALLBACK
+
+BUILD = _load_buildings()
+
+# Read fortress-waves.json for 24-wave structure with composition
+try:
+    with open(data_dir / "fortress-waves.json", encoding="utf-8") as f:
+        WAVES_RAW = json.load(f)
+    WAVES = []
+    for wave_data in WAVES_RAW:
+        # Normalize: composition expanded to enemyCount if missing
+        composition = wave_data.get("composition", [])
+        if not composition and "enemyCount" in wave_data:
+            composition = [{"archetype": "grunt", "count": wave_data["enemyCount"]}]
+        WAVES.append(dict(
+            enemyCount=wave_data.get("enemyCount", sum(c["count"] for c in composition)),
+            spawn=wave_data.get("spawnIntervalSeconds", 1.0),
+            killGold=wave_data.get("killGold", 1),
+            victoryGold=wave_data.get("victoryGold", 18),
+            composition=composition,
+            isBoss=wave_data.get("isBoss", False),
+        ))
+except:
+    # Fallback: 7 classic waves (old data)
+    WAVES = [
+      dict(enemyCount=4, spawn=1.15, killGold=3, victoryGold=12, composition=[{"archetype":"grunt","count":4}]),
+      dict(enemyCount=6, spawn=1.0, killGold=3, victoryGold=16, composition=[{"archetype":"grunt","count":6}]),
+      dict(enemyCount=8, spawn=0.9, killGold=4, victoryGold=22, composition=[{"archetype":"grunt","count":8}]),
+      dict(enemyCount=11, spawn=0.8, killGold=4, victoryGold=28, composition=[{"archetype":"grunt","count":11}]),
+      dict(enemyCount=14, spawn=0.7, killGold=5, victoryGold=36, composition=[{"archetype":"grunt","count":14}]),
+      dict(enemyCount=18, spawn=0.65, killGold=5, victoryGold=48, composition=[{"archetype":"grunt","count":18}]),
+      dict(enemyCount=24, spawn=0.55, killGold=6, victoryGold=64, composition=[{"archetype":"grunt","count":24}]),
+    ]
 
 def dist(a,b): return math.hypot(a['x']-b['x'], a['y']-b['y'])
 
@@ -106,11 +183,16 @@ def building_at_tile(buildings, tile):
         if b.hp>0 and tile in b.tiles: return b
     return None
 
-def make_enemy(wave, rng):
-    base=FUNITS['enemy']; wb=max(0,wave-1)
-    hp=base['hp']+wb*3
-    return dict(id=f"e{rng.random()}", hp=hp, maxHp=hp, attack=base['attack']+wb//3,
-                cd=base['cd'], at=0, rng=base['rng'], spd=base['spd'],
+def make_enemy(wave, rng, archetype="grunt"):
+    """Create an enemy with wave scaling and any boss mechanic descriptor."""
+    base = make_enemy_stats(archetype, wave)
+    # Mechanic is carried through so tick_boss can act on it (aura/summon/breach).
+    raw = ENEMIES_DATA.get(archetype, {})
+    mechanic = raw.get("mechanic")
+    summon_timer = mechanic.get("intervalSeconds", 0) if mechanic and mechanic.get("kind") == "summon" else 0
+    return dict(id=f"e{rng.random()}", hp=base['hp'], maxHp=base['hp'], attack=base['attack'],
+                cd=base['cd'], at=0, rng=base['rng'], spd=base['spd'], archetype=archetype,
+                mechanic=mechanic, auraTimer=0, summonTimer=summon_timer,
                 x=rng.random()*(W-0.5)+0.25, y=-0.45, path=None, ptimer=0, ptid=None, ctid=None)
 
 def make_ally(utype, origin):
@@ -132,6 +214,39 @@ def nearest(src, items):
         if d<bd: best=it; bd=d
     return (best,bd) if best else None
 
+def tick_boss_mechanic(e, dt, enemies, allies, buildings, wave_num, rng):
+    """Port of fortressBattleSystem.tickBossMechanic. Aura ticks once/sec; summon spawns on interval.
+    Breach is handled inline at the attack site (multiplier vs buildings)."""
+    m = e.get('mechanic')
+    if not m or e['hp'] <= 0:
+        return
+    kind = m.get("kind")
+    if kind == "aura":
+        e['auraTimer'] = e.get('auraTimer', 0) + dt
+        if e['auraTimer'] < 1:
+            return
+        e['auraTimer'] -= 1
+        dmg = m.get("damagePerSecond", 0)
+        rad = m.get("radius", 0)
+        for a in allies:
+            if a['hp'] <= 0:
+                continue
+            if math.hypot(a['x']-e['x'], a['y']-e['y']) <= rad:
+                a['hp'] = max(0, a['hp'] - dmg)
+        for b in buildings:
+            if b.hp <= 0:
+                continue
+            if edge_dist(e, b) <= rad:
+                b.hp = max(0, b.hp - dmg)
+    elif kind == "summon":
+        e['summonTimer'] = e.get('summonTimer', m.get("intervalSeconds", 6)) - dt
+        if e['summonTimer'] <= 0:
+            spawn = make_enemy(wave_num, rng, m.get("archetype", "grunt"))
+            spawn['x'] = e['x'] + 0.4
+            spawn['y'] = e['y'] + 0.2
+            enemies.append(spawn)
+            e['summonTimer'] = m.get("intervalSeconds", 6)
+
 def follow_path(a, dt):
     if not a['path']: return False
     wp=a['path'][0]
@@ -145,17 +260,27 @@ def simulate(buildings, wave_num, rng, max_time=90.0, dt=0.1):
     wave=WAVES[wave_num-1]
     enemies=[]; allies=[]; projectiles=[]
     for b in buildings: b.hp=b.maxHp; b.cd=0.5
-    to_spawn=wave['enemyCount']; spawn_timer=0.0
+    # Expand composition into spawn queue
+    spawn_queue = []
+    for comp in wave.get("composition", []):
+        archetype = comp.get("archetype", "grunt")
+        count = comp.get("count", 1)
+        spawn_queue.extend([archetype] * count)
+    rng.shuffle(spawn_queue)
+    spawn_idx = 0; spawn_timer = 0.0
     gold=0; killed=0
     t=0.0
     hq=next(b for b in buildings if b.type=='hq')
     while t<max_time:
         t+=dt
         # spawns
-        if to_spawn>0:
+        if spawn_idx < len(spawn_queue):
             spawn_timer-=dt
             if spawn_timer<=0:
-                enemies.append(make_enemy(wave_num,rng)); to_spawn-=1; spawn_timer=wave['spawn']
+                archetype = spawn_queue[spawn_idx]
+                enemies.append(make_enemy(wave_num, rng, archetype))
+                spawn_idx += 1
+                spawn_timer = wave['spawn']
         # building actions
         for b in buildings:
             if b.hp<=0: continue
@@ -201,7 +326,10 @@ def simulate(buildings, wave_num, rng, max_time=90.0, dt=0.1):
                 e['path']=None
                 e['at']-=dt
                 if e['at']<=0:
-                    bestb.hp=max(0,bestb.hp-e['attack']); e['at']=e['cd']
+                    # Breacher multiplies damage vs buildings (matches inline breachMult in fortressBattleSystem.tickEnemies).
+                    mech = e.get('mechanic')
+                    breach_mult = mech.get("damageMultVsBuildings", 1) if mech and mech.get("kind") == "breach" else 1
+                    bestb.hp=max(0,bestb.hp-e['attack']*breach_mult); e['at']=e['cd']
                 continue
             # path
             e['ptimer']-=dt
@@ -251,6 +379,9 @@ def simulate(buildings, wave_num, rng, max_time=90.0, dt=0.1):
                 else:
                     tgt[0]['hp']-=a['attack']
                 a['at']=a['cd']
+        # boss mechanics (aura / summon). Breach is handled inline in the enemy attack branch.
+        for e in enemies:
+            tick_boss_mechanic(e, dt, enemies, allies, buildings, wave_num, rng)
         # projectiles
         for p in projectiles:
             tg=p['target']
@@ -282,7 +413,7 @@ def simulate(buildings, wave_num, rng, max_time=90.0, dt=0.1):
         if hq.hp<=0:
             return dict(result='defeat', time=t, gold=gold, killed=killed, hq=0,
                         allies_alive=len(allies))
-        if to_spawn<=0 and len(enemies)==0:
+        if spawn_idx>=len(spawn_queue) and len(enemies)==0:
             gold+=wave['victoryGold']
             return dict(result='victory', time=t, gold=gold, killed=killed, hq=hq.hp,
                         allies_alive=len(allies))
@@ -290,3 +421,8 @@ def simulate(buildings, wave_num, rng, max_time=90.0, dt=0.1):
     return dict(result='timeout', time=t, gold=gold, killed=killed, hq=hq.hp,
                 allies_alive=len([a for a in allies if a['hp']>0]),
                 enemies_left=len([e for e in enemies if e['hp']>0]))
+
+# Boss mechanics implemented above:
+# - orcKing aura: tick_boss_mechanic(kind="aura") — 1Hz DPS to allies/buildings in radius.
+# - necromancer summon: tick_boss_mechanic(kind="summon") — spawn near boss on interval.
+# - breacher: inline in enemy attack branch — attack × damageMultVsBuildings vs buildings.

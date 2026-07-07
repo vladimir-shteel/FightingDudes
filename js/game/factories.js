@@ -17,7 +17,10 @@ export function createReserveUnit(level = 1, options = {}) {
     baseAttack: levelData.baseAttack,
     baseAttackSpeed: levelData.baseAttackSpeed,
     traits: normalizeTraitVector(options.traits ?? rollWorkerTraitVector()),
-    battleShiftCommitted: false
+    battleShiftCommitted: false,
+    isRested: options.isRested ?? false,
+    capstone: options.capstone ?? null,
+    pendingCapstone: options.pendingCapstone ?? null
   };
 }
 

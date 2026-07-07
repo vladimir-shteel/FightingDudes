@@ -1,28 +1,25 @@
 """For each wave, test a ladder of realistic defenses -> win rate + resource cost.
-Reveals the 'power needed' curve and whether the difficulty ramp matches the design target."""
-import random
-from battle_sim import Building, simulate
+Reveals the 'power needed' curve and whether the difficulty ramp matches the design target.
+Buildings are now merge-upgraded (2 copies of Lv N → 1 copy of Lv N+1). Cost of Lv N = 2^(N-1) × buyCost.
+Loops all 24 waves."""
+import random, json
+from pathlib import Path
+from battle_sim import Building, simulate, WAVES
 
-BUY_COST=dict(
- barracks=dict(wood=150,ore=75), archery=dict(wood=360,ore=180),
- turret=dict(ore=420,iron=220), stables=dict(wood=520,iron=260),
- mageTower=dict(ore=560,crystal=260), wall=dict(wood=90), bigWall=dict(wood=420,ore=220),
- mine=dict(iron=160),
-)
-UP_COST=dict(
- barracks=[dict(wood=330,ore=190),dict(wood=560,ore=360,iron=160)],
- turret=[dict(ore=620,iron=360),dict(ore=960,iron=620)],
- archery=[dict(wood=640,ore=260,crystal=180),dict(wood=980,crystal=520)],
- stables=[dict(wood=780,iron=460),dict(wood=1080,iron=720,crystal=240)],
- mageTower=[dict(ore=820,crystal=460),dict(ore=1160,crystal=760)],
-)
+# Read building buy costs from data file
+data_dir = Path(__file__).parent.parent.parent / "data"
+with open(data_dir / "fortress-buildings.json", encoding="utf-8") as f:
+    BLD_DATA = json.load(f)
+
+BUY_COST = {t: dict(BLD_DATA[t].get("buyCost", {})) for t in BLD_DATA if t != "hq"}
 
 def cost_of(specs):
+    """Merge-based cost: Lv N of a building = 2^(N-1) copies bought at buyCost."""
     tot=dict(wood=0,ore=0,iron=0,crystal=0)
     for t,l,o in specs:
-        for k,v in BUY_COST[t].items(): tot[k]+=v
-        for lvl in range(1,l):
-            for k,v in UP_COST[t][lvl-1].items(): tot[k]+=v
+        multiplier = 2 ** (l - 1)
+        for k,v in BUY_COST[t].items():
+            tot[k] = tot.get(k, 0) + v * multiplier
     return tot
 
 def winrate(specs, wave, seeds=15):
@@ -48,7 +45,7 @@ LADDER=[
  ("max stack",              [('barracks',3,(0,2)),('barracks',3,(3,2)),('barracks',3,(0,0)),('archery',2,(2,0)),('turret',3,(2,3)),('turret',3,(0,4)),('turret',3,(4,4)),('stables',2,(3,4))]),
 ]
 
-for wave in range(1,8):
+for wave in range(1, len(WAVES) + 1):
     print(f"\n===== WAVE {wave} =====")
     print(f"  {'build':24} {'win%':>5} {'avgHQ':>6} {'avgT':>5}  cost(w/o/i/c)")
     for name,specs in LADDER:

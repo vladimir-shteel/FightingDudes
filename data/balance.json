@@ -22,7 +22,8 @@
   "workerTraits": {
     "mergeBonusPoints": 1,
     "battleShift": {
-      "baseMultiplier": 1.75
+      "baseMultiplier": 1.75,
+      "maxCommitsPerMine": 2
     },
     "lines": {
       "yield": {
@@ -43,10 +44,33 @@
         "rollWeight": 1,
         "battleMultiplierPerPoint": 0.08
       }
+    },
+    "capstones": {
+      "yield": [
+        {"id":"yield-master","label":"Yield Master","description":"Slot production +100%.","effect":{"kind":"yieldMul","value":2.0}},
+        {"id":"deep-vein","label":"Deep Vein","description":"Double demand bonus.","effect":{"kind":"demandMul","value":2.0}}
+      ],
+      "golden": [
+        {"id":"midas","label":"Midas Touch","description":"Convert 25% of production to gold on top of existing.","effect":{"kind":"goldenConversion","value":0.25}},
+        {"id":"trickle","label":"Golden Trickle","description":"+1 gold/sec passive.","effect":{"kind":"passiveGold","value":1}}
+      ],
+      "rush": [
+        {"id":"warmind","label":"Warmind","description":"Battle shift multiplier +2.0.","effect":{"kind":"rushBonus","value":2.0}},
+        {"id":"skirmish","label":"Skirmisher","description":"Committed workers grant temporary damage +20% during battle.","effect":{"kind":"battleDamageBonus","value":0.2}}
+      ],
+      "hybrid": [
+        {"id":"foreman","label":"Foreman (Y+G)","description":"+40% production, +8% goldenConversion.","effect":{"kind":"foreman"}},
+        {"id":"warlord","label":"Warlord (R+Y)","description":"+50% production during battle shift.","effect":{"kind":"warlord"}}
+      ]
     }
   },
   "merge": {
     "maxLevel": 5
+  },
+  "attrition": {
+    "floorPerDefeat": 0.2,
+    "postDefeatHpFraction": 0.4,
+    "repairCostPerHpFractionOfBuyCost": 0.02
   },
   "rewardDraft": {
     "permanent": {

@@ -1,13 +1,42 @@
-"""Pacing proposal: ~20 waves, exponential unit cost (soft-cap on labor), gold ONLY from battle.
-Goal: prep (mining downtime) per wave in a healthy ~40-75s band, total loop ~20-30 min."""
-import math
+"""Pacing proposal: 24 waves, exponential unit cost (soft-cap on labor), gold ONLY from battle.
+Goal: prep (mining downtime) per wave in a healthy ~40-75s band, total loop ~20-30 min.
+Data synced with data/balance.json, fortress-waves.json (24 waves, boss waves 5/10/15/20)."""
+import math, json
+from pathlib import Path
 
-WORKER_PROD={1:6,2:13,3:28,4:60,5:126,6:255,7:510}
-COLLECT=4.0
+# Read production stats and balance parameters
+try:
+    data_dir = Path(__file__).parent.parent.parent / "data"
+    with open(data_dir / "balance.json", encoding="utf-8") as f:
+        balance_data = json.load(f)
+    with open(data_dir / "mine-levels.json", encoding="utf-8") as f:
+        mine_data = json.load(f)
+    with open(data_dir / "fortress-waves.json", encoding="utf-8") as f:
+        waves_data = json.load(f)
+
+    WORKER_PROD = {int(k): v for k, v in mine_data.get("workerProductionByLevel", {1:6,2:13,3:28,4:60,5:126,6:255,7:510}).items()}
+    COLLECT = mine_data.get("collectionIntervalSeconds", 4.0)
+    BASE = balance_data.get("unitBuyBaseCost", 5)
+    EXP = balance_data.get("unitBuyExponent", 1.05)
+    N_WAVES = len(waves_data)
+    TRAIT_YIELD_MUL = balance_data.get("workerTraits", {}).get("lines", {}).get("yield", {}).get("resourceMultiplierPerPoint", 0.06)
+    PRODUCTION_MULT_BATTLE = balance_data.get("productionMultipliers", {}).get("battle", 1.5)
+    WAVE_DEMAND_MULT = balance_data.get("waveDemand", {}).get("slotProductionMultiplier", 1.25)
+    # Map resource key → mine index used throughout this sim (0=wood, 1=ore, 2=iron, 3=crystal).
+    RES_KEYS = ["wood", "ore", "iron", "crystal"]
+    DEMAND_BY_WAVE = {i + 1: RES_KEYS.index(w["demandResource"]) if w.get("demandResource") in RES_KEYS else None
+                     for i, w in enumerate(waves_data)}
+except:
+    WORKER_PROD={1:6,2:13,3:28,4:60,5:126,6:255,7:510}
+    COLLECT=4.0
+    BASE=5; EXP=1.05
+    N_WAVES=24
+    TRAIT_YIELD_MUL = 0.06
+    PRODUCTION_MULT_BATTLE = 1.5
+    WAVE_DEMAND_MULT = 1.25
+    DEMAND_BY_WAVE = {}
+
 SLOT_MULT={1:[1],2:[1,1.1],3:[1,1.1,1.25],4:[1,1.1,1.25,1.45],5:[1,1.1,1.25,1.45,1.7]}
-BASE=5; EXP=1.05
-
-N_WAVES=20
 
 def base_equiv(level): return 2**(level-1)
 
@@ -15,17 +44,25 @@ class E:
     def __init__(self):
         self.gold=65; self.res=[70,35,0,0]
         self.unlocked=[True,True,False,False]; self.slots=[1,1,1,1]; self.workers=[[],[],[],[]]
-        self.reserve=[]; self.merge_cap=5
+        self.reserve=[]
+        # Merge cap is a HARD ceiling in the game (balance.json merge.maxLevel = 5).
+        # There's no in-game path to raise it; keep the sim faithful.
+        self.merge_cap = balance_data.get("merge", {}).get("maxLevel", 5) if 'balance_data' in globals() else 5
     def E_owned(self):
         return sum(base_equiv(w) for k in range(4) for w in self.workers[k]) + sum(base_equiv(w) for w in self.reserve)
     def buycost(self): return max(1, math.floor(BASE * EXP**self.E_owned()))
-    def prod(self):
+    def prod(self, wave=None):
         out=[0,0,0,0]
+        demand_k = DEMAND_BY_WAVE.get(wave) if wave is not None else None
         for k in range(4):
             if not self.unlocked[k]: continue
             m=SLOT_MULT[self.slots[k]]
+            # Wave-demand bonus applies to every slot of the highlighted mine.
+            demand_mul = WAVE_DEMAND_MULT if demand_k == k else 1.0
             for i,lvl in enumerate(sorted(self.workers[k],reverse=True)):
-                out[k]+=WORKER_PROD[lvl]/COLLECT*m[i]
+                # Approximate trait yield mul: dominant line accumulates ~level pts on avg after merges.
+                trait_mul = 1 + lvl * TRAIT_YIELD_MUL
+                out[k]+=WORKER_PROD[lvl]/COLLECT*m[i]*trait_mul*demand_mul
         return out
     def merge(self):
         ch=True
@@ -66,7 +103,7 @@ def run(reward_fn, cost_fn, target_prep=55, verbose=True):
         e.merge(); e.rebalance(needk or [0,1])
         prep=0
         while prep<600:
-            p=e.prod()
+            p=e.prod(wave)
             for k in range(4): e.res[k]+=p[k]
             prep+=1; t+=1
             if all(e.res[k]>=need[k]-spent[k] for k in range(4)): break
@@ -76,7 +113,17 @@ def run(reward_fn, cost_fn, target_prep=55, verbose=True):
         preps.append(prep)
         roster=sorted([w for k in range(4) for w in e.workers[k]],reverse=True)
         rows.append((wave, prep, round(t), e.buycost(), "+".join(f"L{x}" for x in roster) or "-",
-                     [round(x) for x in e.prod()]))
+                     [round(x) for x in e.prod(wave)]))
+        # Early-start bonus: wave-config linear decay from startBonusGold at t=window down to 0.
+        try:
+            wcfg = waves_data[wave - 1]
+            eb_gold = wcfg.get("startBonusGold", 0)
+            eb_win = wcfg.get("startBonusWindowSeconds", 0)
+            if eb_gold > 0 and eb_win > 0:
+                remaining = max(0, eb_win - prep)
+                e.gold += round(eb_gold * remaining / eb_win)
+        except:
+            pass
         e.gold+=reward_fn(wave)
         # unlock mines AHEAD of demand so workers can pre-stock (iron needed@5, crystal@10)
         if not e.unlocked[2] and wave>=3: e.unlocked[2]=True
@@ -84,7 +131,7 @@ def run(reward_fn, cost_fn, target_prep=55, verbose=True):
         else:
             cand=[k for k in (needk or [1]) if e.unlocked[k] and e.slots[k]<5]
             if cand: cand.sort(key=lambda k:e.slots[k]); e.slots[cand[0]]+=1
-            elif e.merge_cap<7: e.merge_cap+=1
+            # merge_cap stays pinned — no in-game path to lift it.
     if verbose:
         print(f"{'W':>2} {'prep':>4} {'clock':>5} {'buy$':>4} {'roster':>18} {'prod w/o/i/c':>16}")
         for wave,prep,t2,bc,ros,pr in rows:
@@ -125,6 +172,6 @@ if __name__ == "__main__":
               f"| band {min(preps)}-{max(preps)}s | stalls>2min: {stalls}")
     print("\n" + "="*74)
     print(f"DETAILED RUN at recommended COST_SCALE={COST_SCALE}")
-    print("(20 waves, exp unit cost 1.05, gold-only-from-battle, boss every 5)")
+    print(f"({N_WAVES} waves, exp unit cost {EXP}, gold-only-from-battle, boss every 5)")
     print("="*74)
     run(reward, cost)

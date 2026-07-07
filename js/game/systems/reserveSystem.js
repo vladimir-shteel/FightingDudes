@@ -1,6 +1,6 @@
 import { CONFIG } from "../config.js";
 import { createReserveUnit } from "../factories.js";
-import { isWorkerBattleShiftLocked, mergeWorkerTraitVectors } from "./workerTraitSystem.js";
+import { isWorkerBattleShiftLocked, mergeWorkerTraitVectors, pickCapstoneCandidates } from "./workerTraitSystem.js";
 
 function getWorkerPower(unit) {
   const level = Math.max(1, unit?.level ?? 1);
@@ -71,8 +71,11 @@ export function mergeReservePair(state, firstUnitId, secondUnitId) {
     return { ok: false, reason: "This unit has reached max merge level." };
   }
 
-  const higherLevelUnit = createReserveUnit(first.level + 1, {
-    traits: mergeWorkerTraitVectors(first.traits, second.traits)
+  const mergedLevel = first.level + 1;
+  const mergedTraits = mergeWorkerTraitVectors(first.traits, second.traits);
+  const higherLevelUnit = createReserveUnit(mergedLevel, {
+    traits: mergedTraits,
+    pendingCapstone: mergedLevel === CONFIG.merge.maxLevel ? pickCapstoneCandidates(mergedTraits) : null
   });
   const keptUnits = state.reserveUnits.filter(
     (unit) => unit.id !== firstUnitId && unit.id !== secondUnitId
@@ -84,33 +87,30 @@ export function mergeReservePair(state, firstUnitId, secondUnitId) {
 }
 
 export function massMergeReserve(state) {
-  let didMerge = false;
   let mergedCount = 0;
 
   while (true) {
+    // Only pair workers that are actually mergeable: below max level and not
+    // locked into a battle shift. Iterating over all reserve units and breaking
+    // on the first failing pair used to stop the whole run whenever a
+    // committed worker was in the middle of the pile.
     const groups = new Map();
     for (const unit of state.reserveUnits) {
-      if (!groups.has(unit.level)) {
-        groups.set(unit.level, []);
-      }
+      if (unit.level >= CONFIG.merge.maxLevel) continue;
+      if (isWorkerBattleShiftLocked(state, unit)) continue;
+      if (!groups.has(unit.level)) groups.set(unit.level, []);
       groups.get(unit.level).push(unit.id);
     }
 
-    const mergeableLevel = [...groups.entries()].find(([, unitIds]) => unitIds.length >= 2)?.[0];
-    if (!mergeableLevel) {
-      break;
-    }
+    const pair = [...groups.values()].find((ids) => ids.length >= 2);
+    if (!pair) break;
 
-    const [firstUnitId, secondUnitId] = groups.get(mergeableLevel);
-    const result = mergeReservePair(state, firstUnitId, secondUnitId);
-    if (!result.ok) {
-      break;
-    }
-    didMerge = true;
+    const result = mergeReservePair(state, pair[0], pair[1]);
+    if (!result.ok) break;
     mergedCount += 1;
   }
 
-  return didMerge
+  return mergedCount > 0
     ? { ok: true, reason: `Mass merge completed: ${mergedCount} merge(s).` }
     : { ok: false, reason: "No matching reserve pairs found." };
 }

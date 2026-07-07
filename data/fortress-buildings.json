@@ -18,7 +18,16 @@
     "levels": [
       { "hp": 65, "upgradeCost": { "wood": 180 } },
       { "hp": 135, "upgradeCost": { "wood": 300, "ore": 140 } },
-      { "hp": 260 }
+      {
+        "hp": 260,
+        "active": {
+          "id": "shieldNearby",
+          "label": "Shield",
+          "cooldownSeconds": 20,
+          "cost": { "wood": 20 },
+          "effect": { "kind": "shield", "radius": 2.0, "durationSeconds": 5, "damageReduction": 0.5 }
+        }
+      }
     ]
   },
   "bigWall": {
@@ -30,7 +39,16 @@
     "levels": [
       { "hp": 140, "upgradeCost": { "wood": 640, "ore": 320 } },
       { "hp": 260, "upgradeCost": { "wood": 980, "ore": 560 } },
-      { "hp": 440 }
+      {
+        "hp": 440,
+        "active": {
+          "id": "shieldNearby",
+          "label": "Shield",
+          "cooldownSeconds": 20,
+          "cost": { "wood": 40 },
+          "effect": { "kind": "shield", "radius": 2.8, "durationSeconds": 6, "damageReduction": 0.5 }
+        }
+      }
     ]
   },
   "barracks": {
@@ -42,7 +60,18 @@
     "levels": [
       { "hp": 70, "cooldownSeconds": 7, "unit": "warrior", "upgradeCost": { "wood": 330, "ore": 190 } },
       { "hp": 80, "cooldownSeconds": 5.5, "unit": "warrior", "upgradeCost": { "wood": 560, "ore": 360, "iron": 160 } },
-      { "hp": 80, "cooldownSeconds": 4, "unit": "warrior" }
+      {
+        "hp": 80,
+        "cooldownSeconds": 4,
+        "unit": "warrior",
+        "active": {
+          "id": "spawnSquad",
+          "label": "Rally Squad",
+          "cooldownSeconds": 22,
+          "cost": { "wood": 40 },
+          "effect": { "kind": "spawnSquad", "unit": "warrior", "count": 3 }
+        }
+      }
     ]
   },
   "archery": {
@@ -55,7 +84,18 @@
     "levels": [
       { "hp": 60, "cooldownSeconds": 9, "unit": "archer", "upgradeCost": { "wood": 640, "ore": 260, "crystal": 180 } },
       { "hp": 70, "cooldownSeconds": 7.5, "unit": "archer", "upgradeCost": { "wood": 980, "crystal": 520 } },
-      { "hp": 70, "cooldownSeconds": 6, "unit": "archer" }
+      {
+        "hp": 70,
+        "cooldownSeconds": 6,
+        "unit": "archer",
+        "active": {
+          "id": "volley",
+          "label": "Volley",
+          "cooldownSeconds": 18,
+          "cost": { "crystal": 20 },
+          "effect": { "kind": "volley", "count": 3, "damage": 22 }
+        }
+      }
     ]
   },
   "turret": {
@@ -68,7 +108,18 @@
     "levels": [
       { "hp": 55, "damage": 10, "cooldownSeconds": 1.25, "upgradeCost": { "ore": 620, "iron": 360 } },
       { "hp": 65, "damage": 17, "cooldownSeconds": 1.05, "upgradeCost": { "ore": 960, "iron": 620 } },
-      { "hp": 70, "damage": 26, "cooldownSeconds": 0.9 }
+      {
+        "hp": 70,
+        "damage": 26,
+        "cooldownSeconds": 0.9,
+        "active": {
+          "id": "overcharge",
+          "label": "Overcharge",
+          "cooldownSeconds": 20,
+          "cost": { "iron": 30 },
+          "effect": { "kind": "buildingDamageBoost", "durationSeconds": 6, "multiplier": 2.5 }
+        }
+      }
     ]
   },
   "stables": {
@@ -81,7 +132,18 @@
     "levels": [
       { "hp": 75, "cooldownSeconds": 9, "unit": "rider", "upgradeCost": { "wood": 780, "iron": 460 } },
       { "hp": 80, "cooldownSeconds": 7.5, "unit": "rider", "upgradeCost": { "wood": 1080, "iron": 720, "crystal": 240 } },
-      { "hp": 80, "cooldownSeconds": 6, "unit": "rider" }
+      {
+        "hp": 80,
+        "cooldownSeconds": 6,
+        "unit": "rider",
+        "active": {
+          "id": "charge",
+          "label": "Charge",
+          "cooldownSeconds": 25,
+          "cost": { "iron": 30 },
+          "effect": { "kind": "spawnSquad", "unit": "rider", "count": 2 }
+        }
+      }
     ]
   },
   "mageTower": {
@@ -94,7 +156,18 @@
     "levels": [
       { "hp": 55, "cooldownSeconds": 10, "unit": "mage", "upgradeCost": { "ore": 820, "crystal": 460 } },
       { "hp": 65, "cooldownSeconds": 8, "unit": "mage", "upgradeCost": { "ore": 1160, "crystal": 760 } },
-      { "hp": 70, "cooldownSeconds": 6, "unit": "mage" }
+      {
+        "hp": 70,
+        "cooldownSeconds": 6,
+        "unit": "mage",
+        "active": {
+          "id": "frost",
+          "label": "Frost Nova",
+          "cooldownSeconds": 24,
+          "cost": { "crystal": 25 },
+          "effect": { "kind": "frost", "durationSeconds": 4, "slowMultiplier": 0.4 }
+        }
+      }
     ]
   },
   "mine": {

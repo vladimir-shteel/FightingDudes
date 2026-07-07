@@ -15,6 +15,7 @@ export const CONFIG = {
   },
   fortressBuildings: {},
   fortressUnits: {},
+  fortressEnemies: {},
   fortressWaves: [],
   unitLevels: [],
   mine: {
@@ -37,18 +38,20 @@ async function fetchJson(fileName) {
 }
 
 export async function initConfig() {
-  const [balance, unitLevels, mineLevels, fortressBuildings, fortressUnits, fortressWaves] = await Promise.all([
+  const [balance, unitLevels, mineLevels, fortressBuildings, fortressUnits, fortressEnemies, fortressWaves] = await Promise.all([
     fetchJson("balance.json"),
     fetchJson("unit-levels.json"),
     fetchJson("mine-levels.json"),
     fetchJson("fortress-buildings.json"),
     fetchJson("fortress-units.json"),
+    fetchJson("fortress-enemies.json"),
     fetchJson("fortress-waves.json")
   ]);
 
   Object.assign(CONFIG, balance, {
     fortressBuildings,
     fortressUnits,
+    fortressEnemies,
     fortressWaves,
     unitLevels: unitLevels.levels,
     mine: mineLevels
@@ -93,6 +96,10 @@ export function getMineSlotBuyCost(resourceKey, slotIndex) {
 
 export function getFortressBuildingUnlockWave(type) {
   return CONFIG.fortressBuildings[type]?.unlockWave ?? 1;
+}
+
+export function getFortressEnemy(archetypeKey) {
+  return CONFIG.fortressEnemies[archetypeKey] ?? null;
 }
 
 export function getResourceLabel(resourceKey) {
