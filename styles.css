@@ -210,6 +210,11 @@ h3 {
   line-height: 1;
 }
 
+.resource-chip.is-demand-resource {
+  outline: 3px solid rgba(255, 227, 139, 0.72);
+  box-shadow: 0 0 0 5px rgba(107, 63, 13, 0.18), var(--shadow);
+}
+
 .resource-chip[data-resource-chip="gold"] {
   background: linear-gradient(180deg, #fff7c7 0%, #ffe38b 100%);
 }
@@ -500,6 +505,11 @@ h3 {
   border: 1px solid var(--line);
 }
 
+.mine-card.is-demand-resource {
+  border-color: rgba(255, 210, 72, 0.9);
+  box-shadow: inset 0 0 0 2px rgba(255, 227, 139, 0.28);
+}
+
 .mine-card[data-resource-key="ore"],
 .mine-card[data-resource-key="wood"],
 .mine-card[data-resource-key="crystal"],
@@ -615,6 +625,11 @@ h3 {
   background: rgba(255, 242, 205, 0.18);
   font-size: 10px;
   color: #fff6e6;
+}
+
+.demand-tag {
+  background: rgba(255, 227, 139, 0.28);
+  color: #fff8d0;
 }
 
 .mine-slots {
@@ -869,10 +884,16 @@ h3 {
   animation: hit-flash 90ms ease;
 }
 
+.unit-card.is-shifted .unit-icon {
+  filter: drop-shadow(0 5px 0 rgba(76, 42, 19, 0.12)) drop-shadow(0 0 10px rgba(255, 205, 69, 0.7));
+}
+
 .unit-badges {
   display: flex;
   justify-content: flex-start;
   align-items: flex-start;
+  gap: 3px;
+  flex-wrap: wrap;
 }
 
 .unit-level-badge {
@@ -889,6 +910,34 @@ h3 {
   font-size: 11px;
   font-weight: 800;
   line-height: 1;
+}
+
+.unit-trait {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  min-height: 20px;
+  padding: 2px 5px;
+  border-radius: 999px;
+  border: 2px solid rgba(76, 42, 19, 0.14);
+  background: rgba(255, 255, 255, 0.82);
+  color: #6a4207;
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.unit-trait-yield {
+  background: #e5f7cc;
+}
+
+.unit-trait-golden {
+  background: #ffe38b;
+}
+
+.unit-trait-rush {
+  background: #dcefff;
 }
 
 .unit-character {
@@ -1036,6 +1085,11 @@ h3 {
   pointer-events: none;
 }
 
+.slot-bonus.is-demand {
+  background: rgba(255, 218, 78, 0.98);
+  color: #5a3904;
+}
+
 .slot-progress {
   display: flex;
   align-items: center;
@@ -1084,6 +1138,29 @@ h3 {
 
 .slot-progress-fill-iron {
   background: linear-gradient(90deg, #f4f6f9 0%, #a8b1c0 100%);
+}
+
+.shift-toggle {
+  width: 100%;
+  margin-top: 4px;
+  padding: 4px 6px;
+  border-radius: 999px;
+  background: rgba(255, 248, 229, 0.94);
+  border: 2px solid rgba(114, 63, 28, 0.16);
+  color: var(--text);
+  font-size: 9px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.shift-toggle.is-committed {
+  background: #ffe38b;
+  border-color: rgba(115, 63, 28, 0.3);
+}
+
+.shift-toggle:disabled {
+  opacity: 0.72;
+  cursor: not-allowed;
 }
 
 .unit-name {

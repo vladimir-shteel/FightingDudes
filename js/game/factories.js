@@ -1,7 +1,8 @@
 import { CONFIG, getUnitLevelData } from "./config.js";
 import { generateId } from "./utils.js";
+import { normalizeTraitVector, rollWorkerTraitVector } from "./systems/workerTraitSystem.js";
 
-export function createReserveUnit(level = 1) {
+export function createReserveUnit(level = 1, options = {}) {
   const levelData = getUnitLevelData(level);
   if (!levelData) {
     throw new Error(`Missing unit level data for level ${level}`);
@@ -14,7 +15,9 @@ export function createReserveUnit(level = 1) {
     icon: levelData.icon ?? "W",
     baseHealth: levelData.baseHealth,
     baseAttack: levelData.baseAttack,
-    baseAttackSpeed: levelData.baseAttackSpeed
+    baseAttackSpeed: levelData.baseAttackSpeed,
+    traits: normalizeTraitVector(options.traits ?? rollWorkerTraitVector()),
+    battleShiftCommitted: false
   };
 }
 

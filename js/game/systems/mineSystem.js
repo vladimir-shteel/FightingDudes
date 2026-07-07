@@ -14,6 +14,13 @@ import {
   getFortressGoldMultiplier,
   getFortressResourceMultiplier
 } from "./upgradeSystem.js";
+import {
+  getWorkerGoldenConversion,
+  getWorkerRushMultiplier,
+  getWorkerYieldMultiplier,
+  isWorkerBattleShiftLocked,
+  mergeWorkerTraitVectors
+} from "./workerTraitSystem.js";
 
 function isWaveUnlocked(state, unlockWave) {
   return (state.fortress.waveNumber ?? 1) >= (unlockWave ?? 1);
@@ -34,6 +41,17 @@ function getProductionMultiplier(state) {
     ? getFortressBattleProductionMultiplier(state)
     : 1;
   return getFortressResourceMultiplier(state) * battleMultiplier;
+}
+
+export function getCurrentWaveDemandResource(state) {
+  const wave = CONFIG.fortressWaves[(state.fortress.waveNumber ?? 1) - 1];
+  return wave?.demandResource ?? null;
+}
+
+function getDemandMultiplier(state, mine) {
+  return mine.resourceKey === getCurrentWaveDemandResource(state)
+    ? CONFIG.waveDemand?.slotProductionMultiplier ?? 1
+    : 1;
 }
 
 export function getMinePurchasedSlotCount(mine) {
@@ -201,6 +219,9 @@ export function returnMineUnitToReserve(state, mineId, slotIndex) {
   if (!unit) {
     return { ok: false, reason: "That slot is already empty." };
   }
+  if (isWorkerBattleShiftLocked(state, unit)) {
+    return { ok: false, reason: "This worker is committed until the battle ends." };
+  }
 
   mine.workerIds[slotIndex] = null;
   mine.workerProgress[slotIndex] = 0;
@@ -234,8 +255,14 @@ export function moveMineUnitToMineSlot(state, fromMineId, fromSlotIndex, toMineI
   if (!unit) {
     return { ok: false, reason: "No mine unit in that slot." };
   }
+  if (isWorkerBattleShiftLocked(state, unit)) {
+    return { ok: false, reason: "This worker is committed until the battle ends." };
+  }
 
   const targetUnit = toMine.workerIds[toSlotIndex];
+  if (isWorkerBattleShiftLocked(state, targetUnit)) {
+    return { ok: false, reason: "That worker is committed until the battle ends." };
+  }
   if (!targetUnit) {
     fromMine.workerIds[fromSlotIndex] = null;
     fromMine.workerProgress[fromSlotIndex] = 0;
@@ -247,7 +274,9 @@ export function moveMineUnitToMineSlot(state, fromMineId, fromSlotIndex, toMineI
   if (unit.level === targetUnit.level && unit.level < CONFIG.merge.maxLevel) {
     fromMine.workerIds[fromSlotIndex] = null;
     fromMine.workerProgress[fromSlotIndex] = 0;
-    toMine.workerIds[toSlotIndex] = createReserveUnit(unit.level + 1);
+    toMine.workerIds[toSlotIndex] = createReserveUnit(unit.level + 1, {
+      traits: mergeWorkerTraitVectors(unit.traits, targetUnit.traits)
+    });
     toMine.workerProgress[toSlotIndex] = 0;
     return { ok: true, reason: `Merged into level ${unit.level + 1} worker.` };
   }
@@ -303,10 +332,16 @@ export function mergeReserveUnitIntoMineUnit(state, reserveUnitId, mineId, slotI
   if (!mineUnit) {
     return { ok: false, reason: "No mine unit in that slot." };
   }
+  if (isWorkerBattleShiftLocked(state, mineUnit)) {
+    return { ok: false, reason: "This worker is committed until the battle ends." };
+  }
 
   const reserveUnit = state.reserveUnits.find((unit) => unit.id === reserveUnitId);
   if (!reserveUnit) {
     return { ok: false, reason: "Reserve unit not found." };
+  }
+  if (isWorkerBattleShiftLocked(state, reserveUnit)) {
+    return { ok: false, reason: "Committed workers are locked until the battle ends." };
   }
 
   if (reserveUnit.level !== mineUnit.level) {
@@ -318,9 +353,43 @@ export function mergeReserveUnitIntoMineUnit(state, reserveUnitId, mineId, slotI
   }
 
   removeUnitFromReserve(state, reserveUnitId);
-  mine.workerIds[slotIndex] = createReserveUnit(mineUnit.level + 1);
+  mine.workerIds[slotIndex] = createReserveUnit(mineUnit.level + 1, {
+    traits: mergeWorkerTraitVectors(mineUnit.traits, reserveUnit.traits)
+  });
   mine.workerProgress[slotIndex] = 0;
   return { ok: true, reason: `Merged into level ${mineUnit.level + 1} worker.` };
+}
+
+export function toggleWorkerBattleShift(state, mineId, slotIndex) {
+  if (state.fortress.battle.active) {
+    return { ok: false, reason: "Battle shifts are locked during combat." };
+  }
+  const mine = state.mines.find((item) => item.id === mineId);
+  const worker = mine?.workerIds?.[slotIndex];
+  if (!worker) {
+    return { ok: false, reason: "No worker in that slot." };
+  }
+
+  worker.battleShiftCommitted = !worker.battleShiftCommitted;
+  return {
+    ok: true,
+    reason: worker.battleShiftCommitted
+      ? `${worker.name} committed to the next battle shift.`
+      : `${worker.name} left the battle shift.`
+  };
+}
+
+export function clearWorkerBattleShifts(state) {
+  for (const unit of state.reserveUnits) {
+    unit.battleShiftCommitted = false;
+  }
+  for (const mine of state.mines) {
+    for (const worker of mine.workerIds) {
+      if (worker) {
+        worker.battleShiftCommitted = false;
+      }
+    }
+  }
 }
 
 export function tickMineProduction(state, deltaSeconds) {
@@ -382,12 +451,19 @@ export function tickMineProduction(state, deltaSeconds) {
       const slotMultiplier = mineLevelData.slotProductionMultipliers[index] ?? 1;
       const productionTable = CONFIG.mine.workerProductionByLevel ?? null;
       const productionMultiplier = getProductionMultiplier(state);
+      const traitMultiplier = getWorkerYieldMultiplier(worker);
+      const demandMultiplier = getDemandMultiplier(state, mine);
+      const shiftMultiplier = worker.battleShiftCommitted && state.fortress.battle.active
+        ? getWorkerRushMultiplier(worker)
+        : 1;
+      const totalWorkerMultiplier = traitMultiplier * demandMultiplier * shiftMultiplier;
       const resourceAmount = productionTable
-        ? (productionTable[String(worker.level)] ?? 1) * slotMultiplier * productionMultiplier
-        : CONFIG.mine.baseProductionPerSecond * worker.level * slotMultiplier * payoutSeconds * productionMultiplier;
+        ? (productionTable[String(worker.level)] ?? 1) * slotMultiplier * productionMultiplier * totalWorkerMultiplier
+        : CONFIG.mine.baseProductionPerSecond * worker.level * slotMultiplier * payoutSeconds * productionMultiplier * totalWorkerMultiplier;
+      const traitGoldAmount = resourceAmount * getWorkerGoldenConversion(worker) * getFortressGoldMultiplier(state);
       const goldAmount = productionTable
-        ? 0
-        : (CONFIG.mine.goldPerSecondPerWorkerLevel ?? 0) * worker.level * slotMultiplier * payoutSeconds * goldMultiplier;
+        ? traitGoldAmount
+        : ((CONFIG.mine.goldPerSecondPerWorkerLevel ?? 0) * worker.level * slotMultiplier * payoutSeconds * goldMultiplier) + traitGoldAmount;
 
       state.resources[mine.resourceKey] = clamp(
         state.resources[mine.resourceKey] + resourceAmount,

@@ -1,5 +1,6 @@
 import { CONFIG } from "../config.js";
 import { createReserveUnit } from "../factories.js";
+import { isWorkerBattleShiftLocked, mergeWorkerTraitVectors } from "./workerTraitSystem.js";
 
 function getWorkerPower(unit) {
   const level = Math.max(1, unit?.level ?? 1);
@@ -58,6 +59,10 @@ export function mergeReservePair(state, firstUnitId, secondUnitId) {
   const first = state.reserveUnits[firstIndex];
   const second = state.reserveUnits[secondIndex];
 
+  if (isWorkerBattleShiftLocked(state, first) || isWorkerBattleShiftLocked(state, second)) {
+    return { ok: false, reason: "Committed workers are locked until the battle ends." };
+  }
+
   if (first.level !== second.level) {
     return { ok: false, reason: "Only equal-level units can merge." };
   }
@@ -66,7 +71,9 @@ export function mergeReservePair(state, firstUnitId, secondUnitId) {
     return { ok: false, reason: "This unit has reached max merge level." };
   }
 
-  const higherLevelUnit = createReserveUnit(first.level + 1);
+  const higherLevelUnit = createReserveUnit(first.level + 1, {
+    traits: mergeWorkerTraitVectors(first.traits, second.traits)
+  });
   const keptUnits = state.reserveUnits.filter(
     (unit) => unit.id !== firstUnitId && unit.id !== secondUnitId
   );

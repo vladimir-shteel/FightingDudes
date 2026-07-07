@@ -16,6 +16,35 @@
     "rest": 1,
     "battle": 1.5
   },
+  "waveDemand": {
+    "slotProductionMultiplier": 1.25
+  },
+  "workerTraits": {
+    "mergeBonusPoints": 1,
+    "battleShift": {
+      "baseMultiplier": 1.75
+    },
+    "lines": {
+      "yield": {
+        "label": "Yield",
+        "icon": "Y",
+        "rollWeight": 1,
+        "resourceMultiplierPerPoint": 0.06
+      },
+      "golden": {
+        "label": "Golden",
+        "icon": "G",
+        "rollWeight": 1,
+        "goldPerResourcePerPoint": 0.006
+      },
+      "rush": {
+        "label": "Rush",
+        "icon": "R",
+        "rollWeight": 1,
+        "battleMultiplierPerPoint": 0.08
+      }
+    }
+  },
   "merge": {
     "maxLevel": 5
   },

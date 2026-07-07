@@ -17,12 +17,14 @@ import {
   buyMine,
   buyMineSlot,
   assignReserveUnitToMine,
+  getCurrentWaveDemandResource,
   getMinePurchaseState,
   getMinePurchasedSlotCount,
   getMineSlotState,
   mergeReserveUnitIntoMineUnit,
   moveMineUnitToMineSlot,
-  returnMineUnitToReserve
+  returnMineUnitToReserve,
+  toggleWorkerBattleShift
 } from "./systems/mineSystem.js";
 import { startFortressBattle } from "./systems/fortressBattleSystem.js";
 import {
@@ -36,6 +38,13 @@ import {
   upgradeFortressBuilding
 } from "./systems/fortressSystem.js";
 import { applyUpgradeChoice } from "./systems/upgradeSystem.js";
+import {
+  getDominantTraitKey,
+  getTraitIcon,
+  getTraitLabel,
+  getWorkerRushMultiplier,
+  WORKER_TRAIT_KEYS
+} from "./systems/workerTraitSystem.js";
 
 function getResourceIconMarkup(resourceKey, extraClass = "") {
   const icon = getResourceIcon(resourceKey);
@@ -66,15 +75,28 @@ function createUnitCard(unit, options = {}) {
   const health = unit.maxHealth ?? unit.baseHealth ?? unit.health ?? 0;
   const attack = unit.attack ?? unit.baseAttack ?? 0;
   const level = unit.level ?? 1;
+  const traits = unit.traits ?? {};
+  const dominantTrait = getDominantTraitKey(traits);
+  const traitBadges = WORKER_TRAIT_KEYS
+    .filter((key) => (traits[key] ?? 0) > 0)
+    .map((key) => `
+      <span class="unit-trait unit-trait-${key}" title="${getTraitLabel(key)} ${traits[key]}">
+        ${getTraitIcon(key)}${traits[key]}
+      </span>
+    `)
+    .join("");
 
   card.dataset.gear = "worker";
   card.dataset.level = String(level);
+  card.dataset.trait = dominantTrait;
+  card.classList.toggle("is-shifted", Boolean(unit.battleShiftCommitted));
   card.classList.toggle("is-hit", isHitFlashing(unit));
   card.dataset.hit = isHitFlashing(unit) ? "true" : "false";
 
   card.innerHTML = `
     <div class="unit-badges">
       <span class="unit-level-badge">${level}</span>
+      ${traitBadges}
     </div>
     <div class="unit-character" aria-hidden="true">
       <div class="unit-icon">
@@ -86,7 +108,7 @@ function createUnitCard(unit, options = {}) {
       <div class="unit-name">${unit.name}</div>
       <span class="unit-meta">ATK ${Math.round(attack)} | HP ${Math.round(health)}</span>
     </div>
-    ${compact ? `<span class="compact-caption">ATK ${Math.round(attack)} | HP ${Math.round(health)}</span>` : ""}
+    ${compact ? `<span class="compact-caption">${getTraitLabel(dominantTrait)} · ${Math.round(getWorkerRushMultiplier(unit) * 100) / 100}x Shift</span>` : ""}
   `;
 
   return card;
@@ -543,6 +565,7 @@ export function mountUI(state, onStateChanged) {
   function renderMines() {
     elements.minesGrid.innerHTML = "";
     const selected = getSelectedUnitContext();
+    const demandResource = getCurrentWaveDemandResource(state);
 
     for (const mine of state.mines) {
       const purchaseState = getMinePurchaseState(state, mine);
@@ -551,6 +574,7 @@ export function mountUI(state, onStateChanged) {
       card.className = `mine-card ${mine.isUnlocked ? "" : "is-locked"}`;
       card.dataset.resourceKey = mine.resourceKey;
       card.dataset.mineCard = mine.id;
+      card.classList.toggle("is-demand-resource", demandResource === mine.resourceKey);
 
       const mineLevelData = getMineLevelData(mine.level);
       const slotMultipliers = mineLevelData?.slotProductionMultipliers ?? [];
@@ -583,6 +607,7 @@ export function mountUI(state, onStateChanged) {
         <div class="mine-stats">
           <span class="tag">${mine.isUnlocked ? `Slots ${purchasedSlotCount}/${getMineMaxLevel()}` : "Locked"}</span>
           <span class="tag">${mine.isUnlocked ? "Bought" : `Wave ${purchaseState.unlockWave}`}</span>
+          ${demandResource === mine.resourceKey ? `<span class="tag demand-tag">Wave Demand ×${CONFIG.waveDemand?.slotProductionMultiplier ?? 1}</span>` : ""}
           ${showPassive ? `
             <div class="mine-passive" data-mine-passive="${mine.id}" title="Passive gold trickle">
               ${getResourceIconMarkup("gold", "mine-passive-icon")}
@@ -618,8 +643,10 @@ export function mountUI(state, onStateChanged) {
         slot.dataset.mineSlot = `${mine.id}:${index}`;
 
         const slotMultiplier = slotMultipliers[index] ?? 1;
+        const demandMultiplier = demandResource === mine.resourceKey ? CONFIG.waveDemand?.slotProductionMultiplier ?? 1 : 1;
+        const displayedMultiplier = slotMultiplier * demandMultiplier;
         const slotBadge = isBoughtSlot && mine.isUnlocked
-          ? `<span class="slot-bonus" title="Production bonus for this slot">×${slotMultiplier.toFixed(slotMultiplier % 1 === 0 ? 0 : 2).replace(/\.?0+$/, "")}</span>`
+          ? `<span class="slot-bonus ${demandMultiplier > 1 ? "is-demand" : ""}" title="Production bonus for this slot">×${displayedMultiplier.toFixed(displayedMultiplier % 1 === 0 ? 0 : 2).replace(/\.?0+$/, "")}</span>`
           : "";
 
         const worker = mine.workerIds[index];
@@ -713,6 +740,21 @@ export function mountUI(state, onStateChanged) {
             "beforeend",
             createMineProgressMarkup(mine.resourceKey, mine.id, index, progress)
           );
+          const shiftButton = document.createElement("button");
+          shiftButton.type = "button";
+          shiftButton.className = `shift-toggle ${worker.battleShiftCommitted ? "is-committed" : ""}`;
+          shiftButton.disabled = state.fortress.battle.active;
+          shiftButton.textContent = worker.battleShiftCommitted ? `Shift ×${Math.round(getWorkerRushMultiplier(worker) * 100) / 100}` : "Shift";
+          shiftButton.title = state.fortress.battle.active
+            ? "Battle shift is locked until combat ends"
+            : "Commit this worker to boosted production during the next battle";
+          shiftButton.addEventListener("click", (event) => {
+            event.stopPropagation();
+            const result = toggleWorkerBattleShift(state, mine.id, index);
+            state.fortress.message = result.reason;
+            onStateChanged();
+          });
+          slotShell.append(shiftButton);
           if (selected?.unit.id === worker.id) {
             slotShell.classList.add("selection-source");
           } else if (
@@ -1134,9 +1176,12 @@ export function mountUI(state, onStateChanged) {
   }
 
   function renderEconomyMeta() {
+    const demandResource = getCurrentWaveDemandResource(state);
     for (const resourceKey of resourceOrder) {
       resourceValueMap.get(resourceKey).textContent = formatNumber(state.resources[resourceKey] ?? 0);
       fortressResourceValueMap.get(resourceKey).textContent = formatNumber(state.resources[resourceKey] ?? 0);
+      resourceValueMap.get(resourceKey).closest(".resource-chip")?.classList.toggle("is-demand-resource", demandResource === resourceKey);
+      fortressResourceValueMap.get(resourceKey).closest(".resource-chip")?.classList.toggle("is-demand-resource", demandResource === resourceKey);
     }
     const buyCost = formatNumber(getUnitBuyCost(state));
     if (elements.buyCostValue) {

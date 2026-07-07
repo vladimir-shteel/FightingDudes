@@ -1,6 +1,7 @@
 import { CONFIG } from "../config.js";
 import { clamp, generateId } from "../utils.js";
 import { FORTRESS_HEIGHT, FORTRESS_WIDTH, syncFortressBuildingUnlocks } from "./fortressSystem.js";
+import { clearWorkerBattleShifts } from "./mineSystem.js";
 import { findTilePath } from "./pathfinding.js";
 import {
   beginFortressWave,
@@ -570,6 +571,8 @@ function finishBattle(state, result) {
     const earnedGold = state.fortress.battle.goldEarned ?? 0;
     state.fortress.message = `HQ destroyed. Kept ${earnedGold} gold from kills.`;
   }
+
+  clearWorkerBattleShifts(state);
 }
 
 function updateBattleMessage(state) {
