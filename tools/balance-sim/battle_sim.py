@@ -17,7 +17,10 @@ try:
     data_dir = Path(__file__).parent.parent.parent / "data"
     with open(data_dir / "fortress-enemies.json", encoding="utf-8") as f:
         ENEMIES_DATA = json.load(f)
+    with open(data_dir / "balance.json", encoding="utf-8") as f:
+        _BALANCE = json.load(f)
 except:
+    _BALANCE = {}
     ENEMIES_DATA = {
         "grunt":   dict(hp=28, attack=10, cd=0.8, rng=0.42, spd=0.95),
         "runner":  dict(hp=18, attack=6, cd=0.7, rng=0.42, spd=1.55),
@@ -153,6 +156,8 @@ class Building:
         self.tiles=[(origin[0]+dx,origin[1]+dy) for dx,dy in fp]
         lv=BUILD[btype]['levels'][level-1]
         self.hp=lv['hp']; self.maxHp=lv['hp']; self.cd=0.5
+        # Attrition state — 0 by default, may be pre-set by callers to simulate defeat-carry-over.
+        self.damageFloor = 0
     def center(self):
         xs=[t[0] for t in self.tiles]; ys=[t[1] for t in self.tiles]
         return {'x':(min(xs)+max(xs)+1)/2,'y':(min(ys)+max(ys)+1)/2}
@@ -259,7 +264,18 @@ def simulate(buildings, wave_num, rng, max_time=90.0, dt=0.1):
     """buildings: list of Building. Returns dict result."""
     wave=WAVES[wave_num-1]
     enemies=[]; allies=[]; projectiles=[]
-    for b in buildings: b.hp=b.maxHp; b.cd=0.5
+    # Attrition: if a building carries a damageFloor (from prior defeats), it starts the wave
+    # at hp = maxHp × max(0, postDefeatHpFraction − damageFloor). Otherwise full HP. Matches
+    # fortressBattleSystem.finishBattle('defeat') persisted state applied on next battle start.
+    attrition = _BALANCE.get("attrition", {})
+    post_defeat = attrition.get("postDefeatHpFraction", 0.4)
+    for b in buildings:
+        floor = getattr(b, "damageFloor", 0)
+        if floor > 0:
+            b.hp = max(1, int(b.maxHp * max(0, post_defeat - floor)))
+        else:
+            b.hp = b.maxHp
+        b.cd = 0.5
     # Expand composition into spawn queue
     spawn_queue = []
     for comp in wave.get("composition", []):
@@ -426,3 +442,11 @@ def simulate(buildings, wave_num, rng, max_time=90.0, dt=0.1):
 # - orcKing aura: tick_boss_mechanic(kind="aura") — 1Hz DPS to allies/buildings in radius.
 # - necromancer summon: tick_boss_mechanic(kind="summon") — spawn near boss on interval.
 # - breacher: inline in enemy attack branch — attack × damageMultVsBuildings vs buildings.
+#
+# NOT implemented (deferred until late-game calibration):
+# - Building actives (turret overcharge, barracks spawnSquad, archery volley, mageTower frost,
+#   wall/bigWall shield). Requires per-building activeCooldown/activeBoost/shieldRemaining state
+#   and a firing policy in the sim loop.
+# - Building shieldRemaining × shieldReduction on incoming damage. Trigger source is the shield
+#   active above — safe to skip while the active is skipped.
+# See PARAMS.md → "Аудит sim ↔ игра" → SIM 10 for the queue.

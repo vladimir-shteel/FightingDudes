@@ -22,6 +22,7 @@ try:
     TRAIT_YIELD_MUL = balance_data.get("workerTraits", {}).get("lines", {}).get("yield", {}).get("resourceMultiplierPerPoint", 0.06)
     PRODUCTION_MULT_BATTLE = balance_data.get("productionMultipliers", {}).get("battle", 1.5)
     WAVE_DEMAND_MULT = balance_data.get("waveDemand", {}).get("slotProductionMultiplier", 1.25)
+    TRAIT_GOLDEN_MUL = balance_data.get("workerTraits", {}).get("lines", {}).get("golden", {}).get("goldPerResourcePerPoint", 0.006)
     # Map resource key → mine index used throughout this sim (0=wood, 1=ore, 2=iron, 3=crystal).
     RES_KEYS = ["wood", "ore", "iron", "crystal"]
     DEMAND_BY_WAVE = {i + 1: RES_KEYS.index(w["demandResource"]) if w.get("demandResource") in RES_KEYS else None
@@ -34,6 +35,7 @@ except:
     TRAIT_YIELD_MUL = 0.06
     PRODUCTION_MULT_BATTLE = 1.5
     WAVE_DEMAND_MULT = 1.25
+    TRAIT_GOLDEN_MUL = 0.006
     DEMAND_BY_WAVE = {}
 
 SLOT_MULT={1:[1],2:[1,1.1],3:[1,1.1,1.25],4:[1,1.1,1.25,1.45],5:[1,1.1,1.25,1.45,1.7]}
@@ -105,6 +107,10 @@ def run(reward_fn, cost_fn, target_prep=55, verbose=True):
         while prep<600:
             p=e.prod(wave)
             for k in range(4): e.res[k]+=p[k]
+            # Golden trait: ~1/3 of workers end up Golden-dominant; their share of production
+            # becomes gold (goldPerResourcePerPoint × avg level ~2). Drops the old "gold ONLY from
+            # battle" assumption without pretending the whole roster is Golden.
+            e.gold += sum(p) * TRAIT_GOLDEN_MUL * (1.0 / 3.0) * 2.0
             prep+=1; t+=1
             if all(e.res[k]>=need[k]-spent[k] for k in range(4)): break
         for k in range(4):

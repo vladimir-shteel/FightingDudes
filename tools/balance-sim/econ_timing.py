@@ -67,6 +67,29 @@ def early_start_bonus(w, prep_seconds):
 
 GOLD_PER_WAVE = {w: wave_reward_gold(w) for w in range(1, N_WAVES + 1)}
 
+# --- Reward draft policy (simple rotation, matches balance.json.rewardDraft numbers) ---
+REWARD_DRAFT = balance_data.get("rewardDraft", {})
+PERM_GOLD_MUL = REWARD_DRAFT.get("permanent", {}).get("goldGainMultiplier", 1.15)
+PERM_RES_MUL = REWARD_DRAFT.get("permanent", {}).get("resourceGainMultiplier", 1.15)
+TEMP_PROD_MUL = REWARD_DRAFT.get("temporary", {}).get("productionMultiplier", 1.25)
+TEMP_DURATION = REWARD_DRAFT.get("temporary", {}).get("durationWaves", 2)
+ONESHOT_GOLD = REWARD_DRAFT.get("oneShot", {}).get("goldInjection", 180)
+
+def pick_reward(wave, e):
+    """Alternate permanent picks for the first many waves (compound stat growth), then throw in
+    temporary boosts and gold injections. This is a stand-in for the player choosing the card
+    that best helps them right now — real players will vary, but the compound growth is real."""
+    slot = wave % 5
+    if slot in (1, 2):
+        e.gold_mul *= PERM_GOLD_MUL
+        return "perm gold+15%"
+    if slot in (3, 4):
+        e.res_mul *= PERM_RES_MUL
+        return "perm res+15%"
+    # slot 0 (every 5th wave — boss)
+    e.temp_prod_waves = max(e.temp_prod_waves, TEMP_DURATION)
+    return f"temp prod×{TEMP_PROD_MUL} for {TEMP_DURATION}w"
+
 # --- Attrition + repair sink (matches fortressBattleSystem.finishBattle + repairFortressBuilding) ---
 ATTR = balance_data.get("attrition", {})
 FLOOR_PER_DEFEAT = ATTR.get("floorPerDefeat", 0.2)
@@ -99,6 +122,10 @@ class Econ:
         self.reserve=[]
         self.t=0.0
         self.idle=0.0
+        # Reward-draft compound multipliers.
+        self.gold_mul = 1.0
+        self.res_mul = 1.0
+        self.temp_prod_waves = 0  # remaining waves of temporary production boost
 
     def all_workers(self):
         for m in self.mines.values():
@@ -118,10 +145,13 @@ class Econ:
         # Wave-demand: matching resource → every slot gets ×WAVE_DEMAND_MULT.
         demand_key = waves_data[wave - 1].get("demandResource") if (wave and 1 <= wave <= N_WAVES) else None
         demand_mul = WAVE_DEMAND_MULT if demand_key == key else 1.0
+        # Reward-draft: permanent resource-gain multiplier compounds each pick; temporary
+        # production boost stacks on top for its remaining duration.
+        draft_mul = self.res_mul * (TEMP_PROD_MUL if self.temp_prod_waves > 0 else 1.0)
         # Trait yield mul: each worker averages ~level trait points on dominant line after merges → 1 + level * YIELD_MUL.
         # (Approximation: mergeWorkerTraitVectors sums vectors + bonus, dominant line grows ~geometrically with level.)
         return sum(
-            (WORKER_PROD[lvl]/COLLECT) * mult[i] * (1 + lvl * TRAIT_YIELD_MUL) * demand_mul
+            (WORKER_PROD[lvl]/COLLECT) * mult[i] * (1 + lvl * TRAIT_YIELD_MUL) * demand_mul * draft_mul
             for i,lvl in enumerate(sorted(m['workers'],reverse=True))
         )
     def all_prod(self, wave=None): return {k:self.prod(k, wave) for k in self.mines}
@@ -192,6 +222,13 @@ for wave in range(1, N_WAVES + 1):
         p=e.all_prod(wave)
         for k in ('wood','ore','iron','crystal'):
             e.res[k]+=p[k]*1.0
+        # Golden trait: workers with 'golden' points convert a fraction of production to gold.
+        # Approximation: each worker averages ~level points on dominant line; a share ROLL_WEIGHT_GOLDEN
+        # of workers end up Golden-dominant. Their contribution: level × goldPerResourcePerPoint × prod.
+        # This scales with production, so it self-tunes with the yield curve.
+        golden_share = 1.0 / 3.0  # 3 equally-weighted trait lines by default
+        approx_golden = sum(p[k] for k in ('wood','ore','iron','crystal')) * TRAIT_GOLDEN_MUL * golden_share * 2.0
+        e.gold += approx_golden * e.gold_mul
         prep+=1.0; e.t+=1.0
         # check if cumulative target met (spent + current stock covers need)
         if all(e.res[k]>=(need[k]-spent[k]) for k in need):
@@ -207,10 +244,30 @@ for wave in range(1, N_WAVES + 1):
     print(f"{wave:>2} {prep:>7.0f} {e.t:>6.0f} {e.gold:>5.0f} {e.buy_cost():>5.0f} {e.worker_count():>7} {rosters:>20} "
           f"{p['wood']:>4.0f}/{p['ore']:>3.0f}/{p['iron']:>3.0f}/{p['crystal']:>2.0f} "
           f"{need['wood']}/{need['ore']}/{need['iron']}/{need['crystal']:>2}")
-    # Early-start bonus: credited when the wave starts (i.e., after prep, before victory reward).
-    e.gold += early_start_bonus(wave, prep)
-    # win the wave -> gold in
-    e.gold+=GOLD_PER_WAVE[wave]
+    # Early-start bonus: credited when the wave starts (after prep, before victory reward).
+    # Reward-draft goldGainMultiplier compounds on this too.
+    e.gold += early_start_bonus(wave, prep) * e.gold_mul
+    if wave in DEFEAT_WAVES:
+        # Defeat: no victoryGold, no killGold. damageFloor grows on downed buildings; player must
+        # repair before next wave. Repair tax approximates the second sink introduced by attrition:
+        # missing_fraction × REPAIR_RATE × cumulative-buyCost. Missing fraction shrinks with more
+        # damageFloor buildup (post - floor), so repeated defeats stack.
+        e.defeats = getattr(e, 'defeats', 0) + 1
+        floor_now = min(POST_DEFEAT_HP, FLOOR_PER_DEFEAT * e.defeats)
+        missing_frac = 1 - max(0, POST_DEFEAT_HP - floor_now)
+        # sink applies to what we've already invested (approximation of "damaged buildings").
+        for k in ('wood','ore','iron','crystal'):
+            tax = int(spent[k] * REPAIR_RATE * missing_frac)
+            e.res[k] = max(0, e.res[k] - tax)
+    else:
+        # Victory: attrition cleared, damageFloor resets to 0. Effectively no repair tax carried over.
+        e.defeats = 0
+        e.gold += GOLD_PER_WAVE[wave] * e.gold_mul
+        # Pick a reward card. Compound multipliers apply from next wave.
+        pick_reward(wave, e)
+    # Tick down any temporary bonus after the wave resolves.
+    if e.temp_prod_waves > 0:
+        e.temp_prod_waves -= 1
     pk=upgrade_pick(e, wave, need_keys or ['ore'])
     picks.append(f"W{wave}: {pk}")
 
