@@ -49,7 +49,7 @@
     ],
     "unlockedByDefault": true,
     "buyCost": {
-      "wood": 40
+      "wood": 60
     },
     "levels": [
       {
@@ -119,8 +119,8 @@
     ],
     "unlockedByDefault": false,
     "buyCost": {
-      "wood": 90,
-      "ore": 40
+      "wood": 135,
+      "ore": 60
     },
     "levels": [
       {
@@ -188,8 +188,8 @@
     ],
     "unlockedByDefault": true,
     "buyCost": {
-      "wood": 70,
-      "ore": 30
+      "wood": 105,
+      "ore": 45
     },
     "levels": [
       {
@@ -265,8 +265,8 @@
     "unlockedByDefault": false,
     "unlockWave": 3,
     "buyCost": {
-      "wood": 60,
-      "ore": 25
+      "wood": 90,
+      "ore": 40
     },
     "levels": [
       {
@@ -330,8 +330,8 @@
     "unlockedByDefault": false,
     "unlockWave": 5,
     "buyCost": {
-      "ore": 70,
-      "iron": 22
+      "ore": 105,
+      "iron": 33
     },
     "levels": [
       {
@@ -420,8 +420,8 @@
     "unlockedByDefault": false,
     "unlockWave": 9,
     "buyCost": {
-      "wood": 70,
-      "iron": 30
+      "wood": 105,
+      "iron": 45
     },
     "levels": [
       {
@@ -497,8 +497,8 @@
     "unlockedByDefault": false,
     "unlockWave": 8,
     "buyCost": {
-      "ore": 70,
-      "crystal": 30
+      "ore": 105,
+      "crystal": 45
     },
     "levels": [
       {
@@ -561,7 +561,7 @@
     "unlockedByDefault": false,
     "unlockWave": 14,
     "buyCost": {
-      "iron": 30
+      "iron": 45
     },
     "levels": [
       {

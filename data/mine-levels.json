@@ -3,9 +3,9 @@
   "goldPerSecondPerWorkerLevel": 0,
   "collectionIntervalSeconds": 4,
   "workerProductionByLevel": {
-    "1": 2,
-    "2": 6,
-    "3": 14,
+    "1": 4,
+    "2": 8,
+    "3": 16,
     "4": 34,
     "5": 75,
     "6": 166,

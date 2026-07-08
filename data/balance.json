@@ -159,8 +159,8 @@
   },
   "rewardDraft": {
     "permanent": {
-      "goldGainMultiplier": 1.15,
-      "resourceGainMultiplier": 1.15,
+      "goldGainMultiplier": 1.1,
+      "resourceGainMultiplier": 1.1,
       "baseHealthBonus": 12
     },
     "temporary": {

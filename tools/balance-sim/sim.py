@@ -43,11 +43,67 @@ SHIFT_BASE = TR["battleShift"]["baseMultiplier"]             # committed-worker 
 SHIFT_MAX_PER_MINE = TR["battleShift"]["maxCommitsPerMine"]
 MERGE_BONUS = TR.get("mergeBonusPoints", 1)
 DEMAND_MUL = BAL.get("waveDemand", {}).get("slotProductionMultiplier", 1.25)
+
+# Capstone effect values — READ FROM JSON (no hardcoded synthetic numbers; the whole point of the
+# fidelity pass). merge_two auto-assigns the dominant line's ECONOMY-optimal capstone, which is what a
+# smart player picks: yield-master (yieldMul, prod) > deep-vein (demandMul, only on demand mine);
+# midas (+conv) > trickle (flat +1 g/s, weak late); warmind (+shift) > skirmish (combat). So the
+# non-econ capstones (deep-vein/trickle/skirmish/warlord/foreman-via-merge) are intentionally not
+# auto-picked. foreman's 0.4/0.08 are hardcoded in the LIVE JS too (no JSON value) -> matched here.
+def _cap_value(line, cap_id, default):
+    for entry in TR.get("capstones", {}).get(line, []):
+        if entry.get("id") == cap_id:
+            return entry.get("effect", {}).get("value", default)
+    return default
+CAP_YIELD_MASTER = _cap_value("yield", "yield-master", 1.6)   # yieldMul (was wrongly hardcoded 2.0)
+CAP_MIDAS        = _cap_value("golden", "midas", 0.25)        # goldenConversion add
+CAP_WARMIND      = _cap_value("rush", "warmind", 2.0)         # rushBonus add
 BATTLE_MUL = BAL.get("productionMultipliers", {}).get("battle", 1.5)
 START_GOLD = BAL.get("startingGold", 90)
 START_RES = BAL.get("startingResources", {"wood": 110, "ore": 60})
 REPAIR_RATE = BAL.get("attrition", {}).get("repairCostPerHpFractionOfBuyCost", 0.5)
 REST_MULT = BAL.get("productionMultipliers", {}).get("rest", 1.0)   # weak passive trickle (harvest model)
+
+# --- Reward draft (faithful to upgradeSystem.rollUpgradeChoices) ---------------------------------
+# Each VICTORY offers exactly 3 cards: ONE random Permanent + ONE random Temporary + ONE random
+# OneShot; the player picks one. So the compounding perms (Supply Line prod x1.15 / Gold Dividend
+# gold x1.15) are each OFFERED only ~1/3 of waves, not every wave. Over ~23 drafts that is ~7-8 res
+# picks -> ~1.15^7.7 ~= 2.7x production by endgame (the fidelity gap this closes: the old sim assumed
+# res_mul=1 and UNDERSTATED late production / over-supply). Live application points:
+#   - resource mult (perm x temp) -> mine production AND golden-conversion gold (mineSystem L50/539)
+#   - gold mult -> victory/kill/start-bonus gold AND golden-conversion gold (fortressBattle + mineSystem)
+RD = BAL.get("rewardDraft", {})
+PERM_GOLD_MUL = RD.get("permanent", {}).get("goldGainMultiplier", 1.15)
+PERM_RES_MUL  = RD.get("permanent", {}).get("resourceGainMultiplier", 1.15)
+TEMP_PROD_MUL = RD.get("temporary", {}).get("productionMultiplier", 1.25)
+TEMP_DURATION = max(1, RD.get("temporary", {}).get("durationWaves", 2))
+ONESHOT_GOLD  = RD.get("oneShot", {}).get("goldInjection", 180)
+ONESHOT_RES   = RD.get("oneShot", {}).get("resourceInjection", 70)
+REWARDS_ON = True   # model reward cards (set False to reproduce the old reward-blind baseline)
+
+def pick_reward(e, rng):
+    """One faithful 3-card draft. Permanent slot shows ONE of {Gold Dividend, Supply Line,
+    Fortified Core}; Temporary one of 3; OneShot one of 5 — each uniform. An economy-minded player
+    takes the best available, preferring the COMPOUNDING permanents, then the Supply Drop injection,
+    then Harvest Surge; a pure combat offering (health/damage/defense/worker/building/repair) has no
+    economy effect. This mirrors rollUpgradeChoices + a steady-optimizer pick policy."""
+    if not REWARDS_ON:
+        return
+    perm = rng.choice(["gold", "res", "health"])
+    temp = rng.choice(["prod", "damage", "defense"])
+    shot = rng.choice(["worker", "building", "mine", "drop", "repair"])
+    if perm == "res":
+        e.res_mul *= PERM_RES_MUL
+    elif perm == "gold":
+        e.gold_mul *= PERM_GOLD_MUL
+    elif shot == "drop":                          # perm was Fortified Core (combat) -> take injection
+        e.gold += ONESHOT_GOLD * e.gold_mul
+        for k in range(4):
+            if e.unlocked[k]:
+                e.res[k] += ONESHOT_RES
+    elif temp == "prod":
+        e.temp_prod_waves = max(e.temp_prod_waves, TEMP_DURATION)
+    # else: player took a combat card -> no economy effect this wave
 
 MINE_UNLOCK = {RES.index(r["key"]): r.get("unlockWave", 1) for r in MINE["resourceTypes"] if r["key"] in RES}
 MINE_GOLD   = {RES.index(r["key"]): r.get("buyCost", {}).get("gold", 0) for r in MINE["resourceTypes"] if r["key"] in RES}
@@ -93,17 +149,17 @@ class Worker:
     # --- multipliers (mirror workerTraitSystem) ---
     def yield_mult(self):
         m = 1 + self.tr["yield"] * YIELD_PP
-        if self.cap == "yield-master": m *= 2.0
+        if self.cap == "yield-master": m *= CAP_YIELD_MASTER
         elif self.cap == "foreman":    m *= 1.4
         return m
     def golden_conv(self):
         c = self.tr["golden"] * GOLDEN_PP
-        if self.cap == "midas":   c += 0.25
+        if self.cap == "midas":   c += CAP_MIDAS
         elif self.cap == "foreman": c += 0.08
         return c
     def rush_mult(self):
         r = CFG["shift_base"] + self.tr["rush"] * RUSH_PP
-        if self.cap == "warmind": r += 2.0
+        if self.cap == "warmind": r += CAP_WARMIND
         return r
 
 def roll_worker():
@@ -130,6 +186,10 @@ class Econ:
         self.slots = [1, 1, 0, 0]                       # purchased slot count per mine
         self.workers = [[], [], [], []]                 # staffed workers per mine
         self.reserve = []
+        # reward-draft compounding state (see pick_reward)
+        self.gold_mul = 1.0
+        self.res_mul = 1.0
+        self.temp_prod_waves = 0                         # remaining waves of Harvest Surge (temp prod)
 
     def all_workers(self):
         return [w for k in range(4) for w in self.workers[k]] + self.reserve
@@ -225,7 +285,10 @@ class Econ:
         gold_rate = 0.0
         # No blanket battle multiplier (removed as leftover scaffolding). During battle, non-committed
         # workers mine at normal rate; only committed shift workers get the rush boost (sm below).
-        prod_mult = CFG["prod_scale"]                                            # perm resourceMult=1 in baseline
+        # Reward-draft: permanent Supply Line (res_mul, compounding) x temporary Harvest Surge apply to
+        # ALL mine production (mineSystem L50); gold_mul applies to golden-conversion gold (L539).
+        temp_factor = TEMP_PROD_MUL if self.temp_prod_waves > 0 else 1.0
+        prod_mult = CFG["prod_scale"] * self.res_mul * temp_factor
         for k in range(4):
             if not self.unlocked[k]:
                 continue
@@ -240,7 +303,7 @@ class Econ:
                 factor = w.rush_mult() if (battle and (k, i) in committed) else CFG["rest_mult"]
                 r = base * prod_mult * w.yield_mult() * dm * factor
                 res_rate[k] += r
-                gold_rate += r * w.golden_conv()             # golden trickle
+                gold_rate += r * w.golden_conv() * self.gold_mul   # golden trickle (gold_mul applies)
         return res_rate, gold_rate
 
     def pick_shift(self):
@@ -414,6 +477,7 @@ def compute_req(thresh=0.55, seeds=8):
 
 def run(verbose=True, seed=0):
     random.seed(seed)
+    reward_rng = random.Random(seed * 7919 + 1)     # isolated stream so drafts don't perturb worker rolls
     req = compute_req()
     e = Econ()
     spent = [0, 0, 0, 0]         # cumulative resources sunk into owned defense (running max)
@@ -528,14 +592,19 @@ def run(verbose=True, seed=0):
             if a < attempts - 1:                                                  # a defeat -> repair now
                 for k in range(4):
                     e.res[k] = max(0, e.res[k] - repair_per_defeat[k])
-        # gold faucets
+        # gold faucets (goldMultiplier from Gold Dividend applies to victory/kill/start-bonus — live)
         wc = WAVES_RAW[wave - 1]
-        gs = CFG["gold_scale"]
+        gs = CFG["gold_scale"] * e.gold_mul
         e.gold += wc.get("victoryGold", 14 + 4 * wave) * gs
         e.gold += wc.get("killGold", 1) * wc.get("enemyCount", 0) * gs
         g = wc.get("startBonusGold", 0); win = wc.get("startBonusWindowSeconds", 0)
         if g > 0 and win > 0:
             e.gold += round(g * max(0, win - prep) / win) * gs
+
+        # reward draft (one pick per victory) + tick down any temporary Harvest Surge
+        pick_reward(e, reward_rng)
+        if e.temp_prod_waves > 0:
+            e.temp_prod_waves -= 1
 
         # metrics
         tot_income = sum(rest_res) + sum(battle_res)
@@ -547,6 +616,7 @@ def run(verbose=True, seed=0):
                          buy=e.buycost(), nwk=len(roster), roster=roster, dk=dk, restaff=restaff,
                          shift_frac=shift_frac, shift_gain=shift_gain, gold=e.gold,
                          prod=[round(x) for x in e.prod_rates(wave)[0]], attempts=attempts,
+                         res_mul=e.res_mul, gold_mul=e.gold_mul,
                          boss=wc.get("isBoss", False)))
 
     if verbose:
@@ -584,6 +654,8 @@ def _report(rows, spent, produced, clock):
     tp = sum(produced); ts = sum(spent)
     print(f"ECONOMY: produced {[round(x) for x in produced]} (sum {tp:.0f}) | defense spent {[round(x) for x in spent]} "
           f"(sum {ts:.0f}) | spend/prod {ts/max(1,tp)*100:.0f}%")
+    print(f"REWARDS: endgame res_mul x{rows[-1]['res_mul']:.2f} | gold_mul x{rows[-1]['gold_mul']:.2f} "
+          f"(compounding perms; {'ON' if REWARDS_ON else 'OFF'})")
 
 def summary(rows, clock):
     preps = [r["prep"] for r in rows]
