@@ -314,7 +314,6 @@ function renderResourceCost(costs) {
 
 function getVisibleResourceTarget(elements, resourceKey) {
   const candidates = [
-    elements.fortressResourceList?.querySelector(`[data-fortress-resource-chip="${resourceKey}"]`),
     elements.resourceList?.querySelector(`[data-resource-chip="${resourceKey}"]`)
   ].filter(Boolean);
 
@@ -465,12 +464,7 @@ export function mountUI(state, onStateChanged) {
     fortressBuffsPanel: document.querySelector("#fortressBuffsPanel"),
     fxLayer: document.querySelector("#fxLayer")
     ,
-    screenDeck: document.querySelector("#screenDeck"),
-    showFortressButton: document.querySelector("#showFortressButton"),
-    showProductionButton: document.querySelector("#showProductionButton"),
     fortressGiveUpButton: document.querySelector("#fortressGiveUpButton"),
-    fortressResourceList: document.querySelector("#fortressResourceList"),
-    fortressWaveValue: document.querySelector("#fortressWaveValue"),
     waveTelegraph: document.querySelector("#waveTelegraph"),
     fortressFightButton: document.querySelector("#fortressFightButton"),
     fortressMessage: document.querySelector("#fortressMessage"),
@@ -512,23 +506,6 @@ export function mountUI(state, onStateChanged) {
     `;
     elements.resourceList.append(chip);
     resourceValueMap.set(resourceKey, chip.querySelector("strong"));
-  }
-
-  const fortressResourceValueMap = new Map();
-  elements.fortressResourceList.innerHTML = "";
-  for (const resourceKey of resourceOrder) {
-    const chip = document.createElement("div");
-    chip.className = "resource-chip";
-    chip.dataset.fortressResourceChip = resourceKey;
-    chip.innerHTML = `
-      <div class="resource-chip-top">
-        ${getResourceIconMarkup(resourceKey)}
-        <span class="resource-label">${getResourceLabel(resourceKey)}</span>
-      </div>
-      <strong data-fortress-resource-value="${resourceKey}">0</strong>
-    `;
-    elements.fortressResourceList.append(chip);
-    fortressResourceValueMap.set(resourceKey, chip.querySelector("strong"));
   }
 
   const mineProgressCache = new Map();
@@ -895,65 +872,6 @@ export function mountUI(state, onStateChanged) {
     const result = giveUpFortressBattle(state);
     state.fortress.message = result.reason;
     onStateChanged();
-  });
-
-  function showScreen(screen) {
-    state.fortress.screen = screen;
-    elements.screenDeck.classList.toggle("show-top", screen === "top");
-    elements.screenDeck.classList.toggle("show-bottom", screen !== "top");
-  }
-
-  elements.showFortressButton.addEventListener("click", () => {
-    showScreen("top");
-    onStateChanged();
-  });
-
-  elements.showProductionButton.addEventListener("click", () => {
-    showScreen("bottom");
-    onStateChanged();
-  });
-
-  let swipeStartY = 0;
-  let swipeStartX = 0;
-  let swipeStartScreen = null;
-  let swipeStartAtTop = false;
-  let swipeStartAtBottom = false;
-
-  function getVisibleScreenElement() {
-    return state.fortress.screen === "top"
-      ? document.querySelector("#fortressScreen")
-      : document.querySelector("#productionScreen");
-  }
-
-  elements.screenDeck.addEventListener("pointerdown", (event) => {
-    swipeStartY = event.clientY;
-    swipeStartX = event.clientX;
-    const visible = getVisibleScreenElement();
-    swipeStartScreen = state.fortress.screen;
-    const scrollTop = visible?.scrollTop ?? 0;
-    const scrollHeight = visible?.scrollHeight ?? 0;
-    const clientHeight = visible?.clientHeight ?? 0;
-    swipeStartAtTop = scrollTop <= 1;
-    swipeStartAtBottom = scrollTop + clientHeight >= scrollHeight - 1;
-  });
-
-  elements.screenDeck.addEventListener("pointerup", (event) => {
-    const dy = event.clientY - swipeStartY;
-    const dx = event.clientX - swipeStartX;
-    if (Math.abs(dy) < window.innerHeight * 0.14 || Math.abs(dy) < Math.abs(dx)) {
-      return;
-    }
-    // Swipe DOWN at top edge → reveal screen above.
-    if (dy > 0 && swipeStartAtTop && swipeStartScreen === "bottom") {
-      showScreen("top");
-      onStateChanged();
-      return;
-    }
-    // Swipe UP at bottom edge → reveal screen below.
-    if (dy < 0 && swipeStartAtBottom && swipeStartScreen === "top") {
-      showScreen("bottom");
-      onStateChanged();
-    }
   });
 
   function renderReserve() {
@@ -1810,9 +1728,7 @@ export function mountUI(state, onStateChanged) {
     const demandResource = getCurrentWaveDemandResource(state);
     for (const resourceKey of resourceOrder) {
       resourceValueMap.get(resourceKey).textContent = formatNumber(state.resources[resourceKey] ?? 0);
-      fortressResourceValueMap.get(resourceKey).textContent = formatNumber(state.resources[resourceKey] ?? 0);
       resourceValueMap.get(resourceKey).closest(".resource-chip")?.classList.toggle("is-demand-resource", demandResource === resourceKey);
-      fortressResourceValueMap.get(resourceKey).closest(".resource-chip")?.classList.toggle("is-demand-resource", demandResource === resourceKey);
     }
     const buyCost = formatNumber(getUnitBuyCost(state));
     if (elements.buyCostValue) {
@@ -1823,7 +1739,6 @@ export function mountUI(state, onStateChanged) {
 
   function renderBattleMeta() {
     elements.waveValue.textContent = `${state.fortress.waveNumber} / ${CONFIG.fortressWaves.length}`;
-    elements.fortressWaveValue.textContent = `${state.fortress.waveNumber} / ${CONFIG.fortressWaves.length}`;
     renderWaveTelegraph();
   }
 
@@ -1922,7 +1837,8 @@ export function mountUI(state, onStateChanged) {
         continue;
       }
       handled.add(burst.id);
-      playResourceBurst(elements, burst, state.fortress.screen);
+      // Both zones are visible on the single page, so every burst animates from its real source.
+      playResourceBurst(elements, burst, getBurstSourceScreen(burst));
     }
 
     state.ui.handledResourceBurstIds = [...handled].slice(-160);
@@ -1947,16 +1863,6 @@ export function mountUI(state, onStateChanged) {
   }
 
   function renderMeta() {
-    showScreen(state.fortress.screen);
-    // Badge the "Production" button when a worker is at MAX Rest but NOT on its desired mine (parked
-    // in reserve, or staffing a different mine) — it's fully charged and wasting cap, move it to the
-    // mine it wants so it can Shift.
-    const maxedAndMisplaced = (unit, onMineKey) =>
-      unit && (unit.restCharges ?? 0) >= getMaxRestCharges(unit.level) && unit.desiredMine !== onMineKey;
-    const needsRedeploy =
-      state.reserveUnits.some((unit) => maxedAndMisplaced(unit, null)) ||
-      state.mines.some((mine) => (mine.workerIds ?? []).some((worker) => maxedAndMisplaced(worker, mine.resourceKey)));
-    elements.showProductionButton.classList.toggle("has-rested", needsRedeploy);
     document.body.classList.toggle("fortress-battle-active", state.fortress.battle.active);
     elements.fortressFightButton.disabled = state.fortress.battle.active || state.game.isOver || Boolean(state.fortress.pendingRewardDraft?.length);
     elements.fortressFightButton.hidden = state.fortress.battle.active;

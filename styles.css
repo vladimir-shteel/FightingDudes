@@ -42,7 +42,9 @@ body {
   font-variant-numeric: tabular-nums;
   color: var(--text);
   background: linear-gradient(180deg, var(--bg-top) 0%, var(--bg-bottom) 60%);
-  overflow: hidden;
+  /* Single continuous page scrolls vertically (was `overflow: hidden` when the swipe deck
+     handled its own scroll). Keep the x-axis clipped so nothing forces a sideways scroll. */
+  overflow-x: hidden;
 }
 
 button {
@@ -2362,49 +2364,25 @@ h3 {
 
 }
 
-/* Fortress Merge integration layer */
+/* Fortress Merge integration layer — single continuous page: combat zone on top,
+   mining zone below, flowing in normal document scroll (no swipe/screen deck). */
 .screen-deck {
   width: 100%;
-  height: 200dvh;
-  transform: translateY(-50%);
-  transition: transform 280ms ease;
-}
-
-.screen-deck.show-top {
-  transform: translateY(0);
-}
-
-.screen-deck.show-bottom {
-  transform: translateY(-50%);
 }
 
 .game-screen {
-  min-height: 100dvh;
-  max-height: 100dvh;
-  overflow: auto;
   overscroll-behavior: contain;
 }
 
-.fortress-screen {
-  background:
-    radial-gradient(circle at 18% 16%, rgba(255, 255, 255, 0.44), transparent 24%),
-    linear-gradient(180deg, #dfeee0 0%, #cddfce 100%);
-}
-
+/* Both zones share the single page background (body gradient) — no per-zone container tint,
+   so combat and mining read as one continuous surface. */
+.fortress-screen,
 .production-screen {
-  background: linear-gradient(180deg, var(--bg-top) 0%, var(--bg-bottom) 60%);
+  background: transparent;
 }
 
 .screen-switch-controls {
-  position: sticky;
-  top: 8px;
-  z-index: 40;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-bottom: 8px;
-  pointer-events: none;
+  display: none;
 }
 
 .screen-switch-controls > * {
@@ -2423,9 +2401,8 @@ h3 {
 
 .fortress-shell {
   display: grid;
-  grid-template-rows: auto auto 1fr;
+  grid-template-rows: auto auto auto;
   gap: 12px;
-  min-height: 100dvh;
 }
 
 .fortress-layout {

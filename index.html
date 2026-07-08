@@ -15,21 +15,29 @@
   <div id="screenDeck" class="screen-deck show-bottom">
     <section id="fortressScreen" class="game-screen fortress-screen" aria-label="Fortress building screen">
       <div class="app-shell fortress-shell">
-        <div class="screen-switch-controls" aria-label="Screen controls">
-          <button id="showProductionButton" class="secondary-button" type="button">Production</button>
-          <span class="screen-switch-hint">Swipe down</span>
-        </div>
         <header class="topbar fortress-topbar">
           <div>
-            <p class="eyebrow">Top Zone</p>
-            <h1>Fortress Merge</h1>
+            <p class="eyebrow">Fortress Merge</p>
+            <h1 id="gameTitle" title="Press E for cheats">Merge Factory</h1>
           </div>
           <div class="resource-bar">
-            <div id="fortressResourceList" class="resource-list"></div>
+            <div id="selectedUnitChip" class="resource-chip selection-chip is-empty">
+              <div class="resource-chip-top">
+                <span class="resource-icon selection-icon" aria-hidden="true"></span>
+                <span class="resource-label">Selected</span>
+              </div>
+              <strong id="selectedUnitValue">None</strong>
+              <span id="selectedUnitHint" class="selection-hint">Tap a unit to choose it.</span>
+            </div>
+            <div id="resourceList" class="resource-list"></div>
             <div class="resource-chip">
               <span class="resource-label">Wave</span>
-              <strong id="fortressWaveValue">0 / 0</strong>
+              <strong id="waveValue">0 / 0</strong>
             </div>
+          </div>
+          <div id="cheatPanel" class="cheat-panel" hidden>
+            <span class="resource-label">Cheats</span>
+            <button id="grantResourcesButton" class="secondary-button" type="button">+1000 resources</button>
           </div>
         </header>
         <div class="wave-telegraph" id="waveTelegraph"></div>
@@ -70,36 +78,6 @@
 
     <section id="productionScreen" class="game-screen production-screen" aria-label="Production screen">
       <div class="app-shell">
-        <div class="screen-switch-controls" aria-label="Screen controls">
-          <button id="showFortressButton" class="secondary-button" type="button">Fortress</button>
-          <span class="screen-switch-hint">Swipe up</span>
-        </div>
-        <header class="topbar">
-          <div>
-            <p class="eyebrow">Resource Factory</p>
-            <h1 id="gameTitle" title="Press E for cheats">Merge Factory</h1>
-          </div>
-          <div class="resource-bar">
-            <div id="selectedUnitChip" class="resource-chip selection-chip is-empty">
-              <div class="resource-chip-top">
-                <span class="resource-icon selection-icon" aria-hidden="true"></span>
-                <span class="resource-label">Selected</span>
-              </div>
-              <strong id="selectedUnitValue">None</strong>
-              <span id="selectedUnitHint" class="selection-hint">Tap a unit to choose it.</span>
-            </div>
-            <div id="resourceList" class="resource-list"></div>
-            <div class="resource-chip">
-              <span class="resource-label">Wave</span>
-              <strong id="waveValue">0 / 0</strong>
-            </div>
-          </div>
-          <div id="cheatPanel" class="cheat-panel" hidden>
-            <span class="resource-label">Cheats</span>
-            <button id="grantResourcesButton" class="secondary-button" type="button">+1000 resources</button>
-          </div>
-        </header>
-
         <main class="layout-grid">
           <section class="middle-row">
             <section class="panel mines-panel">
