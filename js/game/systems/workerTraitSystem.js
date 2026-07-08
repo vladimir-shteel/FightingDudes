@@ -2,6 +2,32 @@ import { CONFIG } from "../config.js";
 
 export const WORKER_TRAIT_KEYS = ["yield", "golden", "rush"];
 
+// Worker merge level is gated by wave: starts at workerLevelCapBase and rises one tier every
+// workerLevelCapWavesPerStep waves up to merge.maxLevel. Keeps the early roster WIDE (surplus
+// bodies must sit in reserve where they rest → the Shift loop stays alive) and paces capstones
+// (they only fire at the true maxLevel). Set wavesPerStep to 0 to disable the gate.
+// Rest is a POOL, not a flag: a worker banks up to ceil(level / restChargeDivisor) rest charges.
+// Each battle Shift spends one; a wave spent in reserve regains one. Higher-level workers hold more
+// charges (longer shift-endurance before they must rotate out to recharge).
+export function getMaxRestCharges(level) {
+  const perLevel = CONFIG.workerTraits?.battleShift?.restChargePerLevel ?? 2;
+  return Math.max(1, Math.floor((level ?? 1) * perLevel));
+}
+
+export function getMaxWorkerLevel(state) {
+  const merge = CONFIG.merge ?? {};
+  const hardMax = merge.maxLevel ?? 5;
+  const unlockWaves = merge.workerLevelUnlockWaves;
+  if (!Array.isArray(unlockWaves) || unlockWaves.length === 0) return hardMax;
+  const wave = state?.fortress?.waveNumber ?? 1;
+  // Cap = the highest level whose unlock wave has been reached (array index i = level i+1).
+  let cap = 1;
+  for (let i = 0; i < unlockWaves.length; i += 1) {
+    if (wave >= (unlockWaves[i] ?? 1)) cap = i + 1;
+  }
+  return Math.min(hardMax, cap);
+}
+
 function getTraitConfig() {
   return CONFIG.workerTraits ?? {};
 }

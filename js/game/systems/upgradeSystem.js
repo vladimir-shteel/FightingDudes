@@ -1,4 +1,5 @@
 import { CONFIG, getMineMaxLevel, getUnitLevelData } from "../config.js";
+import { getMaxWorkerLevel } from "./workerTraitSystem.js";
 import { applyFortressBaseHealthBonus } from "./fortressSystem.js";
 import { getCapstoneBattleDamageBonus } from "./workerTraitSystem.js";
 
@@ -206,9 +207,12 @@ function upgradeFirstWorker(state) {
     }
   }
 
-  const candidate = workers.find(({ unit }) => unit.level < CONFIG.merge.maxLevel) ?? null;
+  // Respect the wave level cap — a free promotion must not vault a worker past the tier the wave
+  // gate allows (that cap is what keeps the roster wide and paces capstones).
+  const levelCap = getMaxWorkerLevel(state);
+  const candidate = workers.find(({ unit }) => unit.level < levelCap) ?? null;
   if (!candidate) {
-    return { ok: false, reason: "No worker can be upgraded." };
+    return { ok: false, reason: "No worker can be promoted yet (level cap rises each wave)." };
   }
 
   const nextLevel = candidate.unit.level + 1;
@@ -218,9 +222,17 @@ function upgradeFirstWorker(state) {
 }
 
 function upgradeFirstBuilding(state) {
-  const building = state.fortress.buildings.find((item) => item.type !== "hq" && item.level < (CONFIG.fortressBuildings[item.type]?.levels.length ?? 0));
+  // A free upgrade must not vault a building past the crystal gate (L4+). Otherwise this reward
+  // skips the crystal economy entirely and breaks tier pacing.
+  const crystalLevels = Object.keys(CONFIG.merge?.crystalCostByLevel ?? {}).map(Number).filter((n) => !Number.isNaN(n));
+  const crystalGateLevel = crystalLevels.length ? Math.min(...crystalLevels) : Infinity;
+  const building = state.fortress.buildings.find((item) =>
+    item.type !== "hq"
+    && item.level < (CONFIG.fortressBuildings[item.type]?.levels.length ?? 0)
+    && item.level + 1 < crystalGateLevel
+  );
   if (!building) {
-    return { ok: false, reason: "No building can be upgraded." };
+    return { ok: false, reason: "No building can be upgraded for free (top tiers need 💎 crystal)." };
   }
 
   const definition = CONFIG.fortressBuildings[building.type];
@@ -237,26 +249,31 @@ function upgradeFirstBuilding(state) {
 }
 
 function unlockOrExpandMine(state) {
-  const mine = state.mines.find((item) => !item.isUnlocked || (item.purchasedSlotIndices ?? []).some((isPurchased) => !isPurchased)) ?? null;
-  if (!mine) {
-    return { ok: false, reason: "No mine can be expanded." };
+  // Only unlock/expand what is ALREADY wave-eligible: the reward waives the gold cost, it does NOT
+  // skip the wave gates. Unlocking a mine (esp. crystal) or a slot early would break the resource /
+  // crystal-gate pacing — exactly the "auto mine upgrade" that facerolled the loop.
+  const wave = state.fortress.waveNumber ?? 1;
+
+  const lockedMine = state.mines.find((item) => !item.isUnlocked && wave >= (item.unlockWave ?? 1)) ?? null;
+  if (lockedMine) {
+    lockedMine.isUnlocked = true;
+    lockedMine.purchasedSlotIndices[0] = true;
+    lockedMine.level = Math.max(1, lockedMine.level);
+    return { ok: true, reason: `${lockedMine.name} unlocked.` };
   }
 
-  if (!mine.isUnlocked) {
-    mine.isUnlocked = true;
-    mine.purchasedSlotIndices[0] = true;
-    mine.level = Math.max(1, mine.level);
-    return { ok: true, reason: `${mine.name} unlocked.` };
+  for (const mine of state.mines) {
+    if (!mine.isUnlocked) continue;
+    const nextSlotIndex = (mine.purchasedSlotIndices ?? []).findIndex((isPurchased) => !isPurchased);
+    if (nextSlotIndex < 0) continue;
+    const slotUnlockWave = mine.slotUnlockWaves?.[nextSlotIndex] ?? 1;
+    if (wave < slotUnlockWave) continue;
+    mine.purchasedSlotIndices[nextSlotIndex] = true;
+    mine.level = Math.min(getMineMaxLevel(), Math.max(mine.level, nextSlotIndex + 1));
+    return { ok: true, reason: `${mine.name} gained slot ${nextSlotIndex + 1}.` };
   }
 
-  const nextSlotIndex = (mine.purchasedSlotIndices ?? []).findIndex((isPurchased) => !isPurchased);
-  if (nextSlotIndex < 0) {
-    return { ok: false, reason: "No mine can be expanded." };
-  }
-
-  mine.purchasedSlotIndices[nextSlotIndex] = true;
-  mine.level = Math.min(getMineMaxLevel(), Math.max(mine.level, nextSlotIndex + 1));
-  return { ok: true, reason: `${mine.name} gained slot ${nextSlotIndex + 1}.` };
+  return { ok: false, reason: "No mine slot is available to expand yet." };
 }
 
 function repairFortress(state) {
@@ -350,8 +367,11 @@ function buildOneShotCards() {
 
 function refreshTemporaryMultiplierState(state) {
   const temporaryBonuses = state.economy.temporaryBonuses ?? [];
-  const baseBattleProductionMultiplier = CONFIG.productionMultipliers?.battle ?? 1;
-  state.economy.battleProductionMultiplier = baseBattleProductionMultiplier * temporaryBonuses
+  // Temporary "Harvest Surge" production boost — an ALWAYS-ON multiplier for its duration, decoupled
+  // from battle. There is intentionally NO blanket battle production multiplier: during a battle the
+  // ONLY mining boost comes from committed shift workers (their rush multiplier). That is the whole
+  // point of the shift mechanic — it is the player's lever for in-battle mining engagement.
+  state.economy.temporaryProductionMultiplier = temporaryBonuses
     .filter((bonus) => bonus.kind === "production")
     .reduce((product, bonus) => product * bonus.multiplier, 1);
   state.economy.damageMultiplier = temporaryBonuses
@@ -435,8 +455,8 @@ export function getFortressBaseHealthBonus(state) {
   return Math.max(0, state.economy.baseHealthBonus ?? 0);
 }
 
-export function getFortressBattleProductionMultiplier(state) {
-  return Math.max(1, state.economy.battleProductionMultiplier ?? 1);
+export function getTemporaryProductionMultiplier(state) {
+  return Math.max(1, state.economy.temporaryProductionMultiplier ?? 1);
 }
 
 function getCommittedSkirmisherBonus(state) {

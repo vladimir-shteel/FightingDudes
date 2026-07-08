@@ -44,6 +44,7 @@
               <div class="fortress-actions">
                 <button id="fortressBuffsButton" class="info-chip" type="button" aria-expanded="false" aria-controls="fortressBuffsPanel">Buffs ⓘ</button>
                 <button id="fortressFightButton" class="primary-button" type="button">To Battle</button>
+                <button id="fortressGiveUpButton" class="danger-button" type="button" hidden>Give Up</button>
               </div>
             </div>
             <p id="fortressMessage" class="battle-log">Clear space, place buildings, then send prepared units to battle.</p>
@@ -56,8 +57,11 @@
                 <p class="eyebrow">Buildings</p>
                 <h2>Workshop</h2>
               </div>
-              <p class="panel-note">Uses the same resources your mines produce.</p>
+              <div class="reserve-actions">
+                <button id="fortressMassMergeButton" class="secondary-button">Mass Merge</button>
+              </div>
             </div>
+            <p class="panel-note">Uses the same resources your mines produce. Merge two same-type, same-level buildings to upgrade — top tiers need 💎 crystal.</p>
             <div id="fortressShop" class="fortress-shop"></div>
           </section>
         </main>

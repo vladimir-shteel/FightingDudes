@@ -7,8 +7,7 @@ export const CONFIG = {
   unitBuyBaseCost: 0,
   unitBuyExponent: 1,
   productionMultipliers: {
-    rest: 1,
-    battle: 1
+    rest: 1
   },
   merge: {
     maxLevel: 1

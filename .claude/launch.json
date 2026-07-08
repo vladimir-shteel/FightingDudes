@@ -12,6 +12,12 @@
       "runtimeExecutable": "python",
       "runtimeArgs": ["-m", "http.server", "8768"],
       "port": 8768
+    },
+    {
+      "name": "root-nocache",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-c", "import http.server,socketserver\nclass H(http.server.SimpleHTTPRequestHandler):\n def end_headers(self):\n  self.send_header('Cache-Control','no-store, max-age=0');self.send_header('Pragma','no-cache');self.send_header('Expires','0')\n  super().end_headers()\nsocketserver.TCPServer(('',8769),H).serve_forever()"],
+      "port": 8769
     }
   ]
 }

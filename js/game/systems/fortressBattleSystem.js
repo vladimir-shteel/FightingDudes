@@ -6,7 +6,7 @@ import {
   FORTRESS_WIDTH,
   syncFortressBuildingUnlocks
 } from "./fortressSystem.js";
-import { clearWorkerBattleShifts, consumeShiftRestFlags, markReserveWorkersRested } from "./mineSystem.js";
+import { accrueWorkerRest, autoCommitBattleShifts, clearWorkerBattleShifts, consumeShiftRestFlags } from "./mineSystem.js";
 import { findTilePath } from "./pathfinding.js";
 import {
   beginFortressWave,
@@ -239,10 +239,31 @@ function resolveUnitCollisions(state) {
   }
 }
 
+// Armor rule: effective = max(dmg*armorMinFraction, dmg - armor). The fractional floor (not 0, not a
+// flat 1) makes armor a real RPS lever — many-small-hits bounce to ~15% vs a heavy target, so burst
+// (few big hits: turret/mine) is the efficient answer, yet nothing is fully immune (soft counter, no
+// softlock). Splash AoE is the anti-swarm answer. Mirrors tools/balance-sim/battle_sim.hurt_enemy.
+function applyDamageToEnemy(enemy, rawDamage) {
+  const armor = enemy.armor ?? 0;
+  const minFraction = CONFIG.combat?.armorMinFraction ?? 0.15;
+  const dealt = Math.max(rawDamage * minFraction, rawDamage - armor);
+  enemy.hp -= dealt;
+  return dealt;
+}
+
 function createFortressEnemy(state, archetypeKey) {
   const base = CONFIG.fortressEnemies[archetypeKey];
   const waveBonus = Math.max(0, state.fortress.waveNumber - 1);
-  const hp = base.hp + waveBonus * 3;
+  const c = CONFIG.combat ?? {};
+  // Multiplicative wave scaling PRESERVES archetype identity across waves (the old additive
+  // +5(w-1)+0.35(w-1)^2 added a flat HP slab to every archetype and erased the swarm/tank
+  // distinction late). Armor scales multiplicatively too, so it tracks the tier-growth of the
+  // big-hit sources and chip keeps bouncing at every wave.
+  const hp = Math.round(base.hp * (1 + (c.hpScalePerWave ?? 0.14) * waveBonus));
+  const baseArmor = base.armor ?? 0;
+  const armor = baseArmor > 0
+    ? Math.round(baseArmor * (1 + (c.armorScalePerWave ?? 0.10) * waveBonus))
+    : 0;
   return {
     id: generateId("fortress-enemy"),
     archetype: archetypeKey,
@@ -250,7 +271,8 @@ function createFortressEnemy(state, archetypeKey) {
     icon: base.icon,
     hp,
     maxHp: hp,
-    attack: base.attack + Math.floor(waveBonus / 3),
+    armor,
+    attack: Math.round(base.attack * (1 + (c.attackScalePerWave ?? 0.06) * waveBonus)),
     cooldownSeconds: base.cooldownSeconds,
     attackTimer: 0,
     range: base.rangeTiles,
@@ -286,19 +308,27 @@ function expandComposition(wave) {
   return queue;
 }
 
-export function createFortressAlly(type, origin) {
+export function createFortressAlly(type, origin, level = 1) {
   const base = CONFIG.fortressUnits[type];
+  const c = CONFIG.combat ?? {};
+  // Spawned-unit power scales with the SPAWNER building's tier (was frozen: only cooldown scaled, so
+  // spawner units fell behind turret point-damage late-game). This is the spawner merge payoff and
+  // keeps mage splash / warrior bodies relevant vs multiplicatively-scaled enemy HP.
+  const atkMult = 1 + (c.unitAttackPerLevel ?? 0.35) * (level - 1);
+  const hpMult = 1 + (c.unitHpPerLevel ?? 0.20) * (level - 1);
+  const hp = Math.round(base.hp * hpMult);
   return {
     id: generateId("fortress-ally"),
     type,
     icon: base.icon,
-    hp: base.hp,
-    maxHp: base.hp,
-    attack: base.attack,
+    hp,
+    maxHp: hp,
+    attack: base.attack * atkMult,
     cooldownSeconds: base.cooldownSeconds,
     attackTimer: 0,
     range: base.rangeTiles,
     speed: base.speedTilesPerSecond,
+    splashRadius: base.splashRadius ?? 0,
     x: origin.x,
     y: origin.y,
     path: null,
@@ -315,7 +345,7 @@ export function spawnAllyForBuilding(state, building, unitKey, count) {
   const center = getBuildingCenter(building);
   for (let index = 0; index < count; index += 1) {
     const offset = (index - (count - 1) / 2) * 0.4;
-    battle.allies.push(createFortressAlly(unitKey, { x: center.x + offset, y: Math.max(0, center.y - 0.65) }));
+    battle.allies.push(createFortressAlly(unitKey, { x: center.x + offset, y: Math.max(0, center.y - 0.65) }, building.level));
   }
 }
 
@@ -332,12 +362,13 @@ export function volleyFromBuilding(state, building, count, damage) {
   }
 }
 
-function createProjectile(source, target, damage, type) {
+function createProjectile(source, target, damage, type, splashRadius = 0) {
   return {
     id: generateId("fortress-shot"),
     type,
     targetId: target.id,
     damage,
+    splashRadius,
     x: source.x,
     y: source.y,
     speed: 5.5
@@ -383,12 +414,15 @@ export function startFortressBattle(state) {
     enemiesSpawned: 0,
     enemiesDefeated: 0,
     goldEarned: 0,
+    activeCasts: 0,
     result: null
   };
   for (const building of state.fortress.buildings) {
     building.cooldownTimer = 0.5;
   }
   beginFortressWave(state);
+  // Rested workers staffing a mine automatically take the battle shift (up to the per-mine cap).
+  autoCommitBattleShifts(state);
   // Committed workers spend their rest to power the Shift.
   consumeShiftRestFlags(state);
   return { ok: true, reason: `Fortress wave ${state.fortress.waveNumber} started.` };
@@ -432,7 +466,7 @@ function tickBuildingActions(state, deltaSeconds) {
     if (level.unit) {
       building.cooldownTimer -= deltaSeconds;
       if (building.cooldownTimer <= 0) {
-        battle.allies.push(createFortressAlly(level.unit, { x: center.x, y: Math.max(0, center.y - 0.65) }));
+        battle.allies.push(createFortressAlly(level.unit, { x: center.x, y: Math.max(0, center.y - 0.65) }, building.level));
         building.cooldownTimer = level.cooldownSeconds;
       }
     }
@@ -441,7 +475,7 @@ function tickBuildingActions(state, deltaSeconds) {
       building.cooldownTimer -= deltaSeconds;
       if (building.cooldownTimer <= 0) {
         const target = chooseNearest(center, battle.enemies.filter((enemy) => enemy.hp > 0));
-        if (target && target.distance <= 3.2) {
+        if (target && target.distance <= (level.range ?? 3.2)) {
           const boostMultiplier = building.activeBoostRemaining > 0 ? (building.activeBoost?.multiplier ?? 1) : 1;
           battle.projectiles.push(createProjectile(center, target.item, level.damage * boostMultiplier, "turret"));
           building.cooldownTimer = level.cooldownSeconds;
@@ -502,7 +536,7 @@ function tickEnemies(state, deltaSeconds) {
       }
       const level = CONFIG.fortressBuildings.mine.levels[building.level - 1];
       if (distanceToBuildingEdge(enemy, building) <= 0.55) {
-        enemy.hp -= level.damage * damageMultiplier;
+        applyDamageToEnemy(enemy, level.damage * damageMultiplier);
         markHit(enemy);
         building.hp = 0;
         markHit(building);
@@ -631,9 +665,9 @@ function tickAllies(state, deltaSeconds) {
     ally.attackTimer -= deltaSeconds;
     if (ally.attackTimer <= 0) {
       if (ally.range > 0.8) {
-        battle.projectiles.push(createProjectile(ally, target.item, ally.attack, ally.type));
+        battle.projectiles.push(createProjectile(ally, target.item, ally.attack, ally.type, ally.splashRadius ?? 0));
       } else {
-        target.item.hp -= ally.attack * getFortressDamageMultiplier(state);
+        applyDamageToEnemy(target.item, ally.attack * getFortressDamageMultiplier(state));
         markHit(target.item);
       }
       ally.attackTimer = ally.cooldownSeconds;
@@ -651,8 +685,20 @@ function tickProjectiles(state, deltaSeconds) {
       continue;
     }
     if (getDistance(projectile, target) <= 0.14) {
-      target.hp -= projectile.damage * damageMultiplier;
-      markHit(target);
+      const dmg = projectile.damage * damageMultiplier;
+      const splash = projectile.splashRadius ?? 0;
+      if (splash > 0) {
+        // AoE: every live enemy within splash of impact takes the hit (armor applies per enemy).
+        for (const enemy of battle.enemies) {
+          if (enemy.hp > 0 && Math.hypot(enemy.x - target.x, enemy.y - target.y) <= splash) {
+            applyDamageToEnemy(enemy, dmg);
+            markHit(enemy);
+          }
+        }
+      } else {
+        applyDamageToEnemy(target, dmg);
+        markHit(target);
+      }
       projectile.done = true;
       continue;
     }
@@ -703,10 +749,16 @@ function finishBattle(state, result) {
       building.cooldownTimer = 0;
     }
   } else {
-    // Victory clears attrition entirely: all buildings restored to full and damageFloor reset.
+    // ATTRITION (steady per-wave sink coupling mining<->combat): victory clears the permanent
+    // damageFloor, but buildings KEEP the HP they lost this fight — you repair with resources between
+    // waves. Harder fights chew more HP -> more repair -> more mining. Destroyed buildings are pulled
+    // back to a repairable fraction so a WIN never outright deletes your defense (no death-spiral).
+    const victoryFloor = CONFIG.attrition?.postDefeatHpFraction ?? 0.4;
     for (const building of state.fortress.buildings) {
       building.damageFloor = 0;
-      building.hp = building.maxHp;
+      if (building.hp <= 0) {
+        building.hp = Math.max(1, Math.floor(building.maxHp * victoryFloor));
+      }
       building.cooldownTimer = 0;
     }
   }
@@ -738,8 +790,19 @@ function finishBattle(state, result) {
   }
 
   clearWorkerBattleShifts(state);
-  // Workers who sat out this battle in reserve earn a rest flag for the next one.
-  markReserveWorkersRested(state);
+  // Every worker NOT on its desired mine (reserve or a wrong mine) builds Rest toward that mine.
+  accrueWorkerRest(state);
+}
+
+export function giveUpFortressBattle(state) {
+  if (!state.fortress.battle.active) {
+    return { ok: false, reason: "No battle to give up." };
+  }
+  // Concede a doomed fight: resolve it as a normal defeat (attrition damage applies, the wave can be
+  // retried) so the player doesn't have to watch a lost battle play out.
+  finishBattle(state, "defeat");
+  state.fortress.message = "Surrendered — the wave is lost. Regroup and try again.";
+  return { ok: true, reason: "Battle surrendered." };
 }
 
 function updateBattleMessage(state) {

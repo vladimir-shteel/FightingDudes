@@ -3,6 +3,7 @@ import {
   getFortressBuildingUnlockWave,
   getMineLevelData,
   getMineMaxLevel,
+  getMineUnlockWave,
   getResourceIcon,
   getResourceLabel,
 } from "./config.js";
@@ -23,11 +24,9 @@ import {
   getMineSlotState,
   mergeReserveUnitIntoMineUnit,
   moveMineUnitToMineSlot,
-  returnMineUnitToReserve,
-  toggleWorkerBattleShift,
-  getShiftMaxPerMine
+  returnMineUnitToReserve
 } from "./systems/mineSystem.js";
-import { startFortressBattle } from "./systems/fortressBattleSystem.js";
+import { giveUpFortressBattle, startFortressBattle } from "./systems/fortressBattleSystem.js";
 import {
   buyFortressBuilding,
   canAffordResources,
@@ -35,8 +34,12 @@ import {
   findFortressPlacement,
   getBuildingActiveCost,
   getBuildingActiveDefinition,
+  demolishFortressBuilding,
   getFortressBuildingBuyCost,
+  getFortressBuildingRefund,
   getFortressRepairCost,
+  getMergeCrystalCost,
+  massMergeFortressBuildings,
   mergeFortressBuildings,
   moveFortressBuilding,
   removeFortressObstacle,
@@ -47,6 +50,7 @@ import { applyUpgradeChoice } from "./systems/upgradeSystem.js";
 import {
   applyWorkerCapstone,
   getDominantTraitKey,
+  getMaxRestCharges,
   getTraitIcon,
   getTraitLabel,
   getWorkerCapstoneEffect,
@@ -84,7 +88,23 @@ function buildTraitInfoMarkup() {
       text: `Boosts the battle Shift multiplier. Base ${shiftBase}×; each point adds +${(rushPer * 100).toFixed(0)}%. Applies only to committed workers during battle.`
     }
   ];
-  const rowsHtml = rows.map((row) => `
+  const restMult = CONFIG.productionMultipliers?.rest ?? 1;
+  const shiftCap = shift.maxCommitsPerMine ?? 2;
+  const mechanics = [
+    {
+      key: "shift",
+      icon: "👷",
+      label: "Battle Shift",
+      text: `Every worker WANTS a particular mine (shown on its badge). Stand it on that mine with Rest ⚡ and it auto-Shifts when battle starts (×${shiftBase} base + Rush) — the mine pumps faster, up to ${shiftCap} per mine. Spends one Rest per Shift.`
+    },
+    {
+      key: "rested",
+      icon: "⚡",
+      label: "Mood & Rest",
+      text: `Rest ⚡ builds (+1/wave, up to ceil(level/2)) whenever a worker is NOT on its wanted mine — sitting on a different mine (still mining at ×${restMult}) or resting in reserve. When Rest hits 0 its craving shifts to another mine — move it there to Shift again. That's the loop: chase each worker's mood.`
+    }
+  ];
+  const renderRow = (row) => `
     <div class="trait-info-row">
       <span class="unit-trait unit-trait-${row.key}">${row.icon}</span>
       <div>
@@ -92,10 +112,14 @@ function buildTraitInfoMarkup() {
         <p>${row.text}</p>
       </div>
     </div>
-  `).join("");
+  `;
+  const rowsHtml = rows.map(renderRow).join("");
+  const mechanicsHtml = mechanics.map(renderRow).join("");
   return `
-    <p class="trait-info-hint">Traits roll when a worker is bought and stack on merge (dominant line gets a bonus point). At max level a worker picks a capstone.</p>
+    <p class="trait-info-hint">Traits roll when a worker is bought and stack on merge (dominant line gets a bonus point). At max level a worker picks a capstone (★).</p>
     ${rowsHtml}
+    <p class="trait-info-hint">Shifts &amp; rest — the mining-during-battle loop:</p>
+    ${mechanicsHtml}
   `;
 }
 
@@ -209,28 +233,38 @@ function createUnitCard(unit, options = {}) {
   card.dataset.level = String(level);
   card.dataset.trait = dominantTrait;
   card.classList.toggle("is-shifted", Boolean(unit.battleShiftCommitted));
-  card.classList.toggle("is-rested", Boolean(unit.isRested));
+  card.classList.toggle("is-rested", (unit.restCharges ?? 0) > 0);
   card.classList.toggle("is-hit", isHitFlashing(unit));
   card.classList.toggle("has-pending-capstone", Boolean(unit.pendingCapstone?.length));
   card.dataset.hit = isHitFlashing(unit) ? "true" : "false";
 
+  // Capstone no longer prints its (long) label on the card — that deformed the layout. Instead a ★
+  // sits on the level badge; the full name + effect live in the worker popover.
   const capstoneEffect = getWorkerCapstoneEffect(unit);
-  const capstoneBadge = capstoneEffect
-    ? `<span class="unit-capstone-badge" title="${capstoneEffect.label}">${capstoneEffect.label}</span>`
+  const capstoneStar = capstoneEffect
+    ? `<span class="unit-capstone-star" title="${capstoneEffect.label}">★</span>`
     : "";
 
-  let statusBadge = "";
+  // The status badge now shows the mine this worker WANTS (place it there to Shift). Its colour is
+  // the Rest state: bright = charged & ready to Shift, gold = currently Shifting, dim = building desire.
+  const restCharges = unit.restCharges ?? 0;
+  const maxRest = getMaxRestCharges(level);
+  const desireIcon = unit.desiredMine ? (getResourceIcon(unit.desiredMine) ?? "•") : "•";
+  const desireLabel = unit.desiredMine ? getResourceLabel(unit.desiredMine) : "a mine";
+  const countSuffix = restCharges > 1 ? `×${restCharges}` : "";
+  let statusBadge;
   if (unit.battleShiftCommitted) {
-    statusBadge = `<span class="unit-status-badge is-shift" title="On battle Shift">👷</span>`;
-  } else if (unit.isRested) {
-    statusBadge = `<span class="unit-status-badge is-rested" title="Rested — energetic, ready for Shift">⚡</span>`;
+    statusBadge = `<span class="unit-status-badge is-shift" title="On Shift at the ${desireLabel} mine">${desireIcon}</span>`;
+  } else if (restCharges > 0) {
+    statusBadge = `<span class="unit-status-badge is-rested" title="Wants the ${desireLabel} mine — ${restCharges}/${maxRest} Shift charge${restCharges > 1 ? "s" : ""}. Place it there to Shift.">${desireIcon}${countSuffix}</span>`;
+  } else {
+    statusBadge = `<span class="unit-status-badge is-depleted" title="Building desire for the ${desireLabel} mine — works at base rate meanwhile.">${desireIcon}</span>`;
   }
   card.innerHTML = `
     <div class="unit-badges">
       <div class="unit-badges-row">
-        <span class="unit-level-badge">${level}</span>
+        <span class="unit-level-badge">${level}${capstoneStar}</span>
         ${statusBadge}
-        ${capstoneBadge}
       </div>
       ${!compact && traitBadges ? `<div class="unit-traits">${traitBadges}</div>` : ""}
     </div>
@@ -308,26 +342,64 @@ function getBattlefieldBurstPosition(elements, battlefield) {
   };
 }
 
-function playResourceBurst(elements, burst) {
+// Where a burst originates: battlefield bursts live on the Fortress screen ("top"),
+// mine/worker bursts on the Production screen ("bottom").
+function getBurstSourceScreen(burst) {
+  return burst.battlefield ? "top" : "bottom";
+}
+
+// Flash the resource chip in place with a quick "+N" pop — used when the burst's source
+// screen is off-screen, so we don't fling tokens across from a hidden origin.
+function flashResourceTick(elements, target, resourceKey, displayAmount, isShift = false) {
+  target.animate(
+    isShift
+      ? [
+          { transform: "scale(1)", filter: "brightness(1)" },
+          { transform: "scale(1.22)", filter: "brightness(1.9)" },
+          { transform: "scale(1)", filter: "brightness(1)" }
+        ]
+      : [
+          { transform: "scale(1)", filter: "brightness(1)" },
+          { transform: "scale(1.12)", filter: "brightness(1.55)" },
+          { transform: "scale(1)", filter: "brightness(1)" }
+        ],
+    { duration: isShift ? 300 : 340, easing: "ease-out" }
+  );
+
+  const rect = target.getBoundingClientRect();
+  const token = document.createElement("div");
+  token.className = `resource-tick resource-${resourceKey}${isShift ? " is-shift" : ""}`;
+  token.textContent = isShift ? `⚡+${displayAmount}` : `+${displayAmount}`;
+  token.style.left = `${rect.left + rect.width / 2}px`;
+  token.style.top = `${rect.top}px`;
+  elements.fxLayer.append(token);
+  window.setTimeout(() => token.remove(), 620);
+}
+
+function playResourceBurst(elements, burst, activeScreen) {
+  const sourceVisible = getBurstSourceScreen(burst) === activeScreen;
+
   let startX;
   let startY;
 
-  const battlefieldPosition = getBattlefieldBurstPosition(elements, burst.battlefield);
-  if (battlefieldPosition) {
-    startX = battlefieldPosition.x;
-    startY = battlefieldPosition.y;
-  } else {
-    const source = burst.slotIndex >= 0
-      ? elements.minesGrid.querySelector(`[data-mine-slot="${burst.mineId}:${burst.slotIndex}"]`)
-      : elements.minesGrid.querySelector(`[data-mine-passive="${burst.mineId}"]`)
-        ?? elements.minesGrid.querySelector(`[data-mine-card="${burst.mineId}"]`);
-    if (!source) {
-      return;
-    }
+  if (sourceVisible) {
+    const battlefieldPosition = getBattlefieldBurstPosition(elements, burst.battlefield);
+    if (battlefieldPosition) {
+      startX = battlefieldPosition.x;
+      startY = battlefieldPosition.y;
+    } else {
+      const source = burst.slotIndex >= 0
+        ? elements.minesGrid.querySelector(`[data-mine-slot="${burst.mineId}:${burst.slotIndex}"]`)
+        : elements.minesGrid.querySelector(`[data-mine-passive="${burst.mineId}"]`)
+          ?? elements.minesGrid.querySelector(`[data-mine-card="${burst.mineId}"]`);
+      if (!source) {
+        return;
+      }
 
-    const sourceRect = source.getBoundingClientRect();
-    startX = sourceRect.left + sourceRect.width / 2;
-    startY = sourceRect.top + sourceRect.height / 2;
+      const sourceRect = source.getBoundingClientRect();
+      startX = sourceRect.left + sourceRect.width / 2;
+      startY = sourceRect.top + sourceRect.height / 2;
+    }
   }
 
   for (const payout of burst.payouts) {
@@ -338,6 +410,14 @@ function playResourceBurst(elements, burst) {
 
     const target = getVisibleResourceTarget(elements, payout.resourceKey);
     if (!target) {
+      continue;
+    }
+
+    // Source screen hidden: no flight — just flash the counter in place. Shift payouts (which fire
+    // during battle while the player is on the fortress screen) flash brighter with a ⚡ so the
+    // mining spike is legible across screens.
+    if (!sourceVisible) {
+      flashResourceTick(elements, target, payout.resourceKey, displayAmount, Boolean(burst.shift));
       continue;
     }
 
@@ -388,6 +468,7 @@ export function mountUI(state, onStateChanged) {
     screenDeck: document.querySelector("#screenDeck"),
     showFortressButton: document.querySelector("#showFortressButton"),
     showProductionButton: document.querySelector("#showProductionButton"),
+    fortressGiveUpButton: document.querySelector("#fortressGiveUpButton"),
     fortressResourceList: document.querySelector("#fortressResourceList"),
     fortressWaveValue: document.querySelector("#fortressWaveValue"),
     waveTelegraph: document.querySelector("#waveTelegraph"),
@@ -396,6 +477,7 @@ export function mountUI(state, onStateChanged) {
     bossHpBar: document.querySelector("#bossHpBar"),
     fortressField: document.querySelector("#fortressField"),
     fortressShop: document.querySelector("#fortressShop"),
+    fortressMassMergeButton: document.querySelector("#fortressMassMergeButton"),
     upgradeOverlay: document.querySelector("#upgradeOverlay"),
     upgradeChoices: document.querySelector("#upgradeChoices"),
     capstoneOverlay: document.querySelector("#capstoneOverlay"),
@@ -555,48 +637,39 @@ export function mountUI(state, onStateChanged) {
     const capstoneEffect = getWorkerCapstoneEffect(unit);
 
     const inMine = context.source === "mine";
-    const mine = inMine ? state.mines.find((m) => m.id === context.mineId) : null;
-    const shiftCap = getShiftMaxPerMine();
-    const shiftsInMine = mine ? mine.workerIds.filter((w) => w?.battleShiftCommitted).length : 0;
-    const battleActive = state.fortress.battle.active;
-    let shiftBtn = "";
-    if (inMine) {
-      if (unit.battleShiftCommitted) {
-        shiftBtn = `<button class="fortress-popover-action" type="button" data-popover-shift-off ${battleActive ? "disabled" : ""}>Cancel Shift (×${rushMult})</button>`;
-      } else {
-        const capReached = shiftsInMine >= shiftCap;
-        const disabled = battleActive || !unit.isRested || capReached;
-        const label = !unit.isRested
-          ? `Shift — needs rest`
-          : capReached
-            ? `Shift — mine cap ${shiftCap}/${shiftCap}`
-            : `Commit Shift (×${rushMult})`;
-        shiftBtn = `<button class="fortress-popover-action" type="button" data-popover-shift-on ${disabled ? "disabled" : ""}>${label}</button>`;
-      }
+    const charges = unit.restCharges ?? 0;
+    const maxCharges = getMaxRestCharges(unit.level);
+    const desiredLabel = unit.desiredMine ? getResourceLabel(unit.desiredMine) : "a mine";
+    const desiredIcon = unit.desiredMine ? (getResourceIcon(unit.desiredMine) ?? "") : "";
+    const currentMine = inMine ? state.mines.find((mine) => mine.id === context.mineId) : null;
+    const onDesired = Boolean(currentMine && currentMine.resourceKey === unit.desiredMine);
+    // A worker Shifts (battle production spike) only while standing on the mine it currently WANTS and
+    // holding Rest ⚡. Off its mine (wrong mine or reserve) it builds Rest toward it at base rate.
+    let shiftNote;
+    if (unit.battleShiftCommitted) {
+      shiftNote = `<div class="worker-popover-shift is-shifted">👷 On Shift at ${desiredIcon} ${desiredLabel} — mining ×${rushMult}</div>`;
+    } else if (onDesired && charges > 0) {
+      shiftNote = `<div class="worker-popover-shift is-rested">${desiredIcon} On its wanted mine — Shifts next battle (×${rushMult}) · ${charges}/${maxCharges} ⚡</div>`;
+    } else if (charges > 0) {
+      shiftNote = `<div class="worker-popover-shift is-rested">Wants ${desiredIcon} ${desiredLabel} · ${charges}/${maxCharges} ⚡ — move it there to Shift</div>`;
+    } else {
+      shiftNote = `<div class="worker-popover-shift">💤 Building desire for ${desiredIcon} ${desiredLabel} — works at base rate</div>`;
     }
+    const headerStatus = unit.battleShiftCommitted ? ` 👷${desiredIcon}` : ` ${desiredIcon}`;
     popover.innerHTML = `
-      <strong>${unit.name} · Lv${unit.level}${unit.battleShiftCommitted ? " 👷" : unit.isRested ? " ⚡" : ""}</strong>
+      <strong>${unit.name} · Lv${unit.level}${headerStatus}</strong>
       <div class="worker-popover-traits">
         <span class="unit-trait unit-trait-yield" title="Yield">Y +${yieldPct}%</span>
         <span class="unit-trait unit-trait-golden" title="Golden">G ${goldenPct}%</span>
         <span class="unit-trait unit-trait-rush" title="Rush">R ${rushMult}× Shift</span>
       </div>
-      ${capstoneEffect ? `<span class="worker-popover-capstone">${capstoneEffect.label}</span>` : ""}
+      ${capstoneEffect ? `<div class="worker-popover-capstone"><strong>★ ${capstoneEffect.label}</strong>${capstoneEffect.description ? `<span>${capstoneEffect.description}</span>` : ""}</div>` : ""}
       <button class="fortress-popover-action primary-action" type="button" data-popover-move>Move / Merge</button>
-      ${shiftBtn}
+      ${shiftNote}
       ${unit.pendingCapstone?.length ? `<button class="fortress-popover-action" type="button" data-popover-capstone>Choose Capstone</button>` : ""}
       ${inMine ? `<button class="fortress-popover-action" type="button" data-popover-return>Return to Reserve</button>` : ""}
       <button class="fortress-popover-action" type="button" data-popover-close>Close</button>
     `;
-
-    const applyShift = () => {
-      const result = toggleWorkerBattleShift(state, context.mineId, context.slotIndex);
-      state.fortress.message = result.reason;
-      closeWorkerActionPopup();
-      onStateChanged();
-    };
-    popover.querySelector("[data-popover-shift-on]")?.addEventListener("click", applyShift);
-    popover.querySelector("[data-popover-shift-off]")?.addEventListener("click", applyShift);
 
     popover.querySelector("[data-popover-move]").addEventListener("click", () => {
       selectUnit(unit.id);
@@ -713,6 +786,13 @@ export function mountUI(state, onStateChanged) {
     onStateChanged();
   });
 
+  elements.fortressMassMergeButton?.addEventListener("click", () => {
+    const result = massMergeFortressBuildings(state);
+    state.fortress.message = result.reason;
+    closeFortressPopup();
+    onStateChanged();
+  });
+
   function attachAnchoredTooltip(button, panel, buildMarkup) {
     if (!button || !panel) return;
     let outsideHandler = null;
@@ -802,6 +882,18 @@ export function mountUI(state, onStateChanged) {
     const result = startFortressBattle(state);
     state.fortress.message = result.reason;
     state.ui.fortressPopup = null;
+    onStateChanged();
+  });
+
+  elements.fortressGiveUpButton.addEventListener("click", () => {
+    if (!state.fortress.battle.active) {
+      return;
+    }
+    if (!window.confirm("Give up this wave? Your fortress takes the loss and you can try again.")) {
+      return;
+    }
+    const result = giveUpFortressBattle(state);
+    state.fortress.message = result.reason;
     onStateChanged();
   });
 
@@ -1066,6 +1158,8 @@ export function mountUI(state, onStateChanged) {
           const slotShell = document.createElement("div");
           slotShell.className = "slot slot-filled is-open";
           slotShell.dataset.mineSlot = `${mine.id}:${index}`;
+          // Golden highlight on the slot while its worker is pulling a battle Shift.
+          slotShell.classList.toggle("slot-shifting", Boolean(worker.battleShiftCommitted && state.fortress.battle.active));
           if (slotBadge) {
             slotShell.insertAdjacentHTML("afterbegin", slotBadge);
           }
@@ -1407,7 +1501,7 @@ export function mountUI(state, onStateChanged) {
       const canRepair = needsRepair && canAffordResources(state.resources, repairCost);
       const active = getBuildingActiveDefinition(building);
       const activeDescription = describeBuildingActive(active);
-      const activeCost = active ? getBuildingActiveCost(building) : {};
+      const activeCost = active ? getBuildingActiveCost(state, building) : {};
       const activeOnCooldown = active && (building.activeCooldown ?? 0) > 0;
       const activeAffordable = active && canAffordResources(state.resources, activeCost);
       const activeBlock = active ? `
@@ -1422,9 +1516,22 @@ export function mountUI(state, onStateChanged) {
           ${activeOnCooldown ? `On cooldown ${Math.ceil(building.activeCooldown)}s` : `Use ${active.label}`}
         </button>
       ` : "";
+      // Surface the crystal gate: the next merge may cost 💎, and crystal itself only unlocks mid-run.
+      // Before this hint the merge just silently refused ("Need 30 💎") with no clue crystal comes later.
+      const nextMergeCrystal = nextLevel ? getMergeCrystalCost(building.type, building.level + 1) : 0;
+      const crystalUnlockWave = getMineUnlockWave("crystal");
+      const crystalReady = (state.fortress.waveNumber ?? 1) >= crystalUnlockWave;
+      const crystalHint = nextMergeCrystal > 0
+        ? (crystalReady
+            ? ` Merge to Lv ${building.level + 1} costs 💎${nextMergeCrystal}.`
+            : ` Merge to Lv ${building.level + 1} needs 💎${nextMergeCrystal} — 💎 crystal unlocks at Wave ${crystalUnlockWave}.`)
+        : "";
+      const maxLevel = definition.levels?.length ?? 1;
       const upgradeNote = battleActive ? "" : (nextLevel
-        ? `<span class="fortress-popover-note">Move a same-level ${definition.name} onto this one to upgrade.</span>`
-        : `<span class="fortress-popover-note">Max level</span>`);
+        ? `<span class="fortress-popover-note">Move a same-level ${definition.name} onto this one to upgrade (max Lv ${maxLevel}).${crystalHint}</span>`
+        : `<span class="fortress-popover-note">Max level (Lv ${building.level})</span>`);
+      const demolishRefund = building.type === "hq" ? {} : getFortressBuildingRefund(state, building);
+      const hasRefund = Object.keys(demolishRefund).length > 0;
       const outOfBattleButtons = battleActive ? "" : `
         ${needsRepair ? `
           <button class="fortress-popover-action" type="button" data-popup-repair ${canRepair ? "" : "disabled"}>
@@ -1432,6 +1539,11 @@ export function mountUI(state, onStateChanged) {
           </button>
         ` : ""}
         <button class="fortress-popover-action" type="button" data-popup-move ${building.type === "hq" ? "disabled" : ""}>Move / Merge</button>
+        ${building.type === "hq" ? "" : `
+          <button class="fortress-popover-action is-danger" type="button" data-popup-demolish>
+            <span>Demolish</span>${hasRefund ? `<span class="fortress-popover-refund">+${renderFortressCost(demolishRefund)}</span>` : ""}
+          </button>
+        `}
       `;
       popup.innerHTML = `
         <strong>${definition.name} Lv ${building.level}</strong>
@@ -1450,6 +1562,12 @@ export function mountUI(state, onStateChanged) {
       });
       popup.querySelector("[data-popup-repair]")?.addEventListener("click", () => {
         const result = repairFortressBuilding(state, building.id);
+        state.fortress.message = result.reason;
+        closeFortressPopup();
+        onStateChanged();
+      });
+      popup.querySelector("[data-popup-demolish]")?.addEventListener("click", () => {
+        const result = demolishFortressBuilding(state, building.id);
         state.fortress.message = result.reason;
         closeFortressPopup();
         onStateChanged();
@@ -1475,6 +1593,11 @@ export function mountUI(state, onStateChanged) {
     const buyCost = getFortressBuildingBuyCost(state, type);
     const hasSpace = Boolean(findFortressPlacement(state, type));
     const canBuy = isUnlocked && hasSpace && canAffordResources(state.resources, buyCost);
+    const maxLevel = definition.levels?.length ?? 1;
+    // Top tier gated by crystal? Surface it on the card so the tier ceiling + its cost are legible
+    // before you commit (barracks etc. cap at L4, and L4/L5 merges cost 💎 crystal).
+    const topCrystal = getMergeCrystalCost(type, maxLevel);
+    const maxLevelTag = `Max Lv ${maxLevel}${topCrystal > 0 ? " · 💎" : ""}`;
     const card = document.createElement("article");
     card.className = `fortress-shop-card ${isUnlocked ? "" : "is-locked"} ${!hasSpace ? "has-no-space" : ""}`;
     card.tabIndex = canBuy ? 0 : -1;
@@ -1482,6 +1605,8 @@ export function mountUI(state, onStateChanged) {
       <div class="fortress-shop-icon">${definition.icon}</div>
       <strong>${definition.name}</strong>
       <span class="tag">${isUnlocked ? "Available" : `Wave ${unlockWave}`}</span>
+      <span class="fortress-shop-maxlevel">${maxLevelTag}</span>
+      ${definition.description ? `<p class="fortress-shop-desc">${definition.description}</p>` : ""}
       <div class="fortress-shop-cost">${renderFortressCost(buyCost)}</div>
       <button class="secondary-button" type="button">${isUnlocked ? (hasSpace ? "Buy" : "No Space") : `Locked until Wave ${unlockWave}`}</button>
     `;
@@ -1797,7 +1922,7 @@ export function mountUI(state, onStateChanged) {
         continue;
       }
       handled.add(burst.id);
-      playResourceBurst(elements, burst);
+      playResourceBurst(elements, burst, state.fortress.screen);
     }
 
     state.ui.handledResourceBurstIds = [...handled].slice(-160);
@@ -1823,8 +1948,19 @@ export function mountUI(state, onStateChanged) {
 
   function renderMeta() {
     showScreen(state.fortress.screen);
+    // Badge the "Production" button when a worker is at MAX Rest but NOT on its desired mine (parked
+    // in reserve, or staffing a different mine) — it's fully charged and wasting cap, move it to the
+    // mine it wants so it can Shift.
+    const maxedAndMisplaced = (unit, onMineKey) =>
+      unit && (unit.restCharges ?? 0) >= getMaxRestCharges(unit.level) && unit.desiredMine !== onMineKey;
+    const needsRedeploy =
+      state.reserveUnits.some((unit) => maxedAndMisplaced(unit, null)) ||
+      state.mines.some((mine) => (mine.workerIds ?? []).some((worker) => maxedAndMisplaced(worker, mine.resourceKey)));
+    elements.showProductionButton.classList.toggle("has-rested", needsRedeploy);
     document.body.classList.toggle("fortress-battle-active", state.fortress.battle.active);
     elements.fortressFightButton.disabled = state.fortress.battle.active || state.game.isOver || Boolean(state.fortress.pendingRewardDraft?.length);
+    elements.fortressFightButton.hidden = state.fortress.battle.active;
+    elements.fortressGiveUpButton.hidden = !state.fortress.battle.active;
     updateEarlyStartHint(elements.fortressFightButton, state);
     elements.fortressMessage.textContent = state.fortress.message;
     renderEconomyMeta();

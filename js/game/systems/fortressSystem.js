@@ -101,9 +101,17 @@ export function getBuildingActiveDefinition(building) {
   return maxLevel?.active ?? null;
 }
 
-export function getBuildingActiveCost(building) {
+export function getBuildingActiveCost(state, building) {
   const active = getBuildingActiveDefinition(building);
-  return active?.cost ?? {};
+  const base = active?.cost ?? {};
+  // In-battle cost accumulation: every active cast THIS battle (any building) makes the next one
+  // cost more, so abilities become a real recurring resource Sink instead of near-free spam. Resets
+  // each battle. Couples with the capital cost curve — a wide ability roster is expensive to fire.
+  const casts = state?.fortress?.battle?.activeCasts ?? 0;
+  const mult = Math.pow(CONFIG.abilityCostAccumulation ?? 1, casts);
+  return Object.fromEntries(
+    Object.entries(base).map(([resourceKey, amount]) => [resourceKey, Math.max(1, Math.floor(amount * mult))])
+  );
 }
 
 export function triggerBuildingActive(state, buildingId) {
@@ -121,7 +129,7 @@ export function triggerBuildingActive(state, buildingId) {
   if ((building.activeCooldown ?? 0) > 0) {
     return { ok: false, reason: "Active is on cooldown." };
   }
-  const cost = active.cost ?? {};
+  const cost = getBuildingActiveCost(state, building);
   if (!canAffordResources(state.resources, cost)) {
     return { ok: false, reason: "Not enough resources for this active." };
   }
@@ -129,6 +137,8 @@ export function triggerBuildingActive(state, buildingId) {
     return { ok: false, reason: "Not enough resources for this active." };
   }
 
+  // Each cast raises the cost of the NEXT active this battle (accumulating Sink).
+  state.fortress.battle.activeCasts = (state.fortress.battle.activeCasts ?? 0) + 1;
   building.activeCooldown = active.cooldownSeconds;
 
   const effect = active.effect ?? {};
@@ -216,10 +226,23 @@ export function spendResources(resources, costs = {}) {
 export function getFortressBuildingBuyCost(state, type) {
   const definition = CONFIG.fortressBuildings[type];
   const discount = state.fortress.buildingBuyDiscount ?? 1;
+  // Over-build escalation now scales with the total INVESTED POWER in this TYPE — Σ 2^(level-1) over
+  // its buildings, exactly like the worker buy curve (E = Σ 2^(level-1)). Both going wide (more
+  // buildings) AND going tall (higher tiers) raise the next cost, and MERGING is power-neutral
+  // (two L1 = 1+1 = 2 = one L2), so you can no longer dodge the escalation by tiering up. This turns
+  // the whole fortress into a capital sink: on a finite grid the cost to keep arming it outruns your
+  // income, so you're always building toward the next piece instead of maxing out and drowning.
+  // DIVERSIFYING (a fresh type) still starts at base cost; walls escalate gently (chaff layer).
+  const esc = CONFIG.buildingCostEscalation ?? {};
+  const factorBase = esc[type] ?? esc.default ?? 1;
+  const typePower = state.fortress.buildings
+    .filter((building) => building.type === type)
+    .reduce((sum, building) => sum + 2 ** ((building.level ?? 1) - 1), 0);
+  const escalation = Math.pow(factorBase, typePower);
   return Object.fromEntries(
     costEntries(definition?.buyCost ?? {}).map(([resourceKey, amount]) => [
       resourceKey,
-      Math.max(1, Math.floor(amount * discount))
+      Math.max(1, Math.floor(amount * discount * escalation))
     ])
   );
 }
@@ -333,14 +356,22 @@ export function getFortressRepairCost(state, building) {
   if (missing <= 0) {
     return {};
   }
+  // Repair scales with the MISSING HP FRACTION (0..1), not absolute HP — otherwise high-HP
+  // buildings (e.g. L5 walls) would cost absurd amounts to repair. Cheap & incremental by design
+  // (§5): a fully-destroyed building costs `rate` × its buyCost to restore. rate ≈ 0.5.
+  const missingFraction = Math.min(1, missing / Math.max(1, building.maxHp));
   const definition = CONFIG.fortressBuildings[building.type];
   const buyCost = costEntries(definition?.buyCost ?? {});
   const rate = CONFIG.attrition?.repairCostPerHpFractionOfBuyCost ?? 0;
+  // Basis scales LINEARLY with tier (buyCost × level): a maxed building represents a bigger
+  // investment, so repairing it costs proportionally more — this is what makes attrition a real
+  // per-wave sink. Linear (not the merge 2^level) keeps late repair affordable (no death-spiral).
+  const levelMult = building.level ?? 1;
   if (buyCost.length === 0) {
-    return { wood: Math.max(1, Math.ceil(missing * 1)) };
+    return { wood: Math.max(1, Math.ceil(missingFraction * 20 * levelMult)) };
   }
   return Object.fromEntries(
-    buyCost.map(([resourceKey, amount]) => [resourceKey, Math.max(1, Math.ceil(missing * rate * amount))])
+    buyCost.map(([resourceKey, amount]) => [resourceKey, Math.max(1, Math.ceil(missingFraction * rate * amount * levelMult))])
   );
 }
 
@@ -368,6 +399,19 @@ export function repairFortressBuilding(state, buildingId) {
   return { ok: true, reason: `${definition.name} repaired.` };
 }
 
+// Crystal is the "late power" currency: merging a combat building into a high tier costs crystal
+// (top-tier merges only — walls/traps stay wood/iron). This is what makes crystal a NON-optional
+// sink; the cheapest maxed defense cannot route around it. Tuned via balance.merge.crystalCostByLevel.
+const CRYSTAL_MERGE_TYPES = new Set(["barracks", "archery", "turret", "stables", "mageTower"]);
+
+export function getMergeCrystalCost(type, targetLevel) {
+  if (!CRYSTAL_MERGE_TYPES.has(type)) {
+    return 0;
+  }
+  const table = CONFIG.merge?.crystalCostByLevel ?? {};
+  return table[String(targetLevel)] ?? 0;
+}
+
 export function mergeFortressBuildings(state, sourceId, targetId) {
   const source = state.fortress.buildings.find((item) => item.id === sourceId);
   const target = state.fortress.buildings.find((item) => item.id === targetId);
@@ -391,6 +435,10 @@ export function mergeFortressBuildings(state, sourceId, targetId) {
   if (state.fortress.battle.active) {
     return { ok: false, reason: "Cannot merge during battle." };
   }
+  const crystalCost = getMergeCrystalCost(target.type, target.level + 1);
+  if (crystalCost > 0 && !spendResources(state.resources, { crystal: crystalCost })) {
+    return { ok: false, reason: `Need ${crystalCost} 💎 to merge to level ${target.level + 1}.` };
+  }
 
   clearBuilding(state, source);
   state.fortress.buildings = state.fortress.buildings.filter((item) => item.id !== source.id);
@@ -410,6 +458,53 @@ export function mergeFortressBuildings(state, sourceId, targetId) {
   return { ok: true, reason: `${definition.name} merged to level ${target.level}.` };
 }
 
+// Mass merge (mirrors reserveSystem.massMergeReserve): repeatedly merge any same-type + same-level pair
+// until none remain. Merging is adjacency-free (mergeFortressBuildings takes two ids and frees the
+// source tiles), so this collapses the whole field's mergeable pairs in one click. Pairs whose next
+// tier needs crystal you can't afford are skipped (not fatal) — everything else still merges.
+export function massMergeFortressBuildings(state) {
+  if (state.fortress.battle.active) {
+    return { ok: false, reason: "Cannot merge during battle." };
+  }
+  let mergedCount = 0;
+  let blockedByCrystal = false;
+  while (true) {
+    const groups = new Map();
+    for (const building of state.fortress.buildings) {
+      if (building.type === "hq") continue;
+      const definition = CONFIG.fortressBuildings[building.type];
+      if (!definition || !definition.levels[building.level]) continue; // already max tier
+      const key = `${building.type}:${building.level}`;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(building.id);
+    }
+
+    let mergedThisPass = false;
+    for (const ids of groups.values()) {
+      if (ids.length < 2) continue;
+      const result = mergeFortressBuildings(state, ids[0], ids[1]);
+      if (result.ok) {
+        mergedCount += 1;
+        mergedThisPass = true;
+        break; // rebuild groups (levels changed) before continuing
+      }
+      // Failed pair (e.g. not enough crystal for a top-tier merge): skip this group, try others.
+      blockedByCrystal = true;
+    }
+    if (!mergedThisPass) break;
+  }
+
+  if (mergedCount > 0) {
+    return { ok: true, reason: `Mass merge completed: ${mergedCount} merge(s).` };
+  }
+  return {
+    ok: false,
+    reason: blockedByCrystal
+      ? "No affordable merges — top-tier merges need 💎 crystal."
+      : "No matching building pairs to merge."
+  };
+}
+
 export function moveFortressBuilding(state, buildingId, origin) {
   const building = state.fortress.buildings.find((item) => item.id === buildingId);
   if (!building || building.type === "hq") {
@@ -422,6 +517,60 @@ export function moveFortressBuilding(state, buildingId, origin) {
   building.tiles = normalizeFootprint(building.type).map((tile) => ({ x: origin.x + tile.x, y: origin.y + tile.y }));
   occupyBuilding(state, building);
   return { ok: true, reason: "Building moved." };
+}
+
+// Book value of a building = what it cost to FIELD at its current tier via the (only) upgrade path,
+// merging: buyCost × 2^(level-1) base copies + crystal spent on each top-tier merge step (mirrors the
+// ladder in mergeFortressBuildings). Demolish hands back `refundFraction` of that, floored per resource.
+export function getFortressBuildingRefund(state, building) {
+  const definition = CONFIG.fortressBuildings[building.type];
+  if (!definition || building.type === "hq") {
+    return {};
+  }
+  const fraction = CONFIG.demolish?.refundFraction ?? 0.4;
+  const level = building.level ?? 1;
+  const copies = 2 ** (level - 1);
+  const refund = {};
+  for (const [resourceKey, amount] of costEntries(definition.buyCost ?? {})) {
+    const value = Math.floor(amount * copies * fraction);
+    if (value > 0) {
+      refund[resourceKey] = (refund[resourceKey] ?? 0) + value;
+    }
+  }
+  // Crystal sunk into top-tier merges (L4/L5): 2^(level-j) merges produce a level-j building.
+  let crystal = 0;
+  for (let j = 2; j <= level; j += 1) {
+    crystal += (2 ** (level - j)) * getMergeCrystalCost(building.type, j);
+  }
+  const crystalRefund = Math.floor(crystal * fraction);
+  if (crystalRefund > 0) {
+    refund.crystal = (refund.crystal ?? 0) + crystalRefund;
+  }
+  return refund;
+}
+
+export function demolishFortressBuilding(state, buildingId) {
+  const building = state.fortress.buildings.find((item) => item.id === buildingId);
+  if (!building) {
+    return { ok: false, reason: "Building not found." };
+  }
+  if (building.type === "hq") {
+    return { ok: false, reason: "The HQ cannot be demolished." };
+  }
+  if (state.fortress.battle.active) {
+    return { ok: false, reason: "Cannot demolish during battle." };
+  }
+  const definition = CONFIG.fortressBuildings[building.type];
+  const refund = getFortressBuildingRefund(state, building);
+  clearBuilding(state, building);
+  state.fortress.buildings = state.fortress.buildings.filter((item) => item.id !== building.id);
+  for (const [resourceKey, amount] of costEntries(refund)) {
+    state.resources[resourceKey] = (state.resources[resourceKey] ?? 0) + amount;
+  }
+  const refundText = costEntries(refund).length
+    ? ` Refunded ${costEntries(refund).map(([key, value]) => `${value} ${key}`).join(", ")}.`
+    : "";
+  return { ok: true, reason: `${definition?.name ?? "Building"} demolished.${refundText}` };
 }
 
 export function applyFortressBaseHealthBonus(state, bonusAmount) {

@@ -1,6 +1,6 @@
 import { CONFIG, getUnitLevelData } from "./config.js";
 import { generateId } from "./utils.js";
-import { normalizeTraitVector, rollWorkerTraitVector } from "./systems/workerTraitSystem.js";
+import { getMaxRestCharges, normalizeTraitVector, rollWorkerTraitVector } from "./systems/workerTraitSystem.js";
 
 export function createReserveUnit(level = 1, options = {}) {
   const levelData = getUnitLevelData(level);
@@ -18,7 +18,8 @@ export function createReserveUnit(level = 1, options = {}) {
     baseAttackSpeed: levelData.baseAttackSpeed,
     traits: normalizeTraitVector(options.traits ?? rollWorkerTraitVector()),
     battleShiftCommitted: false,
-    isRested: options.isRested ?? false,
+    restCharges: Math.min(getMaxRestCharges(level), Math.max(0, options.restCharges ?? 0)),
+    desiredMine: options.desiredMine ?? null,
     capstone: options.capstone ?? null,
     pendingCapstone: options.pendingCapstone ?? null
   };

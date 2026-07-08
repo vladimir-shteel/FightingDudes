@@ -1,6 +1,6 @@
 import { CONFIG } from "../config.js";
 import { createReserveUnit } from "../factories.js";
-import { isWorkerBattleShiftLocked, mergeWorkerTraitVectors, pickCapstoneCandidates } from "./workerTraitSystem.js";
+import { getMaxWorkerLevel, isWorkerBattleShiftLocked, mergeWorkerTraitVectors, pickCapstoneCandidates } from "./workerTraitSystem.js";
 
 function getWorkerPower(unit) {
   const level = Math.max(1, unit?.level ?? 1);
@@ -39,7 +39,11 @@ export function buyUnit(state) {
 
   state.resources.gold -= cost;
   state.economy.unitsPurchased += 1;
-  state.reserveUnits.push(createReserveUnit(state.economy.workerStartLevel ?? 1));
+  // A freshly bought worker arrives wanting a random open mine, with one rest charge — place it on
+  // that mine and it Shifts on its very first battle (discoverable without ever using reserve).
+  const openMines = state.mines.filter((mine) => mine.isUnlocked).map((mine) => mine.resourceKey);
+  const desiredMine = openMines.length ? openMines[Math.floor(Math.random() * openMines.length)] : null;
+  state.reserveUnits.push(createReserveUnit(state.economy.workerStartLevel ?? 1, { restCharges: 1, desiredMine }));
 
   return { ok: true, reason: "A fresh worker joined the pile." };
 }
@@ -67,14 +71,22 @@ export function mergeReservePair(state, firstUnitId, secondUnitId) {
     return { ok: false, reason: "Only equal-level units can merge." };
   }
 
-  if (first.level >= CONFIG.merge.maxLevel) {
-    return { ok: false, reason: "This unit has reached max merge level." };
+  const levelCap = getMaxWorkerLevel(state);
+  if (first.level >= levelCap) {
+    return {
+      ok: false,
+      reason: levelCap < (CONFIG.merge.maxLevel ?? 5)
+        ? `Level cap is Lv${levelCap} for now — it rises each wave.`
+        : "This unit has reached max merge level."
+    };
   }
 
   const mergedLevel = first.level + 1;
   const mergedTraits = mergeWorkerTraitVectors(first.traits, second.traits);
   const higherLevelUnit = createReserveUnit(mergedLevel, {
     traits: mergedTraits,
+    restCharges: Math.max(first.restCharges ?? 0, second.restCharges ?? 0),
+    desiredMine: first.desiredMine ?? second.desiredMine ?? null,
     pendingCapstone: mergedLevel === CONFIG.merge.maxLevel ? pickCapstoneCandidates(mergedTraits) : null
   });
   const keptUnits = state.reserveUnits.filter(
@@ -94,9 +106,10 @@ export function massMergeReserve(state) {
     // locked into a battle shift. Iterating over all reserve units and breaking
     // on the first failing pair used to stop the whole run whenever a
     // committed worker was in the middle of the pile.
+    const levelCap = getMaxWorkerLevel(state);
     const groups = new Map();
     for (const unit of state.reserveUnits) {
-      if (unit.level >= CONFIG.merge.maxLevel) continue;
+      if (unit.level >= levelCap) continue;
       if (isWorkerBattleShiftLocked(state, unit)) continue;
       if (!groups.has(unit.level)) groups.set(unit.level, []);
       groups.get(unit.level).push(unit.id);

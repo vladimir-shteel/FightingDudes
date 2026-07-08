@@ -894,6 +894,25 @@ h3 {
   box-shadow: 0 3px 0 var(--green-dark);
 }
 
+.danger-button {
+  padding: 10px 15px;
+  border-radius: 16px;
+  font-weight: 800;
+  color: #fff;
+  background: #c0392b;
+  box-shadow: 0 3px 0 #7c1e14;
+  transition: transform 120ms ease, filter 120ms ease;
+}
+
+.danger-button:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.06);
+}
+
+.danger-button[hidden] {
+  display: none;
+}
+
 .button-cost {
   display: inline-block;
   margin-left: 8px;
@@ -910,6 +929,41 @@ h3 {
   color: #fff;
   background: var(--panel-wood);
   box-shadow: 0 3px 0 var(--panel-earth);
+}
+
+#showProductionButton {
+  position: relative;
+  overflow: visible;
+}
+
+#showProductionButton.has-rested::after {
+  content: "⚡";
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  font-size: 12px;
+  line-height: 1;
+  padding: 3px 4px;
+  border-radius: 999px;
+  background: rgba(120, 200, 255, 0.95);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  animation: rested-badge-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes rested-badge-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.18); }
+}
+
+/* Rested workers waiting: the whole button glows so it's hard to miss, not just the corner badge. */
+#showProductionButton.has-rested {
+  background: linear-gradient(180deg, #3f86b8, var(--panel-wood));
+  animation: production-cta-pulse 1.3s ease-in-out infinite;
+}
+
+@keyframes production-cta-pulse {
+  0%, 100% { box-shadow: 0 3px 0 var(--panel-earth), 0 0 0 0 rgba(120, 200, 255, 0); }
+  50% { box-shadow: 0 3px 0 var(--panel-earth), 0 0 16px 4px rgba(120, 200, 255, 0.85); }
 }
 
 .mine-card[data-resource-key="ore"] .secondary-button,
@@ -1064,6 +1118,18 @@ h3 {
   filter: drop-shadow(0 5px 0 rgba(76, 42, 19, 0.12)) drop-shadow(0 0 10px rgba(255, 205, 69, 0.7));
 }
 
+/* The mine SLOT glows gold while its worker is on Shift — draws the eye to where resources pour in. */
+.slot.slot-shifting {
+  box-shadow: inset 0 0 0 2px rgba(255, 205, 69, 0.9), 0 0 12px 2px rgba(255, 205, 69, 0.55);
+  background: radial-gradient(circle at 50% 40%, rgba(255, 224, 130, 0.35), transparent 70%);
+  animation: slot-shift-glow 1s ease-in-out infinite;
+}
+
+@keyframes slot-shift-glow {
+  0%, 100% { box-shadow: inset 0 0 0 2px rgba(255, 205, 69, 0.7), 0 0 8px 1px rgba(255, 205, 69, 0.4); }
+  50% { box-shadow: inset 0 0 0 2px rgba(255, 214, 90, 1), 0 0 18px 4px rgba(255, 205, 69, 0.8); }
+}
+
 .unit-badges {
   display: flex;
   flex-direction: column;
@@ -1079,6 +1145,7 @@ h3 {
 }
 
 .unit-level-badge {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1092,6 +1159,25 @@ h3 {
   font-size: 11px;
   font-weight: 800;
   line-height: 1;
+}
+
+/* Capstone marker: a star pinned to the level badge (full name/effect live in the popover). */
+.unit-capstone-star {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  border-radius: 999px;
+  background: radial-gradient(circle at 50% 40%, #fff2c2 0%, #ffbf3c 70%);
+  border: 1.5px solid rgba(115, 63, 28, 0.4);
+  color: #7a4a00;
+  font-size: 10px;
+  line-height: 1;
+  pointer-events: auto;
 }
 
 .unit-trait {
@@ -1360,6 +1446,7 @@ h3 {
 
 .unit-status-badge.is-rested { background: #fff2b8; }
 .unit-status-badge.is-shift { background: #ffcd45; }
+.unit-status-badge.is-depleted { background: rgba(150, 150, 150, 0.22); opacity: 0.7; }
 
 .unit-card.is-rested .unit-icon-main {
   filter: drop-shadow(0 0 4px rgba(255, 205, 69, 0.6));
@@ -1541,6 +1628,50 @@ h3 {
 
 .resource-fly.resource-gold {
   color: #6a4207;
+}
+
+/* In-place "+N" pop shown on the top-panel counter when the source screen is hidden. */
+.resource-tick {
+  position: fixed;
+  transform: translate(-50%, 0);
+  font-size: 14px;
+  font-weight: 900;
+  line-height: 1;
+  color: #3b210b;
+  text-shadow:
+    0 0 3px rgba(255, 248, 229, 0.9),
+    0 1px 0 rgba(255, 248, 229, 0.85),
+    0 2px 3px rgba(70, 34, 12, 0.35);
+  pointer-events: none;
+  animation: resource-tick-pop 600ms ease-out forwards;
+}
+
+.resource-tick.resource-gold {
+  color: #6a4207;
+}
+
+.resource-tick.is-shift {
+  font-size: 16px;
+  color: #0b4a6a;
+  text-shadow:
+    0 0 5px rgba(120, 200, 255, 0.95),
+    0 0 10px rgba(120, 200, 255, 0.7),
+    0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+@keyframes resource-tick-pop {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 2px) scale(0.85);
+  }
+  25% {
+    opacity: 1;
+    transform: translate(-50%, -8px) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -18px) scale(0.95);
+  }
 }
 
 .ranged-shot-line {
@@ -2338,7 +2469,13 @@ h3 {
   min-height: calc(100dvh - 72px);
 }
 
+/* During battle the action row stays visible ONLY for Give Up — other controls (Buffs, To Battle)
+   are hidden so the field keeps its room. */
 .fortress-battle-active .fortress-actions {
+  display: flex;
+}
+
+.fortress-battle-active .fortress-actions > *:not(#fortressGiveUpButton) {
   display: none;
 }
 
@@ -2487,6 +2624,12 @@ h3 {
   opacity: 0.48;
 }
 
+.fortress-popover-action.is-danger {
+  background: #ffe3df;
+  color: #a3271a;
+  box-shadow: inset 0 -2px 0 rgba(163, 39, 26, 0.18);
+}
+
 .fortress-popover-action .gear-cost-pill {
   flex: 0 1 auto;
   min-width: 0;
@@ -2496,6 +2639,17 @@ h3 {
   background: rgba(255, 255, 255, 0.46);
   font-size: 10px;
   line-height: 1.1;
+}
+
+/* Keep the demolish refund (+ pills) together as one group so it wraps as a
+   block under the label instead of fragmenting the stray "+" and pills. */
+.fortress-popover-refund {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 0;
 }
 
 .fortress-popover-action .gear-cost-icon {
@@ -2535,10 +2689,45 @@ h3 {
 }
 
 .worker-popover-capstone {
+  display: grid;
+  gap: 2px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: rgba(255, 205, 69, 0.18);
+  border: 1px solid rgba(115, 63, 28, 0.22);
   font-size: 11px;
-  font-weight: 800;
   text-align: center;
   color: var(--panel-red-dark);
+}
+
+.worker-popover-capstone strong {
+  font-weight: 900;
+}
+
+.worker-popover-capstone span {
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+.worker-popover-shift {
+  padding: 5px 8px;
+  border-radius: 8px;
+  background: rgba(120, 120, 120, 0.14);
+  border: 1px solid rgba(115, 63, 28, 0.18);
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+  opacity: 0.85;
+}
+
+.worker-popover-shift.is-rested {
+  background: rgba(120, 200, 255, 0.18);
+  opacity: 1;
+}
+
+.worker-popover-shift.is-shifted {
+  background: rgba(255, 205, 69, 0.22);
+  opacity: 1;
 }
 
 .worker-move-cancel {
@@ -2763,7 +2952,7 @@ h3 {
 
 .fortress-shop-card {
   display: grid;
-  grid-template-rows: auto auto minmax(38px, auto) auto;
+  grid-auto-rows: min-content;
   gap: 6px;
   align-items: center;
   min-width: 0;
@@ -2799,6 +2988,21 @@ h3 {
   flex-wrap: wrap;
   gap: 4px;
   min-width: 0;
+}
+
+.fortress-shop-maxlevel {
+  font-size: 10px;
+  font-weight: 800;
+  color: rgba(51, 48, 31, 0.62);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.fortress-shop-desc {
+  margin: 0;
+  font-size: 10px;
+  line-height: 1.3;
+  color: rgba(51, 48, 31, 0.72);
 }
 
 .fortress-actor,

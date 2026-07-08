@@ -4,33 +4,51 @@
   "passiveGoldPerSecond": 0,
   "passiveGoldPerSecondPerUnlockedMine": 0,
   "passiveGoldPayoutIntervalSeconds": 4,
-  "startingGold": 65,
+  "startingGold": 40,
   "startingResources": {
-    "wood": 70,
-    "ore": 35
+    "wood": 110,
+    "ore": 60
   },
   "startingOre": 0,
   "unitBuyBaseCost": 5,
-  "unitBuyExponent": 1.05,
+  "unitBuyExponent": 1.09,
   "productionMultipliers": {
-    "rest": 1,
-    "battle": 1.5
+    "rest": 0.55
   },
+  "combat": {
+    "hpScalePerWave": 0.14,
+    "attackScalePerWave": 0.06,
+    "armorScalePerWave": 0.1,
+    "armorMinFraction": 0.15,
+    "unitAttackPerLevel": 0.35,
+    "unitHpPerLevel": 0.2
+  },
+  "buildingCostEscalation": {
+    "default": 1.11,
+    "wall": 1.06,
+    "bigWall": 1.06
+  },
+  "demolish": {
+    "refundFraction": 0.4
+  },
+  "abilityCostAccumulation": 1.6,
   "waveDemand": {
     "slotProductionMultiplier": 1.25
   },
   "workerTraits": {
     "mergeBonusPoints": 1,
     "battleShift": {
-      "baseMultiplier": 1.75,
-      "maxCommitsPerMine": 2
+      "baseMultiplier": 2.2,
+      "maxCommitsPerMine": 2,
+      "restChargePerLevel": 2,
+      "restRechargePerWave": 2
     },
     "lines": {
       "yield": {
         "label": "Yield",
         "icon": "Y",
         "rollWeight": 1,
-        "resourceMultiplierPerPoint": 0.06
+        "resourceMultiplierPerPoint": 0.04
       },
       "golden": {
         "label": "Golden",
@@ -47,30 +65,97 @@
     },
     "capstones": {
       "yield": [
-        {"id":"yield-master","label":"Yield Master","description":"Slot production +100%.","effect":{"kind":"yieldMul","value":2.0}},
-        {"id":"deep-vein","label":"Deep Vein","description":"Double demand bonus.","effect":{"kind":"demandMul","value":2.0}}
+        {
+          "id": "yield-master",
+          "label": "Yield Master",
+          "description": "Slot production +60%.",
+          "effect": {
+            "kind": "yieldMul",
+            "value": 1.6
+          }
+        },
+        {
+          "id": "deep-vein",
+          "label": "Deep Vein",
+          "description": "Double demand bonus.",
+          "effect": {
+            "kind": "demandMul",
+            "value": 2.0
+          }
+        }
       ],
       "golden": [
-        {"id":"midas","label":"Midas Touch","description":"Convert 25% of production to gold on top of existing.","effect":{"kind":"goldenConversion","value":0.25}},
-        {"id":"trickle","label":"Golden Trickle","description":"+1 gold/sec passive.","effect":{"kind":"passiveGold","value":1}}
+        {
+          "id": "midas",
+          "label": "Midas Touch",
+          "description": "Convert 25% of production to gold on top of existing.",
+          "effect": {
+            "kind": "goldenConversion",
+            "value": 0.25
+          }
+        },
+        {
+          "id": "trickle",
+          "label": "Golden Trickle",
+          "description": "+1 gold/sec passive.",
+          "effect": {
+            "kind": "passiveGold",
+            "value": 1
+          }
+        }
       ],
       "rush": [
-        {"id":"warmind","label":"Warmind","description":"Battle shift multiplier +2.0.","effect":{"kind":"rushBonus","value":2.0}},
-        {"id":"skirmish","label":"Skirmisher","description":"Committed workers grant temporary damage +20% during battle.","effect":{"kind":"battleDamageBonus","value":0.2}}
+        {
+          "id": "warmind",
+          "label": "Warmind",
+          "description": "Battle shift multiplier +2.0.",
+          "effect": {
+            "kind": "rushBonus",
+            "value": 2.0
+          }
+        },
+        {
+          "id": "skirmish",
+          "label": "Skirmisher",
+          "description": "Committed workers grant temporary damage +20% during battle.",
+          "effect": {
+            "kind": "battleDamageBonus",
+            "value": 0.2
+          }
+        }
       ],
       "hybrid": [
-        {"id":"foreman","label":"Foreman (Y+G)","description":"+40% production, +8% goldenConversion.","effect":{"kind":"foreman"}},
-        {"id":"warlord","label":"Warlord (R+Y)","description":"+50% production during battle shift.","effect":{"kind":"warlord"}}
+        {
+          "id": "foreman",
+          "label": "Foreman (Y+G)",
+          "description": "+40% production, +8% goldenConversion.",
+          "effect": {
+            "kind": "foreman"
+          }
+        },
+        {
+          "id": "warlord",
+          "label": "Warlord (R+Y)",
+          "description": "+50% production during battle shift.",
+          "effect": {
+            "kind": "warlord"
+          }
+        }
       ]
     }
   },
   "merge": {
-    "maxLevel": 5
+    "maxLevel": 5,
+    "workerLevelUnlockWaves": [1, 1, 1, 3, 5],
+    "crystalCostByLevel": {
+      "4": 30,
+      "5": 60
+    }
   },
   "attrition": {
     "floorPerDefeat": 0.2,
     "postDefeatHpFraction": 0.4,
-    "repairCostPerHpFractionOfBuyCost": 0.02
+    "repairCostPerHpFractionOfBuyCost": 1.0
   },
   "rewardDraft": {
     "permanent": {

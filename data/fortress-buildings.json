@@ -2,98 +2,317 @@
   "hq": {
     "name": "HQ",
     "icon": "🏰",
-    "footprint": [[0, 0], [1, 0], [2, 0], [0, 1], [1, 1], [2, 1]],
+    "description": "Your fortress core. If it falls, the wave is lost.",
+    "footprint": [
+      [
+        0,
+        0
+      ],
+      [
+        1,
+        0
+      ],
+      [
+        2,
+        0
+      ],
+      [
+        0,
+        1
+      ],
+      [
+        1,
+        1
+      ],
+      [
+        2,
+        1
+      ]
+    ],
     "unlockedByDefault": true,
     "buyCost": {},
     "levels": [
-      { "hp": 420 }
+      {
+        "hp": 460
+      }
     ]
   },
   "wall": {
     "name": "Wall",
     "icon": "🧱",
-    "footprint": [[0, 0]],
+    "description": "Cheap 1-tile blocker that soaks hits. Lv 5 shields nearby allies.",
+    "footprint": [
+      [
+        0,
+        0
+      ]
+    ],
     "unlockedByDefault": true,
-    "buyCost": { "wood": 90 },
+    "buyCost": {
+      "wood": 40
+    },
     "levels": [
-      { "hp": 65, "upgradeCost": { "wood": 180 } },
-      { "hp": 135, "upgradeCost": { "wood": 300, "ore": 140 } },
       {
-        "hp": 260,
+        "hp": 70,
+        "upgradeCost": {
+          "wood": 55
+        }
+      },
+      {
+        "hp": 150,
+        "upgradeCost": {
+          "wood": 90,
+          "ore": 40
+        }
+      },
+      {
+        "hp": 300,
+        "upgradeCost": {
+          "wood": 150,
+          "ore": 80
+        }
+      },
+      {
+        "hp": 560,
+        "upgradeCost": {
+          "wood": 240,
+          "ore": 150
+        }
+      },
+      {
+        "hp": 920,
         "active": {
           "id": "shieldNearby",
           "label": "Shield",
           "cooldownSeconds": 20,
-          "cost": { "wood": 20 },
-          "effect": { "kind": "shield", "radius": 2.0, "durationSeconds": 5, "damageReduction": 0.5 }
+          "cost": {
+            "wood": 20
+          },
+          "effect": {
+            "kind": "shield",
+            "radius": 2.0,
+            "durationSeconds": 5,
+            "damageReduction": 0.5
+          }
         }
       }
-    ]
+    ],
+    "unlockWave": 1
   },
   "bigWall": {
     "name": "Big Wall",
     "icon": "🧱",
-    "footprint": [[0, 0], [1, 0], [2, 0]],
-    "unlockedByDefault": true,
-    "buyCost": { "wood": 420, "ore": 220 },
+    "description": "Wide 3-tile barrier with heavy HP. Lv 4 shields a large area.",
+    "footprint": [
+      [
+        0,
+        0
+      ],
+      [
+        1,
+        0
+      ],
+      [
+        2,
+        0
+      ]
+    ],
+    "unlockedByDefault": false,
+    "buyCost": {
+      "wood": 90,
+      "ore": 40
+    },
     "levels": [
-      { "hp": 140, "upgradeCost": { "wood": 640, "ore": 320 } },
-      { "hp": 260, "upgradeCost": { "wood": 980, "ore": 560 } },
       {
-        "hp": 440,
+        "hp": 150,
+        "upgradeCost": {
+          "wood": 130,
+          "ore": 60
+        }
+      },
+      {
+        "hp": 300,
+        "upgradeCost": {
+          "wood": 210,
+          "ore": 110
+        }
+      },
+      {
+        "hp": 560,
+        "upgradeCost": {
+          "wood": 330,
+          "ore": 180
+        }
+      },
+      {
+        "hp": 1400,
         "active": {
           "id": "shieldNearby",
           "label": "Shield",
           "cooldownSeconds": 20,
-          "cost": { "wood": 40 },
-          "effect": { "kind": "shield", "radius": 2.8, "durationSeconds": 6, "damageReduction": 0.5 }
+          "cost": {
+            "wood": 40
+          },
+          "effect": {
+            "kind": "shield",
+            "radius": 2.8,
+            "durationSeconds": 6,
+            "damageReduction": 0.5
+          }
         }
       }
-    ]
+    ],
+    "unlockWave": 12
   },
   "barracks": {
     "name": "Barracks",
     "icon": "⚔️",
-    "footprint": [[0, 0], [1, 0], [0, 1], [1, 1]],
+    "description": "Trains melee warriors on a timer. Lv 4 rallies a squad.",
+    "footprint": [
+      [
+        0,
+        0
+      ],
+      [
+        1,
+        0
+      ],
+      [
+        0,
+        1
+      ],
+      [
+        1,
+        1
+      ]
+    ],
     "unlockedByDefault": true,
-    "buyCost": { "wood": 150, "ore": 75 },
+    "buyCost": {
+      "wood": 70,
+      "ore": 30
+    },
     "levels": [
-      { "hp": 70, "cooldownSeconds": 7, "unit": "warrior", "upgradeCost": { "wood": 330, "ore": 190 } },
-      { "hp": 80, "cooldownSeconds": 5.5, "unit": "warrior", "upgradeCost": { "wood": 560, "ore": 360, "iron": 160 } },
       {
-        "hp": 80,
-        "cooldownSeconds": 4,
+        "hp": 70,
+        "cooldownSeconds": 6,
+        "unit": "warrior",
+        "upgradeCost": {
+          "wood": 70,
+          "ore": 30
+        }
+      },
+      {
+        "hp": 85,
+        "cooldownSeconds": 4.5,
+        "unit": "warrior",
+        "upgradeCost": {
+          "wood": 120,
+          "ore": 55
+        }
+      },
+      {
+        "hp": 100,
+        "cooldownSeconds": 3.3,
+        "unit": "warrior",
+        "upgradeCost": {
+          "wood": 190,
+          "ore": 95
+        }
+      },
+      {
+        "hp": 130,
+        "cooldownSeconds": 1.9,
         "unit": "warrior",
         "active": {
           "id": "spawnSquad",
           "label": "Rally Squad",
-          "cooldownSeconds": 22,
-          "cost": { "wood": 40 },
-          "effect": { "kind": "spawnSquad", "unit": "warrior", "count": 3 }
+          "cooldownSeconds": 20,
+          "cost": {
+            "wood": 40
+          },
+          "effect": {
+            "kind": "spawnSquad",
+            "unit": "warrior",
+            "count": 4
+          }
         }
       }
-    ]
+    ],
+    "unlockWave": 1
   },
   "archery": {
     "name": "Archery",
     "icon": "🏹",
-    "footprint": [[0, 0], [1, 0], [2, 0], [1, 1]],
+    "description": "Trains archers that strike from range. Lv 4 fires a volley.",
+    "footprint": [
+      [
+        0,
+        0
+      ],
+      [
+        1,
+        0
+      ],
+      [
+        2,
+        0
+      ],
+      [
+        1,
+        1
+      ]
+    ],
     "unlockedByDefault": false,
-    "unlockWave": 2,
-    "buyCost": { "wood": 360, "ore": 180 },
+    "unlockWave": 3,
+    "buyCost": {
+      "wood": 60,
+      "ore": 25
+    },
     "levels": [
-      { "hp": 60, "cooldownSeconds": 9, "unit": "archer", "upgradeCost": { "wood": 640, "ore": 260, "crystal": 180 } },
-      { "hp": 70, "cooldownSeconds": 7.5, "unit": "archer", "upgradeCost": { "wood": 980, "crystal": 520 } },
       {
-        "hp": 70,
-        "cooldownSeconds": 6,
+        "hp": 55,
+        "cooldownSeconds": 8,
+        "unit": "archer",
+        "upgradeCost": {
+          "wood": 95,
+          "ore": 40
+        }
+      },
+      {
+        "hp": 68,
+        "cooldownSeconds": 6.3,
+        "unit": "archer",
+        "upgradeCost": {
+          "wood": 150,
+          "ore": 70
+        }
+      },
+      {
+        "hp": 82,
+        "cooldownSeconds": 4.8,
+        "unit": "archer",
+        "upgradeCost": {
+          "wood": 240,
+          "ore": 120,
+          "crystal": 40
+        }
+      },
+      {
+        "hp": 110,
+        "cooldownSeconds": 2.7,
         "unit": "archer",
         "active": {
           "id": "volley",
           "label": "Volley",
           "cooldownSeconds": 18,
-          "cost": { "crystal": 20 },
-          "effect": { "kind": "volley", "count": 3, "damage": 22 }
+          "cost": {
+            "crystal": 20
+          },
+          "effect": {
+            "kind": "volley",
+            "count": 3,
+            "damage": 34
+          }
         }
       }
     ]
@@ -101,47 +320,154 @@
   "turret": {
     "name": "Turret",
     "icon": "🎯",
-    "footprint": [[0, 0]],
+    "description": "Auto-fires at enemies in range. Lv 5 can overcharge its damage.",
+    "footprint": [
+      [
+        0,
+        0
+      ]
+    ],
     "unlockedByDefault": false,
-    "unlockWave": 3,
-    "buyCost": { "ore": 420, "iron": 220 },
+    "unlockWave": 5,
+    "buyCost": {
+      "ore": 70,
+      "iron": 22
+    },
     "levels": [
-      { "hp": 55, "damage": 10, "cooldownSeconds": 1.25, "upgradeCost": { "ore": 620, "iron": 360 } },
-      { "hp": 65, "damage": 17, "cooldownSeconds": 1.05, "upgradeCost": { "ore": 960, "iron": 620 } },
       {
-        "hp": 70,
-        "damage": 26,
-        "cooldownSeconds": 0.9,
+        "hp": 50,
+        "damage": 12,
+        "cooldownSeconds": 1.2,
+        "upgradeCost": {
+          "ore": 90,
+          "iron": 40
+        },
+        "range": 1.8
+      },
+      {
+        "hp": 60,
+        "damage": 22,
+        "cooldownSeconds": 1.0,
+        "upgradeCost": {
+          "ore": 150,
+          "iron": 70
+        },
+        "range": 2.0
+      },
+      {
+        "hp": 72,
+        "damage": 40,
+        "cooldownSeconds": 0.85,
+        "upgradeCost": {
+          "ore": 240,
+          "iron": 120
+        },
+        "range": 2.2
+      },
+      {
+        "hp": 86,
+        "damage": 72,
+        "cooldownSeconds": 0.75,
+        "upgradeCost": {
+          "ore": 380,
+          "iron": 200
+        },
+        "range": 2.4
+      },
+      {
+        "hp": 100,
+        "damage": 120,
+        "cooldownSeconds": 0.65,
         "active": {
           "id": "overcharge",
           "label": "Overcharge",
           "cooldownSeconds": 20,
-          "cost": { "iron": 30 },
-          "effect": { "kind": "buildingDamageBoost", "durationSeconds": 6, "multiplier": 2.5 }
-        }
+          "cost": {
+            "iron": 30
+          },
+          "effect": {
+            "kind": "buildingDamageBoost",
+            "durationSeconds": 6,
+            "multiplier": 2.5
+          }
+        },
+        "range": 2.6
       }
     ]
   },
   "stables": {
     "name": "Stables",
     "icon": "🐎",
-    "footprint": [[0, 0], [0, 1], [0, 2], [1, 2]],
+    "description": "Trains fast riders. Lv 4 charges in a mounted squad.",
+    "footprint": [
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        1
+      ],
+      [
+        0,
+        2
+      ],
+      [
+        1,
+        2
+      ]
+    ],
     "unlockedByDefault": false,
-    "unlockWave": 4,
-    "buyCost": { "wood": 520, "iron": 260 },
+    "unlockWave": 9,
+    "buyCost": {
+      "wood": 70,
+      "iron": 30
+    },
     "levels": [
-      { "hp": 75, "cooldownSeconds": 9, "unit": "rider", "upgradeCost": { "wood": 780, "iron": 460 } },
-      { "hp": 80, "cooldownSeconds": 7.5, "unit": "rider", "upgradeCost": { "wood": 1080, "iron": 720, "crystal": 240 } },
       {
         "hp": 80,
-        "cooldownSeconds": 6,
+        "cooldownSeconds": 8,
+        "unit": "rider",
+        "upgradeCost": {
+          "wood": 110,
+          "iron": 50
+        }
+      },
+      {
+        "hp": 95,
+        "cooldownSeconds": 6.3,
+        "unit": "rider",
+        "upgradeCost": {
+          "wood": 175,
+          "iron": 85
+        }
+      },
+      {
+        "hp": 110,
+        "cooldownSeconds": 4.8,
+        "unit": "rider",
+        "upgradeCost": {
+          "wood": 275,
+          "iron": 140,
+          "crystal": 50
+        }
+      },
+      {
+        "hp": 140,
+        "cooldownSeconds": 2.7,
         "unit": "rider",
         "active": {
           "id": "charge",
           "label": "Charge",
-          "cooldownSeconds": 25,
-          "cost": { "iron": 30 },
-          "effect": { "kind": "spawnSquad", "unit": "rider", "count": 2 }
+          "cooldownSeconds": 24,
+          "cost": {
+            "iron": 30
+          },
+          "effect": {
+            "kind": "spawnSquad",
+            "unit": "rider",
+            "count": 3
+          }
         }
       }
     ]
@@ -149,23 +475,75 @@
   "mageTower": {
     "name": "Mage Tower",
     "icon": "🔮",
-    "footprint": [[0, 0], [1, 0], [0, 1], [1, 1]],
+    "description": "Trains mages with ranged magic. Lv 4 freezes attackers.",
+    "footprint": [
+      [
+        0,
+        0
+      ],
+      [
+        1,
+        0
+      ],
+      [
+        0,
+        1
+      ],
+      [
+        1,
+        1
+      ]
+    ],
     "unlockedByDefault": false,
-    "unlockWave": 5,
-    "buyCost": { "ore": 560, "crystal": 260 },
+    "unlockWave": 8,
+    "buyCost": {
+      "ore": 70,
+      "crystal": 30
+    },
     "levels": [
-      { "hp": 55, "cooldownSeconds": 10, "unit": "mage", "upgradeCost": { "ore": 820, "crystal": 460 } },
-      { "hp": 65, "cooldownSeconds": 8, "unit": "mage", "upgradeCost": { "ore": 1160, "crystal": 760 } },
       {
-        "hp": 70,
-        "cooldownSeconds": 6,
+        "hp": 55,
+        "cooldownSeconds": 9,
+        "unit": "mage",
+        "upgradeCost": {
+          "ore": 110,
+          "crystal": 50
+        }
+      },
+      {
+        "hp": 68,
+        "cooldownSeconds": 7,
+        "unit": "mage",
+        "upgradeCost": {
+          "ore": 175,
+          "crystal": 85
+        }
+      },
+      {
+        "hp": 82,
+        "cooldownSeconds": 5.3,
+        "unit": "mage",
+        "upgradeCost": {
+          "ore": 275,
+          "crystal": 140
+        }
+      },
+      {
+        "hp": 110,
+        "cooldownSeconds": 3,
         "unit": "mage",
         "active": {
           "id": "frost",
           "label": "Frost Nova",
-          "cooldownSeconds": 24,
-          "cost": { "crystal": 25 },
-          "effect": { "kind": "frost", "durationSeconds": 4, "slowMultiplier": 0.4 }
+          "cooldownSeconds": 22,
+          "cost": {
+            "crystal": 25
+          },
+          "effect": {
+            "kind": "frost",
+            "durationSeconds": 4,
+            "slowMultiplier": 0.4
+          }
         }
       }
     ]
@@ -173,14 +551,54 @@
   "mine": {
     "name": "Trap Mine",
     "icon": "💣",
-    "footprint": [[0, 0]],
+    "description": "One-shot trap that explodes on contact. Rebuild after it triggers.",
+    "footprint": [
+      [
+        0,
+        0
+      ]
+    ],
     "unlockedByDefault": false,
-    "unlockWave": 3,
-    "buyCost": { "iron": 160 },
+    "unlockWave": 14,
+    "buyCost": {
+      "iron": 30
+    },
     "levels": [
-      { "hp": 1, "damage": 32, "upgradeCost": { "iron": 320 } },
-      { "hp": 1, "damage": 54, "upgradeCost": { "iron": 560, "crystal": 220 } },
-      { "hp": 1, "damage": 85 }
+      {
+        "hp": 1,
+        "damage": 40,
+        "upgradeCost": {
+          "iron": 50
+        }
+      },
+      {
+        "hp": 1,
+        "damage": 70,
+        "upgradeCost": {
+          "iron": 85,
+          "crystal": 30
+        }
+      },
+      {
+        "hp": 1,
+        "damage": 115,
+        "upgradeCost": {
+          "iron": 140,
+          "crystal": 55
+        }
+      },
+      {
+        "hp": 1,
+        "damage": 180,
+        "upgradeCost": {
+          "iron": 230,
+          "crystal": 90
+        }
+      },
+      {
+        "hp": 1,
+        "damage": 270
+      }
     ]
   }
 }

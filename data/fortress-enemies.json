@@ -1,9 +1,93 @@
 {
-  "grunt":   {"name":"Grunt","icon":"👹","hp":28,"attack":10,"cooldownSeconds":0.8,"rangeTiles":0.42,"speedTilesPerSecond":0.95,"tag":"normal"},
-  "runner":  {"name":"Runner","icon":"🐺","hp":18,"attack":6, "cooldownSeconds":0.7,"rangeTiles":0.42,"speedTilesPerSecond":1.55,"tag":"fast"},
-  "armored": {"name":"Ogre","icon":"👺","hp":75,"attack":13,"cooldownSeconds":1.1,"rangeTiles":0.42,"speedTilesPerSecond":0.7, "tag":"armored"},
-  "archerE": {"name":"Sniper","icon":"🏹","hp":22,"attack":9, "cooldownSeconds":1.4,"rangeTiles":2.4, "speedTilesPerSecond":0.9, "tag":"ranged"},
-  "orcKing": {"name":"Orc King","icon":"🐗","hp":420,"attack":18,"cooldownSeconds":1.1,"rangeTiles":0.5,"speedTilesPerSecond":0.65,"tag":"boss","mechanic":{"kind":"aura","radius":2.2,"damagePerSecond":6}},
-  "necromancer": {"name":"Necromancer","icon":"💀","hp":320,"attack":12,"cooldownSeconds":1.4,"rangeTiles":2.0,"speedTilesPerSecond":0.7,"tag":"boss","mechanic":{"kind":"summon","archetype":"grunt","intervalSeconds":6}},
-  "breacher": {"name":"Breacher","icon":"🐉","hp":560,"attack":26,"cooldownSeconds":1.3,"rangeTiles":0.45,"speedTilesPerSecond":0.55,"tag":"boss","mechanic":{"kind":"breach","damageMultVsBuildings":3}}
+  "grunt": {
+    "name": "Grunt",
+    "icon": "👹",
+    "hp": 28,
+    "attack": 10,
+    "cooldownSeconds": 0.8,
+    "rangeTiles": 0.42,
+    "speedTilesPerSecond": 0.95,
+    "tag": "normal",
+    "armor": 0
+  },
+  "runner": {
+    "name": "Runner",
+    "icon": "🐺",
+    "hp": 18,
+    "attack": 6,
+    "cooldownSeconds": 0.7,
+    "rangeTiles": 0.42,
+    "speedTilesPerSecond": 1.55,
+    "tag": "fast",
+    "armor": 0
+  },
+  "armored": {
+    "name": "Ogre",
+    "icon": "👺",
+    "hp": 60,
+    "attack": 13,
+    "cooldownSeconds": 1.1,
+    "rangeTiles": 0.42,
+    "speedTilesPerSecond": 0.7,
+    "tag": "armored",
+    "armor": 12
+  },
+  "archerE": {
+    "name": "Sniper",
+    "icon": "🏹",
+    "hp": 22,
+    "attack": 9,
+    "cooldownSeconds": 1.4,
+    "rangeTiles": 2.4,
+    "speedTilesPerSecond": 0.9,
+    "tag": "ranged",
+    "armor": 0
+  },
+  "orcKing": {
+    "name": "Orc King",
+    "icon": "🐗",
+    "hp": 240,
+    "attack": 18,
+    "cooldownSeconds": 1.1,
+    "rangeTiles": 0.5,
+    "speedTilesPerSecond": 0.65,
+    "tag": "boss",
+    "armor": 10,
+    "mechanic": {
+      "kind": "aura",
+      "radius": 2.2,
+      "damagePerSecond": 6
+    }
+  },
+  "necromancer": {
+    "name": "Necromancer",
+    "icon": "💀",
+    "hp": 190,
+    "attack": 12,
+    "cooldownSeconds": 1.4,
+    "rangeTiles": 2.0,
+    "speedTilesPerSecond": 0.7,
+    "tag": "boss",
+    "armor": 6,
+    "mechanic": {
+      "kind": "summon",
+      "archetype": "grunt",
+      "intervalSeconds": 6
+    }
+  },
+  "breacher": {
+    "name": "Breacher",
+    "icon": "🐉",
+    "hp": 270,
+    "attack": 26,
+    "cooldownSeconds": 1.3,
+    "rangeTiles": 0.45,
+    "speedTilesPerSecond": 0.55,
+    "tag": "boss",
+    "armor": 10,
+    "mechanic": {
+      "kind": "breach",
+      "damageMultVsBuildings": 3
+    }
+  }
 }

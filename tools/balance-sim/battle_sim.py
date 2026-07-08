@@ -1,6 +1,13 @@
 """Faithful port of the FightingDudes fortress battle engine for balance analysis.
 Data: Synced with fortress-enemies.json, fortress-waves.json (24 waves with composition).
-Boss mechanics (aura, summon, breach) stubbed where too complex.
+
+Fidelity notes (kept honest against js/game/systems/fortressBattleSystem.js):
+- Boss mechanics (aura, summon, breach) ARE implemented (tick_boss_mechanic + inline breach).
+- Spawn order is a deterministic round-robin (matches expandComposition), NOT a shuffle.
+- damage_mult / defense_mult hooks mirror getFortressDamageMultiplier / getFortressDefenseMultiplier
+  (temp reward cards + Skirmisher capstone). Default 1.0 for a clean baseline.
+- NOT modelled (opt-in, safe to skip for a baseline): building actives (overcharge/spawnSquad/
+  volley/frost/shield) and the shield damage-reduction they grant.
 """
 import math, random, heapq, json
 from pathlib import Path
@@ -31,26 +38,58 @@ except:
         "breacher": dict(hp=560, attack=26, cd=1.3, rng=0.45, spd=0.55),
     }
 
-# Normalize to (hp, attack, cd, rng, spd) tuples for simulation
+# --- wave-scaling knobs (multiplicative: PRESERVES archetype identity across waves, unlike the old
+# additive +5(w-1)+0.35(w-1)^2 which added a flat HP slab to every archetype and erased the swarm/
+# tank distinction late). READ FROM data/balance.json.combat so the sim can never silently desync
+# from the live game (fallbacks = the values as of the RPS combat pass). ---
+_COMBAT = _BALANCE.get("combat", {}) if isinstance(_BALANCE, dict) else {}
+HP_SCALE_PER_WAVE  = _COMBAT.get("hpScalePerWave", 0.14)    # hp  *= 1 + this*(w-1)
+ATK_SCALE_PER_WAVE = _COMBAT.get("attackScalePerWave", 0.06)  # atk *= 1 + this*(w-1)
+# Armor scales MULTIPLICATIVELY (like hp) so it tracks enemy toughness AND the tier-growth of the
+# big-hit sources (turret/mine ~2x per tier). Flat scaling let high-tier turrets outpace armor and
+# pierce everything late (combat went 1-D again). Multiplicative keeps chip bouncing at every wave.
+ARMOR_SCALE_PER_WAVE = _COMBAT.get("armorScalePerWave", 0.10)  # armor *= 1 + this*(w-1)  (only archetypes WITH armor)
+
 def make_enemy_stats(archetype_key, wave=1):
-    """Get enemy stats, applying wave scaling if needed."""
+    """Get enemy stats, applying multiplicative wave scaling (identity-preserving)."""
     base = ENEMIES_DATA.get(archetype_key, ENEMIES_DATA.get("grunt"))
     hp = base.get("hp", 28)
     attack = base.get("attack", 10)
     cd = base.get("cooldownSeconds", 0.8)
     rng = base.get("rangeTiles", 0.42)
     spd = base.get("speedTilesPerSecond", 0.95)
-    # Wave scaling: matches fortressBattleSystem.createFortressEnemy exactly.
-    hp += 3 * (wave - 1)
-    attack += (wave - 1) // 3
-    return dict(hp=hp, attack=attack, cd=cd, rng=rng, spd=spd, archetype=archetype_key)
+    armor = base.get("armor", 0)
+    wb = wave - 1
+    hp = round(hp * (1 + HP_SCALE_PER_WAVE * wb))
+    attack = round(attack * (1 + ATK_SCALE_PER_WAVE * wb))
+    armor = round(armor * (1 + ARMOR_SCALE_PER_WAVE * wb)) if armor > 0 else 0
+    return dict(hp=hp, attack=attack, cd=cd, rng=rng, spd=spd, armor=armor, archetype=archetype_key)
 
-FUNITS = {
-  "warrior": dict(hp=42, attack=8, cd=0.75, rng=0.5, spd=1.45),
-  "archer":  dict(hp=24, attack=7, cd=1.2, rng=2.6, spd=1.2),
-  "rider":   dict(hp=58, attack=12, cd=1.1, rng=0.45, spd=1.9),
-  "mage":    dict(hp=18, attack=10, cd=1.0, rng=2.4, spd=1.15),
+# Prefer data/fortress-units.json (picks up splashRadius etc.); fall back to frozen constants.
+_FUNITS_FALLBACK = {
+  "warrior": dict(hp=42, attack=8, cd=0.75, rng=0.5, spd=1.45, splash=0.0),
+  "archer":  dict(hp=24, attack=7, cd=1.2, rng=2.6, spd=1.2, splash=0.0),
+  "rider":   dict(hp=58, attack=12, cd=1.1, rng=0.45, spd=1.9, splash=0.0),
+  "mage":    dict(hp=18, attack=10, cd=1.0, rng=2.4, spd=1.15, splash=1.0),
 }
+def _load_units():
+    try:
+        with open(data_dir / "fortress-units.json", encoding="utf-8") as f:
+            raw = json.load(f)
+        return {t: dict(hp=u["hp"], attack=u["attack"], cd=u["cooldownSeconds"],
+                        rng=u["rangeTiles"], spd=u["speedTilesPerSecond"],
+                        splash=u.get("splashRadius", 0.0)) for t, u in raw.items()}
+    except Exception:
+        return _FUNITS_FALLBACK
+FUNITS = _load_units()
+
+# Armor rule: effective = max(dmg*ARMOR_MIN_FRACTION, dmg - armor). The fractional floor (not a flat
+# 1) is what makes armor a REAL lever: many-small-hits bounce down to 15% vs a heavy target, so burst
+# (few big hits) is the efficient answer — yet nothing is fully immune (soft counter, no softlock).
+ARMOR_MIN_FRACTION = _COMBAT.get("armorMinFraction", 0.15)
+def hurt_enemy(e, dmg):
+    armor = e.get('armor', 0)
+    e['hp'] -= max(dmg * ARMOR_MIN_FRACTION, dmg - armor)
 
 # Prefer data/fortress-buildings.json — fallback to the frozen constants below if the file is missing.
 _BUILD_FALLBACK = {
@@ -196,15 +235,23 @@ def make_enemy(wave, rng, archetype="grunt"):
     mechanic = raw.get("mechanic")
     summon_timer = mechanic.get("intervalSeconds", 0) if mechanic and mechanic.get("kind") == "summon" else 0
     return dict(id=f"e{rng.random()}", hp=base['hp'], maxHp=base['hp'], attack=base['attack'],
-                cd=base['cd'], at=0, rng=base['rng'], spd=base['spd'], archetype=archetype,
+                cd=base['cd'], at=0, rng=base['rng'], spd=base['spd'], armor=base['armor'], archetype=archetype,
                 mechanic=mechanic, auraTimer=0, summonTimer=summon_timer,
                 x=rng.random()*(W-0.5)+0.25, y=-0.45, path=None, ptimer=0, ptid=None, ctid=None)
 
-def make_ally(utype, origin):
+# Spawned-unit power scales with the SPAWNER building's tier (was frozen: only cooldown scaled, so
+# spawner units fell behind turret point-damage late-game). This is the spawner's merge payoff and
+# keeps mage splash / warrior bodies relevant vs multiplicatively-scaled enemy HP.
+UNIT_ATK_PER_LEVEL = _COMBAT.get("unitAttackPerLevel", 0.35)   # attack *= 1 + this*(level-1); L3=x1.7 L5=x2.4
+UNIT_HP_PER_LEVEL  = _COMBAT.get("unitHpPerLevel", 0.20)        # hp     *= 1 + this*(level-1)
+
+def make_ally(utype, origin, level=1):
     b=FUNITS[utype]
-    return dict(id=f"a{random.random()}", type=utype, hp=b['hp'], maxHp=b['hp'], attack=b['attack'],
-                cd=b['cd'], at=0, rng=b['rng'], spd=b['spd'], x=origin['x'], y=origin['y'],
-                path=None, ptimer=0, ptid=None)
+    atk = b['attack'] * (1 + UNIT_ATK_PER_LEVEL * (level - 1))
+    hp  = b['hp'] * (1 + UNIT_HP_PER_LEVEL * (level - 1))
+    return dict(id=f"a{random.random()}", type=utype, hp=hp, maxHp=hp, attack=atk,
+                cd=b['cd'], at=0, rng=b['rng'], spd=b['spd'], splash=b.get('splash', 0.0),
+                x=origin['x'], y=origin['y'], path=None, ptimer=0, ptid=None)
 
 def moveToward(actor, tx, ty, dt):
     dx=tx-actor['x']; dy=ty-actor['y']; d=math.hypot(dx,dy)
@@ -260,8 +307,11 @@ def follow_path(a, dt):
         a['path'].pop(0)
     return True
 
-def simulate(buildings, wave_num, rng, max_time=90.0, dt=0.1):
-    """buildings: list of Building. Returns dict result."""
+def simulate(buildings, wave_num, rng, max_time=90.0, dt=0.1, damage_mult=1.0, defense_mult=1.0):
+    """buildings: list of Building. Returns dict result.
+
+    damage_mult scales ally/turret/projectile damage (temp War Drums card + Skirmisher capstone).
+    defense_mult divides incoming enemy damage (temp Shield Wall card). Both default 1.0."""
     wave=WAVES[wave_num-1]
     enemies=[]; allies=[]; projectiles=[]
     # Attrition: if a building carries a damageFloor (from prior defeats), it starts the wave
@@ -276,13 +326,21 @@ def simulate(buildings, wave_num, rng, max_time=90.0, dt=0.1):
         else:
             b.hp = b.maxHp
         b.cd = 0.5
-    # Expand composition into spawn queue
+    # Expand composition into a spawn queue via round-robin interleave — matches
+    # fortressBattleSystem.expandComposition exactly (NOT a shuffle). Order is deterministic;
+    # per-run variance comes from enemy start-x (rng) and collision jitter.
+    groups = [[comp.get("archetype", "grunt"), comp.get("count", 1)] for comp in wave.get("composition", [])]
     spawn_queue = []
-    for comp in wave.get("composition", []):
-        archetype = comp.get("archetype", "grunt")
-        count = comp.get("count", 1)
-        spawn_queue.extend([archetype] * count)
-    rng.shuffle(spawn_queue)
+    any_remaining = any(g[1] > 0 for g in groups)
+    while any_remaining:
+        any_remaining = False
+        for g in groups:
+            if g[1] > 0:
+                spawn_queue.append(g[0]); g[1] -= 1
+                if g[1] > 0:
+                    any_remaining = True
+    # Wave-aware time budget: never time out before every enemy has spawned + a combat tail.
+    max_time = max(max_time, len(spawn_queue) * wave['spawn'] + 60)
     spawn_idx = 0; spawn_timer = 0.0
     gold=0; killed=0
     t=0.0
@@ -305,14 +363,14 @@ def simulate(buildings, wave_num, rng, max_time=90.0, dt=0.1):
             if 'unit' in lv:
                 b.cd-=dt
                 if b.cd<=0:
-                    allies.append(make_ally(lv['unit'], {'x':c['x'],'y':max(0,c['y']-0.65)}))
+                    allies.append(make_ally(lv['unit'], {'x':c['x'],'y':max(0,c['y']-0.65)}, b.level))
                     b.cd=lv['cd']
             if b.type=='turret' and 'damage' in lv:
                 b.cd-=dt
                 if b.cd<=0:
                     live=[e for e in enemies if e['hp']>0]
                     n=nearest(c, live)
-                    if n and n[1]<=3.2:
+                    if n and n[1]<=lv.get('range', 3.2):     # data-driven, tier-scaled turret range
                         projectiles.append(dict(tid=n[0]['id'], dmg=lv['damage'], x=c['x'],y=c['y'],spd=5.5,done=False,target=n[0]))
                         b.cd=lv['cd']
         # enemies
@@ -323,14 +381,14 @@ def simulate(buildings, wave_num, rng, max_time=90.0, dt=0.1):
             if at and at[1]<=e['rng']+0.12:
                 e['at']-=dt
                 if e['at']<=0:
-                    at[0]['hp']=max(0,at[0]['hp']-e['attack']); e['at']=e['cd']
+                    at[0]['hp']=max(0,at[0]['hp']-e['attack']/defense_mult); e['at']=e['cd']
                 continue
             # trap mines
             for b in buildings:
                 if b.type!='mine' or b.hp<=0: continue
                 lv=BUILD['mine']['levels'][b.level-1]
                 if edge_dist(e,b)<=0.55:
-                    e['hp']-=lv['damage']; b.hp=0
+                    hurt_enemy(e, lv['damage']*damage_mult); b.hp=0
             attackable=[b for b in buildings if b.hp>0 and b.type!='mine']
             bestb=None; bestd=1e9
             for b in attackable:
@@ -345,7 +403,7 @@ def simulate(buildings, wave_num, rng, max_time=90.0, dt=0.1):
                     # Breacher multiplies damage vs buildings (matches inline breachMult in fortressBattleSystem.tickEnemies).
                     mech = e.get('mechanic')
                     breach_mult = mech.get("damageMultVsBuildings", 1) if mech and mech.get("kind") == "breach" else 1
-                    bestb.hp=max(0,bestb.hp-e['attack']*breach_mult); e['at']=e['cd']
+                    bestb.hp=max(0,bestb.hp-e['attack']*breach_mult/defense_mult); e['at']=e['cd']
                 continue
             # path
             e['ptimer']-=dt
@@ -391,9 +449,10 @@ def simulate(buildings, wave_num, rng, max_time=90.0, dt=0.1):
             a['at']-=dt
             if a['at']<=0:
                 if a['rng']>0.8:
-                    projectiles.append(dict(tid=tgt[0]['id'],dmg=a['attack'],x=a['x'],y=a['y'],spd=5.5,done=False,target=tgt[0]))
+                    projectiles.append(dict(tid=tgt[0]['id'],dmg=a['attack'],x=a['x'],y=a['y'],spd=5.5,
+                                            done=False,target=tgt[0],splash=a.get('splash',0.0)))
                 else:
-                    tgt[0]['hp']-=a['attack']
+                    hurt_enemy(tgt[0], a['attack']*damage_mult)
                 a['at']=a['cd']
         # boss mechanics (aura / summon). Breach is handled inline in the enemy attack branch.
         for e in enemies:
@@ -403,7 +462,16 @@ def simulate(buildings, wave_num, rng, max_time=90.0, dt=0.1):
             tg=p['target']
             if tg['hp']<=0: p['done']=True; continue
             if dist(p,tg)<=0.14:
-                tg['hp']-=p['dmg']; p['done']=True; continue
+                dmg=p['dmg']*damage_mult
+                splash=p.get('splash',0.0)
+                if splash>0:
+                    # AoE: every live enemy within splash of impact takes the hit (armor applies per enemy).
+                    for e in enemies:
+                        if e['hp']>0 and math.hypot(e['x']-tg['x'], e['y']-tg['y'])<=splash:
+                            hurt_enemy(e, dmg)
+                else:
+                    hurt_enemy(tg, dmg)
+                p['done']=True; continue
             moveToward(p, tg['x'], tg['y'], dt)
         projectiles=[p for p in projectiles if not p['done']]
         # collisions
@@ -428,15 +496,28 @@ def simulate(buildings, wave_num, rng, max_time=90.0, dt=0.1):
         # end conditions
         if hq.hp<=0:
             return dict(result='defeat', time=t, gold=gold, killed=killed, hq=0,
-                        allies_alive=len(allies))
+                        allies_alive=len(allies), bld_loss=building_loss_fraction(buildings))
         if spawn_idx>=len(spawn_queue) and len(enemies)==0:
             gold+=wave['victoryGold']
             return dict(result='victory', time=t, gold=gold, killed=killed, hq=hq.hp,
-                        allies_alive=len(allies))
+                        allies_alive=len(allies), bld_loss=building_loss_fraction(buildings))
     # timeout -> treat as stalemate (enemies remain). Count as defeat-ish.
     return dict(result='timeout', time=t, gold=gold, killed=killed, hq=hq.hp,
                 allies_alive=len([a for a in allies if a['hp']>0]),
-                enemies_left=len([e for e in enemies if e['hp']>0]))
+                enemies_left=len([e for e in enemies if e['hp']>0]),
+                bld_loss=building_loss_fraction(buildings))
+
+def building_loss_fraction(buildings):
+    """Fraction of defensive-building HP lost by battle end (excl. HQ and one-shot mines). This is the
+    per-wave REPAIR sink under attrition (victory no longer heals free) — harder waves chew more HP
+    -> more repair -> more mining. Mirrors the live repair cost basis (missing HP fraction)."""
+    tot = 0.0; lost = 0.0
+    for b in buildings:
+        if b.type in ('hq', 'mine'):
+            continue
+        tot += b.maxHp
+        lost += max(0, b.maxHp - max(0, b.hp))
+    return (lost / tot) if tot > 0 else 0.0
 
 # Boss mechanics implemented above:
 # - orcKing aura: tick_boss_mechanic(kind="aura") — 1Hz DPS to allies/buildings in radius.

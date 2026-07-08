@@ -2,5 +2,5 @@
   "warrior": {"name":"Warrior","icon":"🤺","hp":42,"attack":8,"cooldownSeconds":0.75,"rangeTiles":0.5,"speedTilesPerSecond":1.45},
   "archer": {"name":"Archer","icon":"🧝","hp":24,"attack":7,"cooldownSeconds":1.2,"rangeTiles":2.6,"speedTilesPerSecond":1.2},
   "rider": {"name":"Rider","icon":"🏇","hp":58,"attack":12,"cooldownSeconds":1.1,"rangeTiles":0.45,"speedTilesPerSecond":1.9},
-  "mage": {"name":"Mage","icon":"🧙","hp":18,"attack":10,"cooldownSeconds":1,"rangeTiles":2.4,"speedTilesPerSecond":1.15}
+  "mage": {"name":"Mage","icon":"🧙","hp":18,"attack":10,"cooldownSeconds":1,"rangeTiles":2.4,"speedTilesPerSecond":1.15,"splashRadius":1.0}
 }
