@@ -107,16 +107,9 @@
             <p class="panel-note">Choose a class, then prepare a unit here.</p>
           </div>
           <div class="garrison-stage">
-          <div class="gear-grid">
-            <div class="gear-select-wrap">
-              <label class="resource-label" for="classSelect">Класс</label>
-              <select id="classSelect" class="gear-select"></select>
-              <div id="classInfo" class="gear-cost-line"></div>
-            </div>
-          </div>
           <div class="garrison-dropzones">
             <div id="garrisonDropzone" class="garrison-dropzone">
-              Tap a unit, then tap here to prepare
+              Выберите юнита, затем нажмите сюда — выбрать класс
             </div>
           </div>
           <div id="gearInfo" class="info-card"></div>
@@ -142,6 +135,21 @@
         <div id="reserveZone" class="reserve-zone"></div>
       </section>
     </main>
+  </div>
+
+  <div id="classModal" class="class-modal" hidden>
+    <div class="class-modal-panel" role="dialog" aria-modal="true" aria-labelledby="classModalTitle">
+      <div class="class-modal-header">
+        <h3 id="classModalTitle">Выбор класса</h3>
+        <button id="classModalClose" class="ghost-button" type="button" aria-label="Закрыть">✕</button>
+      </div>
+      <div class="class-modal-rows">
+        <span class="class-modal-rows-label">Ряд:</span>
+        <button type="button" class="row-toggle is-active" data-modal-row="front">Передний</button>
+        <button type="button" class="row-toggle" data-modal-row="back">Задний</button>
+      </div>
+      <div id="classModalGrid" class="class-modal-grid"></div>
+    </div>
   </div>
 
   <script type="module" src="./js/main.js"></script>

@@ -60,6 +60,39 @@ function markHit(target, nowSeconds) {
   target.hitUntil = nowSeconds + 0.16;
 }
 
+function pushSplashEffect(state, target, radius, nowSeconds) {
+  state.battleEffects.push({
+    id: generateId("splash"),
+    type: "splash-ring",
+    createdAt: nowSeconds,
+    x: target.x ?? 0,
+    y: target.y ?? 0,
+    radius
+  });
+
+  if (state.battleEffects.length > 80) {
+    state.battleEffects = state.battleEffects.slice(-80);
+  }
+}
+
+// Unified damage for both sides: single-target, or splash over `splashRadius`
+// around the primary target when the attacker has one (Громила, Маг, Камнемёт).
+function applyDamage(state, attacker, target, defenders, nowSeconds) {
+  const splashRadius = attacker.splashRadius ?? 0;
+  if (splashRadius > 0) {
+    for (const entity of defenders) {
+      if (getDistance(target, entity) <= splashRadius) {
+        entity.health -= attacker.attack;
+        markHit(entity, nowSeconds);
+      }
+    }
+    pushSplashEffect(state, target, splashRadius, nowSeconds);
+  } else {
+    target.health -= attacker.attack;
+    markHit(target, nowSeconds);
+  }
+}
+
 function pushRangedAttackEffect(state, attacker, target, nowSeconds) {
   if (attacker.attackType !== "ranged" && attacker.attackType !== "ranged_aoe") {
     return;
@@ -187,10 +220,9 @@ function applySideAttacks(state, attackers, defenders, nowSeconds) {
     const gap = getBodyGap(actor, target);
     const range = getAttackRange(actor);
     if (gap <= range && nowSeconds - actor.lastAttackAt >= attackInterval) {
-      target.health -= actor.attack;
+      applyDamage(state, actor, target, defenders, nowSeconds);
       actor.state = "engaged";
       actor.lastAttackAt = nowSeconds;
-      markHit(target, nowSeconds);
       pushRangedAttackEffect(state, actor, target, nowSeconds);
     } else {
       actor.state = gap <= range ? "ready" : "marching";

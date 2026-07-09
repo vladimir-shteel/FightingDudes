@@ -1,9 +1,7 @@
 import {
   CONFIG,
-  getClassConfig,
   getMineLevelData,
-  getMineMaxLevel,
-  getUnitLevelData
+  getMineMaxLevel
 } from "../config.js";
 import { formatNumber } from "../utils.js";
 import { mergeReservePair } from "../systems/reserveSystem.js";
@@ -19,9 +17,7 @@ import {
 import {
   createMineProgressMarkup,
   createUnitCard,
-  formatCosts,
-  getResourceIconMarkup,
-  renderCostMarkup
+  getResourceIconMarkup
 } from "./helpers.js";
 
 export function renderReserve(ctx) {
@@ -272,36 +268,15 @@ export function renderMines(ctx) {
 }
 
 export function renderGearMeta(ctx) {
-  const { state, elements, selection } = ctx;
+  const { elements, selection } = ctx;
   const { getSelectedUnitContext } = selection;
 
-  elements.classSelect.value = state.ui.selectedClassId;
-  const classConfig = getClassConfig(state.ui.selectedClassId);
-
-  if (!classConfig) {
-    elements.classInfo.innerHTML = "";
-    elements.gearInfo.textContent = "Выберите класс.";
+  const selected = getSelectedUnitContext();
+  if (!selected) {
+    elements.gearInfo.textContent = "Выберите юнита в резерве или на шахте.";
     return;
   }
 
-  elements.classInfo.innerHTML = renderCostMarkup(classConfig.costs);
-
-  const healthMult = classConfig.healthMult ?? 1;
-  const attackMult = classConfig.attackMult ?? 1;
-  const selected = getSelectedUnitContext();
-  const levelData = selected ? getUnitLevelData(selected.unit.level) : null;
-
-  let statsText;
-  if (levelData) {
-    const hp = Math.round(levelData.baseHealth * healthMult);
-    const atk = Math.round(levelData.baseAttack * attackMult);
-    statsText = `HP ${hp} | ATK ${atk} (ур.${selected.unit.level})`;
-  } else {
-    statsText = `HP ×${healthMult} | ATK ×${attackMult}`;
-  }
-
-  const costText = formatCosts(classConfig.costs) || "free";
   elements.gearInfo.textContent =
-    `${classConfig.icon} ${classConfig.name} (ур.${classConfig.minLevel ?? 1}+) | ` +
-    `${statsText} | ${costText}. ${classConfig.description ?? ""}`;
+    `«${selected.unit.name}» ур.${selected.unit.level} выбран — нажмите на плацдарм, чтобы выбрать класс.`;
 }

@@ -107,11 +107,6 @@ export function canAffordCosts(resources, costs) {
   return Object.entries(costs ?? {}).every(([resourceKey, amount]) => (resources[resourceKey] ?? 0) >= amount);
 }
 
-export function getSelectedLoadoutCosts(state) {
-  const classConfig = getClassConfig(state.ui.selectedClassId);
-  return classConfig ? (classConfig.costs ?? {}) : null;
-}
-
 export function playResourceBurst(elements, burst) {
   let startX;
   let startY;

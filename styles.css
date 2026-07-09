@@ -1669,6 +1669,25 @@ h3 {
   z-index: 21;
 }
 
+.splash-ring {
+  position: fixed;
+  transform: translate(-50%, -50%);
+  border-radius: 999px;
+  border: 3px solid rgba(255, 176, 64, 0.9);
+  background: radial-gradient(circle, rgba(255, 138, 40, 0.35) 0%, rgba(255, 138, 40, 0.12) 55%, rgba(255, 138, 40, 0) 72%);
+  box-shadow: 0 0 14px rgba(255, 158, 54, 0.7);
+  pointer-events: none;
+  opacity: 0;
+  animation: splash-burst 320ms ease-out;
+  z-index: 20;
+}
+
+@keyframes splash-burst {
+  0% { opacity: 0.9; transform: translate(-50%, -50%) scale(0.35); }
+  60% { opacity: 0.75; transform: translate(-50%, -50%) scale(1.05); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.15); }
+}
+
 .drop-hover {
   outline: 3px solid rgba(212, 255, 85, 0.72);
   background-color: rgba(212, 255, 85, 0.12);
@@ -2498,5 +2517,174 @@ h3 {
 
   .gear-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+/* ── Class selection modal ─────────────────────────────── */
+.class-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(6, 10, 18, 0.72);
+  backdrop-filter: blur(3px);
+}
+
+.class-modal[hidden] {
+  display: none;
+}
+
+.class-modal-panel {
+  width: min(720px, 100%);
+  max-height: min(86vh, 720px);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #1b2334, #131a28);
+  border: 1px solid rgba(148, 176, 255, 0.22);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+}
+
+.class-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.class-modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.class-modal-rows {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.class-modal-rows-label {
+  font-size: 13px;
+  opacity: 0.75;
+}
+
+.row-toggle {
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 176, 255, 0.28);
+  background: rgba(255, 255, 255, 0.04);
+  color: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.row-toggle.is-active {
+  background: rgba(120, 210, 120, 0.22);
+  border-color: rgba(120, 210, 120, 0.7);
+  color: #daffca;
+}
+
+.class-modal-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.class-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  text-align: left;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 176, 255, 0.2);
+  background: rgba(255, 255, 255, 0.035);
+  color: inherit;
+  cursor: pointer;
+  transition: transform 0.08s ease, border-color 0.12s ease, background 0.12s ease;
+}
+
+.class-card:not(:disabled):hover {
+  transform: translateY(-2px);
+  border-color: rgba(120, 210, 120, 0.75);
+  background: rgba(120, 210, 120, 0.1);
+}
+
+.class-card:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+  filter: grayscale(0.4);
+}
+
+.class-card.is-unaffordable:disabled {
+  opacity: 0.72;
+  filter: none;
+}
+
+.class-card-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.class-card-icon {
+  font-size: 20px;
+}
+
+.class-card-name {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.class-card-tier {
+  margin-left: auto;
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(148, 176, 255, 0.16);
+  opacity: 0.85;
+}
+
+.class-card-stats {
+  font-size: 13px;
+  font-weight: 600;
+  color: #cfe0ff;
+}
+
+.class-card-cost {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.class-card-desc {
+  font-size: 11.5px;
+  line-height: 1.35;
+  opacity: 0.72;
+}
+
+.class-card-flag {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-size: 10.5px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(255, 120, 96, 0.2);
+  border: 1px solid rgba(255, 120, 96, 0.55);
+  color: #ffd3c8;
+}
+
+@media (max-width: 720px) {
+  .class-modal-grid {
+    grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
   }
 }

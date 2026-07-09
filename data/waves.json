@@ -24,5 +24,34 @@
         ]
       }
     ]
+  },
+  {
+    "name": "Стая",
+    "location": 1,
+    "groups": [
+      {
+        "formationRow": "front",
+        "enemies": [
+          { "class": "swordsman", "name": "Крыса", "icon": "🐀", "health": 12, "attack": 3, "attackSpeed": 1.3, "moveSpeed": 16, "goldReward": 1 },
+          { "class": "swordsman", "name": "Крыса", "icon": "🐀", "health": 12, "attack": 3, "attackSpeed": 1.3, "moveSpeed": 16, "goldReward": 1 },
+          { "class": "swordsman", "name": "Крыса", "icon": "🐀", "health": 12, "attack": 3, "attackSpeed": 1.3, "moveSpeed": 16, "goldReward": 1 },
+          { "class": "swordsman", "name": "Крыса", "icon": "🐀", "health": 12, "attack": 3, "attackSpeed": 1.3, "moveSpeed": 16, "goldReward": 1 },
+          { "class": "swordsman", "name": "Крыса", "icon": "🐀", "health": 12, "attack": 3, "attackSpeed": 1.3, "moveSpeed": 16, "goldReward": 1 },
+          { "class": "swordsman", "name": "Крыса", "icon": "🐀", "health": 12, "attack": 3, "attackSpeed": 1.3, "moveSpeed": 16, "goldReward": 1 }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Контрпик",
+    "location": 1,
+    "groups": [
+      {
+        "formationRow": "front",
+        "enemies": [
+          { "class": "brute", "name": "Камнемёт", "icon": "🪨", "health": 80, "attack": 10, "attackSpeed": 0.7, "splashRadius": 1.8, "goldReward": 10 }
+        ]
+      }
+    ]
   }
 ]

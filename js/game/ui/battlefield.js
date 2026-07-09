@@ -244,6 +244,24 @@ export function playRangedAttackEffect(ctx, effect) {
   window.setTimeout(() => line.remove(), 220);
 }
 
+export function playSplashEffect(ctx, effect) {
+  const { elements } = ctx;
+
+  const rect = elements.battlefield.getBoundingClientRect();
+  const centerX = rect.left + (effect.x / CONFIG.battle.fieldWidth) * rect.width;
+  const centerY = rect.top + (effect.y / CONFIG.battle.fieldHeight) * rect.height;
+  const diameter = ((effect.radius * 2) / CONFIG.battle.fieldWidth) * rect.width;
+  const ring = document.createElement("div");
+
+  ring.className = "splash-ring";
+  ring.style.left = `${centerX}px`;
+  ring.style.top = `${centerY}px`;
+  ring.style.width = `${diameter}px`;
+  ring.style.height = `${diameter}px`;
+  elements.fxLayer.append(ring);
+  window.setTimeout(() => ring.remove(), 320);
+}
+
 export function flushBattleEffects(ctx) {
   const { state } = ctx;
 
@@ -256,6 +274,8 @@ export function flushBattleEffects(ctx) {
     handled.add(effect.id);
     if (effect.type === "ranged-line") {
       playRangedAttackEffect(ctx, effect);
+    } else if (effect.type === "splash-ring") {
+      playSplashEffect(ctx, effect);
     }
   }
 

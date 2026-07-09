@@ -1,7 +1,5 @@
 import {
   CONFIG,
-  getAvailableClasses,
-  getClassConfig,
   getResourceLabel
 } from "./config.js";
 import {
@@ -9,14 +7,15 @@ import {
   massMergeReserve
 } from "./systems/reserveSystem.js";
 import {
-  sendBridgeheadToBattle,
-  stageUnitOnBridgehead
+  sendBridgeheadToBattle
 } from "./systems/garrisonSystem.js";
 import {
-  canAffordCosts,
-  getResourceIconMarkup,
-  getSelectedLoadoutCosts
+  getResourceIconMarkup
 } from "./ui/helpers.js";
+import {
+  openClassModal,
+  setupClassModal
+} from "./ui/classModal.js";
 import {
   flushBattleEffects,
   flushResourceBursts,
@@ -62,8 +61,10 @@ export function mountUI(state, onStateChanged) {
     battleUnits: document.querySelector("#battleUnits"),
     garrisonDropzone: document.querySelector("#garrisonDropzone"),
     gearInfo: document.querySelector("#gearInfo"),
-    classSelect: document.querySelector("#classSelect"),
-    classInfo: document.querySelector("#classInfo"),
+    classModal: document.querySelector("#classModal"),
+    classModalTitle: document.querySelector("#classModalTitle"),
+    classModalGrid: document.querySelector("#classModalGrid"),
+    classModalClose: document.querySelector("#classModalClose"),
     buyUnitButton: document.querySelector("#buyUnitButton"),
     massMergeButton: document.querySelector("#massMergeButton"),
     restartButton: document.querySelector("#restartButton"),
@@ -91,16 +92,6 @@ export function mountUI(state, onStateChanged) {
     elements.resourceList.append(chip);
     resourceValueMap.set(resourceKey, chip.querySelector("strong"));
   }
-
-  elements.classSelect.innerHTML = "";
-  for (const classConfig of getAvailableClasses(99)) {
-    const option = document.createElement("option");
-    option.value = classConfig.id;
-    option.textContent = `${classConfig.icon} ${classConfig.name} (ур.${classConfig.minLevel ?? 1}+)`;
-    elements.classSelect.append(option);
-  }
-
-  elements.classSelect.value = state.ui.selectedClassId;
 
   const mineProgressCache = new Map();
 
@@ -142,12 +133,7 @@ export function mountUI(state, onStateChanged) {
       return false;
     }
 
-    const combinedCosts = getSelectedLoadoutCosts(state);
-    if (!combinedCosts) {
-      return false;
-    }
-
-    return canAffordCosts(state.resources, combinedCosts) &&
+    return state.battle.status !== "fighting" &&
       state.bridgeheadUnits.length < (CONFIG.bridgehead?.maxSlots ?? 8);
   }
 
@@ -217,11 +203,7 @@ export function mountUI(state, onStateChanged) {
     onStateChanged();
   });
 
-  elements.classSelect.addEventListener("change", () => {
-    state.ui.selectedClassId = elements.classSelect.value;
-    state.battle.log = `Выбран класс: ${getClassConfig(state.ui.selectedClassId)?.name}.`;
-    onStateChanged();
-  });
+  setupClassModal(ctx);
 
   elements.garrisonDropzone.addEventListener("click", () => {
     const selected = getSelectedUnitContext();
@@ -229,12 +211,13 @@ export function mountUI(state, onStateChanged) {
       return;
     }
 
-    const result = stageUnitOnBridgehead(state, selected.unit.id);
-    state.battle.log = result.reason;
-    if (result.ok) {
-      clearSelectedUnit();
+    if (state.battle.status === "fighting") {
+      state.battle.log = "Казарма заблокирована на время боя.";
+      onStateChanged();
+      return;
     }
-    onStateChanged();
+
+    openClassModal(ctx, selected.unit);
   });
 
   function render() {
