@@ -49,7 +49,7 @@
       {
         "formationRow": "front",
         "enemies": [
-          { "class": "brute", "name": "Камнемёт", "icon": "🪨", "health": 80, "attack": 10, "attackSpeed": 0.7, "splashRadius": 1.8, "goldReward": 10 }
+          { "class": "brute", "name": "Камнемёт", "icon": "🪨", "health": 200, "attack": 12, "attackSpeed": 0.7, "splashRadius": 1.8, "goldReward": 10 }
         ]
       }
     ]
