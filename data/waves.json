@@ -120,5 +120,167 @@
         ]
       }
     ]
+  },
+  {
+    "name": "Пограничный дозор",
+    "location": 2,
+    "groups": [
+      {
+        "formationRow": "front",
+        "enemies": [
+          { "class": "swordsman", "name": "Гвардеец", "icon": "💂", "health": 45, "attack": 10, "attackSpeed": 1.0, "moveSpeed": 10, "goldReward": 3 },
+          { "class": "swordsman", "name": "Гвардеец", "icon": "💂", "health": 45, "attack": 10, "attackSpeed": 1.0, "moveSpeed": 10, "goldReward": 3 },
+          { "class": "swordsman", "name": "Гвардеец", "icon": "💂", "health": 45, "attack": 10, "attackSpeed": 1.0, "moveSpeed": 10, "goldReward": 3 }
+        ]
+      },
+      {
+        "formationRow": "back",
+        "enemies": [
+          { "class": "archer", "name": "Стрелок", "icon": "🏹", "health": 30, "attack": 9, "attackSpeed": 0.9, "moveSpeed": 8, "attackRange": 12, "goldReward": 4 },
+          { "class": "archer", "name": "Стрелок", "icon": "🏹", "health": 30, "attack": 9, "attackSpeed": 0.9, "moveSpeed": 8, "attackRange": 12, "goldReward": 4 }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Стена щитов",
+    "location": 2,
+    "groups": [
+      {
+        "formationRow": "front",
+        "enemies": [
+          { "class": "knight", "name": "Щитовик", "icon": "🛡️", "health": 260, "attack": 6, "attackSpeed": 0.7, "moveSpeed": 7, "goldReward": 10 },
+          { "class": "knight", "name": "Щитовик", "icon": "🛡️", "health": 260, "attack": 6, "attackSpeed": 0.7, "moveSpeed": 7, "goldReward": 10 }
+        ]
+      },
+      {
+        "formationRow": "back",
+        "enemies": [
+          { "class": "archer", "name": "Стрелок", "icon": "🏹", "health": 30, "attack": 9, "attackSpeed": 0.9, "moveSpeed": 8, "attackRange": 12, "goldReward": 4 },
+          { "class": "archer", "name": "Стрелок", "icon": "🏹", "health": 30, "attack": 9, "attackSpeed": 0.9, "moveSpeed": 8, "attackRange": 12, "goldReward": 4 }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Колесница",
+    "location": 2,
+    "groups": [
+      {
+        "formationRow": "front",
+        "enemies": [
+          { "class": "swordsman", "name": "Гвардеец", "icon": "💂", "health": 45, "attack": 10, "attackSpeed": 1.0, "moveSpeed": 10, "goldReward": 3 },
+          { "class": "swordsman", "name": "Гвардеец", "icon": "💂", "health": 45, "attack": 10, "attackSpeed": 1.0, "moveSpeed": 10, "goldReward": 3 },
+          { "class": "swordsman", "name": "Гвардеец", "icon": "💂", "health": 45, "attack": 10, "attackSpeed": 1.0, "moveSpeed": 10, "goldReward": 3 }
+        ]
+      },
+      {
+        "formationRow": "front",
+        "enemies": [
+          { "class": "brute", "name": "Колесница", "icon": "🐎", "health": 120, "attack": 0, "attackSpeed": 1.0, "moveSpeed": 22, "movementType": "kamikaze", "explosionDamage": 55, "explosionRadius": 3.0, "goldReward": 12 }
+        ]
+      },
+      {
+        "formationRow": "back",
+        "enemies": [
+          { "class": "archer", "name": "Стрелок", "icon": "🏹", "health": 30, "attack": 9, "attackSpeed": 0.9, "moveSpeed": 8, "attackRange": 12, "goldReward": 4 }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Вороньё",
+    "location": 2,
+    "groups": [
+      {
+        "formationRow": "front",
+        "enemies": [
+          { "class": "swordsman", "name": "Гвардеец", "icon": "💂", "health": 45, "attack": 10, "attackSpeed": 1.0, "moveSpeed": 10, "goldReward": 3 },
+          { "class": "swordsman", "name": "Гвардеец", "icon": "💂", "health": 45, "attack": 10, "attackSpeed": 1.0, "moveSpeed": 10, "goldReward": 3 }
+        ]
+      },
+      {
+        "formationRow": "back",
+        "enemies": [
+          { "class": "flying", "name": "Ворон", "icon": "🐦‍⬛", "health": 35, "attack": 7, "attackSpeed": 1.0, "moveSpeed": 16, "movementType": "flying", "goldReward": 6 },
+          { "class": "flying", "name": "Ворон", "icon": "🐦‍⬛", "health": 35, "attack": 7, "attackSpeed": 1.0, "moveSpeed": 16, "movementType": "flying", "goldReward": 6 },
+          { "class": "flying", "name": "Ворон", "icon": "🐦‍⬛", "health": 35, "attack": 7, "attackSpeed": 1.0, "moveSpeed": 16, "movementType": "flying", "goldReward": 6 },
+          { "class": "flying", "name": "Ворон", "icon": "🐦‍⬛", "health": 35, "attack": 7, "attackSpeed": 1.0, "moveSpeed": 16, "movementType": "flying", "goldReward": 6 }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Осадный расчёт",
+    "location": 2,
+    "groups": [
+      {
+        "formationRow": "front",
+        "enemies": [
+          { "class": "knight", "name": "Щитовик", "icon": "🛡️", "health": 260, "attack": 6, "attackSpeed": 0.7, "moveSpeed": 7, "goldReward": 10 },
+          { "class": "knight", "name": "Щитовик", "icon": "🛡️", "health": 260, "attack": 6, "attackSpeed": 0.7, "moveSpeed": 7, "goldReward": 10 },
+          { "class": "brute", "name": "Камнемёт", "icon": "🪨", "health": 200, "attack": 12, "attackSpeed": 0.7, "splashRadius": 1.8, "goldReward": 12 }
+        ]
+      },
+      {
+        "formationRow": "back",
+        "enemies": [
+          { "class": "archer", "name": "Стрелок", "icon": "🏹", "health": 30, "attack": 9, "attackSpeed": 0.9, "moveSpeed": 8, "attackRange": 12, "goldReward": 4 },
+          { "class": "archer", "name": "Стрелок", "icon": "🏹", "health": 30, "attack": 9, "attackSpeed": 0.9, "moveSpeed": 8, "attackRange": 12, "goldReward": 4 }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Королевская гвардия",
+    "location": 2,
+    "groups": [
+      {
+        "formationRow": "front",
+        "enemies": [
+          { "class": "knight", "name": "Щитовик", "icon": "🛡️", "health": 260, "attack": 6, "attackSpeed": 0.7, "moveSpeed": 7, "goldReward": 10 },
+          { "class": "knight", "name": "Щитовик", "icon": "🛡️", "health": 260, "attack": 6, "attackSpeed": 0.7, "moveSpeed": 7, "goldReward": 10 },
+          { "class": "knight", "name": "Копейщик", "icon": "🔱", "health": 55, "attack": 22, "attackSpeed": 1.0, "moveSpeed": 11, "goldReward": 6 },
+          { "class": "knight", "name": "Копейщик", "icon": "🔱", "health": 55, "attack": 22, "attackSpeed": 1.0, "moveSpeed": 11, "goldReward": 6 },
+          { "class": "knight", "name": "Копейщик", "icon": "🔱", "health": 55, "attack": 22, "attackSpeed": 1.0, "moveSpeed": 11, "goldReward": 6 }
+        ]
+      },
+      {
+        "formationRow": "back",
+        "enemies": [
+          { "class": "archer", "name": "Стрелок", "icon": "🏹", "health": 30, "attack": 9, "attackSpeed": 0.9, "moveSpeed": 8, "attackRange": 12, "goldReward": 4 },
+          { "class": "archer", "name": "Стрелок", "icon": "🏹", "health": 30, "attack": 9, "attackSpeed": 0.9, "moveSpeed": 8, "attackRange": 12, "goldReward": 4 }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Царь",
+    "location": 2,
+    "groups": [
+      {
+        "formationRow": "front",
+        "enemies": [
+          { "class": "knight", "name": "Щитовик", "icon": "🛡️", "health": 260, "attack": 6, "attackSpeed": 0.7, "moveSpeed": 7, "goldReward": 10 },
+          { "class": "knight", "name": "Щитовик", "icon": "🛡️", "health": 260, "attack": 6, "attackSpeed": 0.7, "moveSpeed": 7, "goldReward": 10 },
+          { "class": "knight", "name": "Копейщик", "icon": "🔱", "health": 55, "attack": 22, "attackSpeed": 1.0, "moveSpeed": 11, "goldReward": 6 },
+          { "class": "knight", "name": "Копейщик", "icon": "🔱", "health": 55, "attack": 22, "attackSpeed": 1.0, "moveSpeed": 11, "goldReward": 6 }
+        ]
+      },
+      {
+        "formationRow": "back",
+        "enemies": [
+          { "class": "knight", "name": "Царь", "icon": "👑", "health": 420, "attack": 26, "attackSpeed": 0.9, "moveSpeed": 8, "goldReward": 40, "isBoss": true }
+        ]
+      },
+      {
+        "formationRow": "back",
+        "enemies": [
+          { "class": "archer", "name": "Стрелок", "icon": "🏹", "health": 30, "attack": 9, "attackSpeed": 0.9, "moveSpeed": 8, "attackRange": 12, "goldReward": 4 },
+          { "class": "archer", "name": "Стрелок", "icon": "🏹", "health": 30, "attack": 9, "attackSpeed": 0.9, "moveSpeed": 8, "attackRange": 12, "goldReward": 4 },
+          { "class": "flying", "name": "Ворон", "icon": "🐦‍⬛", "health": 35, "attack": 7, "attackSpeed": 1.0, "moveSpeed": 16, "movementType": "flying", "goldReward": 6 }
+        ]
+      }
+    ]
   }
 ]

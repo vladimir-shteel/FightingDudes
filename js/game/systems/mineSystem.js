@@ -1,4 +1,4 @@
-import { CONFIG, getMineLevelData, getMineMaxLevel } from "../config.js";
+import { CONFIG, getMineLevelData, getMineMaxLevel, getMergeMaxLevel } from "../config.js";
 import { clamp } from "../utils.js";
 import { createReserveUnit } from "../factories.js";
 import { removeUnitFromReserve, returnUnitToReserve } from "./reserveSystem.js";
@@ -139,7 +139,7 @@ export function moveMineUnitToMineSlot(state, fromMineId, fromSlotIndex, toMineI
     return { ok: true, reason: `${unit.name} moved to ${toMine.name}.` };
   }
 
-  if (unit.level === targetUnit.level && unit.level < CONFIG.merge.maxLevel) {
+  if (unit.level === targetUnit.level && unit.level < getMergeMaxLevel(state)) {
     fromMine.workerIds[fromSlotIndex] = null;
     fromMine.workerProgress[fromSlotIndex] = 0;
     toMine.workerIds[toSlotIndex] = createReserveUnit(unit.level + 1);
@@ -204,7 +204,7 @@ export function mergeReserveUnitIntoMineUnit(state, reserveUnitId, mineId, slotI
     return { ok: false, reason: "Only equal-level units can merge." };
   }
 
-  if (reserveUnit.level >= CONFIG.merge.maxLevel) {
+  if (reserveUnit.level >= getMergeMaxLevel(state)) {
     return { ok: false, reason: "This unit has reached max merge level." };
   }
 

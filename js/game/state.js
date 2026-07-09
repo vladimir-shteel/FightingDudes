@@ -41,6 +41,9 @@ export function createInitialState() {
     economy: {
       unitsPurchased: 0
     },
+    progress: {
+      completedLocations: 0
+    },
     game: {
       isOver: false,
       result: null

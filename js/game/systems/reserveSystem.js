@@ -1,4 +1,4 @@
-import { CONFIG } from "../config.js";
+import { CONFIG, getMergeMaxLevel } from "../config.js";
 import { createReserveUnit } from "../factories.js";
 
 function getBaseUnitEquivalent(unit) {
@@ -57,7 +57,7 @@ export function mergeReservePair(state, firstUnitId, secondUnitId) {
     return { ok: false, reason: "Only equal-level units can merge." };
   }
 
-  if (first.level >= CONFIG.merge.maxLevel) {
+  if (first.level >= getMergeMaxLevel(state)) {
     return { ok: false, reason: "This unit has reached max merge level." };
   }
 

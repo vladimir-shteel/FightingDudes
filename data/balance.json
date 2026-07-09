@@ -49,6 +49,7 @@
     "maxSlots": 8
   },
   "merge": {
-    "maxLevel": 4
+    "maxLevel": 4,
+    "maxLevelAfterLocation1": 6
   }
 }

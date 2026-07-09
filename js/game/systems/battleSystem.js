@@ -1,4 +1,4 @@
-import { CONFIG } from "../config.js";
+import { CONFIG, getMergeMaxLevel } from "../config.js";
 import { createEnemy } from "../factories.js";
 import { clamp, generateId, sum } from "../utils.js";
 import { initBattlePhysics, stepBattlePhysics, resetBattleBodies } from "../physics/battlePhysics.js";
@@ -322,12 +322,39 @@ function returnSurvivorsToBridgehead(state) {
   state.battleUnits = [];
 }
 
+function getWaveLocation(waveIndex) {
+  const wave = CONFIG.waves[waveIndex];
+  if (!wave || Array.isArray(wave)) {
+    return 1;
+  }
+  return wave.location ?? 1;
+}
+
+// A location is complete when the just-cleared wave was its last one (the next
+// wave belongs to a different location, or there is no next wave).
+function markLocationProgress(state, clearedWaveIndex, nextWaveIndex) {
+  if (!state.progress) {
+    state.progress = { completedLocations: 0 };
+  }
+  const clearedLocation = getWaveLocation(clearedWaveIndex);
+  const nextLocation = nextWaveIndex < CONFIG.waves.length ? getWaveLocation(nextWaveIndex) : null;
+  const locationDone = nextLocation === null || nextLocation !== clearedLocation;
+
+  if (locationDone && state.progress.completedLocations < clearedLocation) {
+    state.progress.completedLocations = clearedLocation;
+    return { justCleared: clearedLocation, nextLocation };
+  }
+  return { justCleared: null, nextLocation };
+}
+
 function handleVictory(state) {
   const clearedWaveIndex = state.battle.currentWaveIndex;
   clearWaveProgress(state, clearedWaveIndex);
   returnSurvivorsToBridgehead(state);
 
   const nextWaveIndex = clearedWaveIndex + 1;
+  const { justCleared, nextLocation } = markLocationProgress(state, clearedWaveIndex, nextWaveIndex);
+
   if (nextWaveIndex >= CONFIG.waves.length) {
     state.battle.status = "won";
     state.battle.log = "Все волны отбиты. Победа!";
@@ -336,7 +363,13 @@ function handleVictory(state) {
   } else {
     state.battle.currentWaveIndex = nextWaveIndex;
     state.battle.status = "idle";
-    state.battle.log = `Волна ${clearedWaveIndex + 1} зачищена. Готовьте отряд к волне ${nextWaveIndex + 1}.`;
+    if (justCleared) {
+      state.battle.log =
+        `🏰 Локация ${justCleared} пройдена! Слияние теперь до ур.${getMergeMaxLevel(state)}. ` +
+        `Впереди Локация ${nextLocation}.`;
+    } else {
+      state.battle.log = `Волна ${clearedWaveIndex + 1} зачищена. Готовьте отряд к волне ${nextWaveIndex + 1}.`;
+    }
   }
 }
 
