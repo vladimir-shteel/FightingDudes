@@ -53,7 +53,18 @@ function keepCurrentTarget(actor, targets) {
 }
 
 function chooseTarget(actor, targets) {
-  return keepCurrentTarget(actor, targets) ?? chooseClosestTarget(actor, targets);
+  // Non-flying-capable actors can't even see flyers as candidates.
+  const valid = actor.canHitFlying
+    ? targets
+    : targets.filter((target) => (target.movementType ?? "ground") !== "flying");
+
+  // Kamikaze ignores the front line and makes for the backline directly.
+  if (actor.movementType === "kamikaze") {
+    const backline = valid.filter((target) => target.formationRow === "back");
+    return chooseClosestTarget(actor, backline.length > 0 ? backline : valid);
+  }
+
+  return keepCurrentTarget(actor, valid) ?? chooseClosestTarget(actor, valid);
 }
 
 function markHit(target, nowSeconds) {
@@ -213,8 +224,40 @@ function assignTargets(state) {
   }
 }
 
+// Kamikaze: no ranged/melee attack — it detonates on contact and dies.
+function updateKamikazes(state, attackers, defenders, nowSeconds) {
+  const contactGap = CONFIG.battle.kamikazeContactGap ?? 0.5;
+
+  for (const actor of attackers) {
+    if (actor.movementType !== "kamikaze" || actor.health <= 0) {
+      continue;
+    }
+
+    const target = defenders.find((entity) => entity.id === actor.targetId) ?? null;
+    if (!target || getBodyGap(actor, target) >= contactGap) {
+      continue;
+    }
+
+    const radius = actor.explosionRadius ?? 0;
+    const damage = actor.explosionDamage ?? 0;
+    for (const entity of defenders) {
+      if (getDistance(actor, entity) <= radius) {
+        entity.health -= damage;
+        markHit(entity, nowSeconds);
+      }
+    }
+    pushSplashEffect(state, actor, radius, nowSeconds);
+    actor.health = 0;
+    actor.state = "exploded";
+  }
+}
+
 function applySideAttacks(state, attackers, defenders, nowSeconds) {
   for (const actor of attackers) {
+    if (actor.movementType === "kamikaze") {
+      continue; // handled by updateKamikazes
+    }
+
     const attackInterval = getAttackInterval(actor);
     const target = defenders.find((entity) => entity.id === actor.targetId) ?? null;
 
@@ -327,6 +370,8 @@ export function tickBattle(state, deltaSeconds, nowSeconds) {
 
   assignTargets(state);
   stepBattlePhysics(state, deltaSeconds);
+  updateKamikazes(state, state.battleUnits, state.enemies, nowSeconds);
+  updateKamikazes(state, state.enemies, state.battleUnits, nowSeconds);
   applySideAttacks(state, state.battleUnits, state.enemies, nowSeconds);
   applySideAttacks(state, state.enemies, state.battleUnits, nowSeconds);
   cleanupDefeated(state);

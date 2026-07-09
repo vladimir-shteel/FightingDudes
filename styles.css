@@ -1546,6 +1546,29 @@ h3 {
   height: 16px;
 }
 
+.battle-token.is-flying {
+  z-index: 4;
+  filter: drop-shadow(0 7px 5px rgba(51, 48, 31, 0.3));
+}
+
+.battle-token.is-flying .unit-shadow {
+  opacity: 0.32;
+  transform: translateX(-50%) scale(0.7);
+}
+
+.battle-token.is-flying .unit-icon {
+  animation: flying-bob 2.4s ease-in-out infinite;
+}
+
+@keyframes flying-bob {
+  0%, 100% {
+    transform: translateX(-50%) scale(1.04) translateY(0);
+  }
+  50% {
+    transform: translateX(-50%) scale(1.04) translateY(-3px);
+  }
+}
+
 .battle-token .unit-icon {
   bottom: 10px;
   transform: translateX(-50%) scale(1.04);

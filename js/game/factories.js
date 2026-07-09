@@ -48,7 +48,10 @@ export function createBattleUnit(unit, classId, formationRow = "front") {
 
   const maxHealth = Math.round(unit.baseHealth * classData.healthMult);
   const attackType = classData.attackType ?? "melee";
-  const attackRange = classData.attackRange ?? getMeleeReach();
+  // Kamikaze drives all the way to contact (no attack-range standoff).
+  const attackRange = classData.movementType === "kamikaze"
+    ? 0
+    : (classData.attackRange ?? getMeleeReach());
 
   return {
     id: generateId("battle"),
@@ -99,9 +102,11 @@ export function createBattleUnit(unit, classId, formationRow = "front") {
 export function createEnemy(definition, formationRow = "front") {
   const hasExplicitRange = definition.attackRange !== undefined;
   const attackRangeBonus = definition.attackRangeBonus ?? CONFIG.battle.enemyAttackRangeBonus ?? 0;
-  const attackRange = hasExplicitRange
-    ? definition.attackRange
-    : (CONFIG.battle.baseAttackReach ?? 0) + attackRangeBonus;
+  const attackRange = definition.movementType === "kamikaze"
+    ? 0
+    : hasExplicitRange
+      ? definition.attackRange
+      : (CONFIG.battle.baseAttackReach ?? 0) + attackRangeBonus;
 
   return {
     id: generateId("enemy"),

@@ -58,6 +58,16 @@ export function updateSelectionTether(ctx) {
   }
 }
 
+function placeToken(card, entity) {
+  const fieldHeight = CONFIG.battle.fieldHeight;
+  const isFlying = (entity.movementType ?? "ground") === "flying";
+  const flyHeight = isFlying ? (CONFIG.battle.flyHeight ?? 0) : 0;
+  const renderY = (entity.y ?? fieldHeight / 2) - flyHeight;
+  card.style.left = `${entity.x}%`;
+  card.style.top = `${(renderY / fieldHeight) * 100}%`;
+  card.classList.toggle("is-flying", isFlying);
+}
+
 export function renderBattle(ctx) {
   const { state, elements } = ctx;
 
@@ -70,8 +80,7 @@ export function renderBattle(ctx) {
     card.classList.toggle("is-engaged", unit.state === "engaged");
     card.classList.toggle("is-hit", (unit.hitUntil ?? 0) > performance.now() / 1000);
     card.dataset.state = unit.state ?? "marching";
-    card.style.left = `${unit.x}%`;
-    card.style.top = `${((unit.y ?? (CONFIG.battle.fieldHeight / 2)) / CONFIG.battle.fieldHeight) * 100}%`;
+    placeToken(card, unit);
 
     const meta = document.createElement("span");
     meta.className = "battle-caption";
@@ -88,8 +97,7 @@ export function renderBattle(ctx) {
     card.classList.toggle("is-engaged", enemy.state === "engaged");
     card.classList.toggle("is-hit", (enemy.hitUntil ?? 0) > performance.now() / 1000);
     card.dataset.state = enemy.state ?? "marching";
-    card.style.left = `${enemy.x}%`;
-    card.style.top = `${((enemy.y ?? (CONFIG.battle.fieldHeight / 2)) / CONFIG.battle.fieldHeight) * 100}%`;
+    placeToken(card, enemy);
 
     const meta = document.createElement("span");
     meta.className = "battle-caption";

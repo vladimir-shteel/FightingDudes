@@ -19,6 +19,8 @@
     "physicsRadius": 0.24,
     "splashRadiusMultiplier": 2,
     "spawnSpreadPadding": 3.5,
+    "flyHeight": 5,
+    "kamikazeContactGap": 0.5,
     "allyMoveSpeed": 24,
     "enemyMoveSpeed": 10,
     "baseAttackReach": 5.4,

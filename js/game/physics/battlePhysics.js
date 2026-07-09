@@ -4,6 +4,28 @@ import { CONFIG } from "../config.js";
 const CATEGORY_ALLY = 0x0002;
 const CATEGORY_ENEMY = 0x0004;
 const CATEGORY_WALL = 0x0008;
+const CATEGORY_FLYING_ALLY = 0x0010;
+const CATEGORY_FLYING_ENEMY = 0x0020;
+const CATEGORY_ALL_MOBILE =
+  CATEGORY_ALLY | CATEGORY_ENEMY | CATEGORY_FLYING_ALLY | CATEGORY_FLYING_ENEMY;
+
+// Collision filter by movement type:
+// - ground: walls + own ground team (opposing teams pass through, fight by range)
+// - flying: walls + own flying team only (no collision with ground units)
+// - kamikaze: walls only — barrels through everyone to reach the backline
+function getCollisionFilter(unit, kind) {
+  const movementType = unit.movementType ?? "ground";
+  if (movementType === "kamikaze") {
+    const category = kind === "ally" ? CATEGORY_ALLY : CATEGORY_ENEMY;
+    return { category, mask: CATEGORY_WALL };
+  }
+  if (movementType === "flying") {
+    const category = kind === "ally" ? CATEGORY_FLYING_ALLY : CATEGORY_FLYING_ENEMY;
+    return { category, mask: CATEGORY_WALL | category };
+  }
+  const category = kind === "ally" ? CATEGORY_ALLY : CATEGORY_ENEMY;
+  return { category, mask: CATEGORY_WALL | category };
+}
 
 let world = null;
 let allyBodies = new Map();
@@ -72,7 +94,7 @@ function buildArena() {
   arena.createFixture({
     shape: planck.Edge(planck.Vec2(0, 0), planck.Vec2(CONFIG.battle.fieldWidth, 0)),
     filterCategoryBits: CATEGORY_WALL,
-    filterMaskBits: CATEGORY_ALLY | CATEGORY_ENEMY
+    filterMaskBits: CATEGORY_ALL_MOBILE
   });
   arena.createFixture({
     shape: planck.Edge(
@@ -80,7 +102,7 @@ function buildArena() {
       planck.Vec2(CONFIG.battle.fieldWidth, CONFIG.battle.fieldHeight)
     ),
     filterCategoryBits: CATEGORY_WALL,
-    filterMaskBits: CATEGORY_ALLY | CATEGORY_ENEMY
+    filterMaskBits: CATEGORY_ALL_MOBILE
   });
 
 }
@@ -88,9 +110,7 @@ function buildArena() {
 function createUnitBody(unit, kind) {
   const radius = getPhysicsRadius();
   const startX = kind === "ally" ? CONFIG.battle.allySpawnX : CONFIG.battle.enemySpawnX;
-  const categoryBits = kind === "ally" ? CATEGORY_ALLY : CATEGORY_ENEMY;
-  const teamBits = kind === "ally" ? CATEGORY_ALLY : CATEGORY_ENEMY;
-  const maskBits = CATEGORY_WALL | teamBits;
+  const { category: categoryBits, mask: maskBits } = getCollisionFilter(unit, kind);
 
   const body = world.createBody({
     type: "dynamic",
