@@ -170,6 +170,7 @@ export function renderBridgehead(ctx) {
       slot.append(rowToggle);
     } else {
       slot.classList.toggle("is-droptarget", canDeploy);
+      slot.classList.toggle("actionable-target", canDeploy);
       slot.innerHTML = `<span class="slot-placeholder">${canDeploy ? "Выбрать класс" : "Пусто"}</span>`;
       slot.addEventListener("click", () => {
         const selected = selection.getSelectedUnitContext();

@@ -16,8 +16,8 @@
     {
       "name": "combat-rework-playtest",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["tools/nocache_server.py", "8783"],
-      "port": 8783
+      "runtimeArgs": ["tools/nocache_server.py", "8784"],
+      "port": 8784
     }
   ]
 }
