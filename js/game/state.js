@@ -16,8 +16,7 @@ export function createInitialState() {
   return {
     resources,
     ui: {
-      selectedWeaponKey: Object.keys(CONFIG.equipment.weapons ?? {})[0] ?? "sword",
-      selectedArmorKey: Object.keys(CONFIG.equipment.armors ?? {})[0] ?? "none",
+      selectedClassId: Object.keys(CONFIG.classes ?? {})[0] ?? "swordsman",
       selectedUnitId: null,
       dragUnitId: null,
       handledResourceBurstIds: [],
@@ -31,21 +30,13 @@ export function createInitialState() {
     enemies: [],
     resourceBursts: [],
     battleEffects: [],
-    castle: {
-      maxHealth: CONFIG.castle.maxHealth,
-      health: CONFIG.castle.maxHealth,
-      hitUntil: 0
-    },
     battle: {
-      nextWaveIndex: 0,
-      activeWaveIndex: null,
-      retreatWaveIndex: null,
+      currentWaveIndex: 0,
       waveProgress: {
         defeatedEnemyIndexesByWave: {}
       },
-      waveCooldownRemaining: CONFIG.battle.waveCooldownSeconds,
       status: "idle",
-      log: "Prepare units in the garrison, then send them from the bridgehead."
+      log: "Подготовьте отряд в казарме, затем отправьте его в бой."
     },
     economy: {
       unitsPurchased: 0

@@ -56,25 +56,17 @@
             <div id="battlefield" class="battlefield">
               <div class="battlefield-overlay">
                 <div class="battlefield-caption">
-                  <h3>Advance To The Castle</h3>
-                  <p>Units spawn on the left, look for targets, close in to attack range and hold position while fighting.</p>
+                  <h3>Разбейте волну</h3>
+                  <p>Юниты спавнятся слева, ищут цели, сближаются на дистанцию атаки и держат строй в бою.</p>
                 </div>
               </div>
               <div id="battleUnits" class="battle-actors battle-allies"></div>
               <div id="enemyUnits" class="battle-actors battle-enemies"></div>
-              <div id="castleSprite" class="castle-sprite">
-                <p class="eyebrow">Enemy Castle</p>
-                <div class="castle-icon" aria-hidden="true">🏰</div>
-                <strong id="castleHealth">0 / 0</strong>
-                <div class="progress-shell">
-                  <div id="castleHealthBar" class="progress-bar castle-bar"></div>
-                </div>
-              </div>
               <div id="victoryOverlay" class="victory-overlay" hidden>
                 <div class="victory-card">
-                  <p class="eyebrow">Victory</p>
-                  <h2>Castle Destroyed</h2>
-                  <p>All waves are cleared. Your dudes can finally take a break.</p>
+                  <p class="eyebrow">Победа</p>
+                  <h2>Все волны отбиты</h2>
+                  <p>Все волны зачищены. Ваши бойцы наконец могут передохнуть.</p>
                   <button id="victoryRestartButton" class="primary-button" type="button">Start Again</button>
                 </div>
               </div>
@@ -85,7 +77,7 @@
                   <p class="eyebrow">Staging</p>
                   <h3>Bridgehead</h3>
                 </div>
-                <button id="sendBridgeheadButton" class="primary-button" type="button">To Battle</button>
+                <button id="sendBridgeheadButton" class="primary-button" type="button">В бой</button>
               </div>
               <div id="bridgeheadSlots" class="bridgehead-slots"></div>
             </section>
@@ -112,22 +104,16 @@
               <p class="eyebrow">Deployment</p>
               <h2>Garrison</h2>
             </div>
-            <p class="panel-note">Choose equipment, then prepare a unit here.</p>
+            <p class="panel-note">Choose a class, then prepare a unit here.</p>
           </div>
           <div class="garrison-stage">
           <div class="gear-grid">
             <div class="gear-select-wrap">
-              <label class="resource-label" for="weaponSelect">Weapon</label>
-              <select id="weaponSelect" class="gear-select"></select>
-              <div id="weaponCostInfo" class="gear-cost-line"></div>
-            </div>
-            <div class="gear-select-wrap">
-              <label class="resource-label" for="armorSelect">Armor</label>
-              <select id="armorSelect" class="gear-select"></select>
-              <div id="armorCostInfo" class="gear-cost-line"></div>
+              <label class="resource-label" for="classSelect">Класс</label>
+              <select id="classSelect" class="gear-select"></select>
+              <div id="classInfo" class="gear-cost-line"></div>
             </div>
           </div>
-          <div id="gearTotalCostInfo" class="gear-total-cost"></div>
           <div class="garrison-dropzones">
             <div id="garrisonDropzone" class="garrison-dropzone">
               Tap a unit, then tap here to prepare

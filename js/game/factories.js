@@ -1,5 +1,9 @@
-import { CONFIG, getArmorConfig, getUnitLevelData, getWeaponConfig } from "./config.js";
+import { CONFIG, getClassConfig, getUnitLevelData } from "./config.js";
 import { generateId } from "./utils.js";
+
+function getMeleeReach() {
+  return (CONFIG.battle.baseAttackReach ?? 0) + (CONFIG.battle.meleeAttackRangeBonus ?? 0);
+}
 
 export function createReserveUnit(level = 1) {
   const levelData = getUnitLevelData(level);
@@ -36,68 +40,105 @@ export function createMine(index) {
   };
 }
 
-export function createBattleUnit(unit, weaponKey, armorKey) {
-  const weapon = getWeaponConfig(weaponKey);
-  const armor = getArmorConfig(armorKey);
-  const maxHealth = unit.baseHealth + (armor?.healthBonus ?? 0);
-  const defaultAttackRangeBonus = weapon.attackType === "ranged"
-    ? CONFIG.battle.rangedAttackRangeBonus
-    : CONFIG.battle.meleeAttackRangeBonus;
-  const attackRangeBonus = weapon.attackRangeBonus ?? weapon.attackRange ?? defaultAttackRangeBonus ?? 0;
-  const attackRange = (CONFIG.battle.baseAttackReach ?? 0) + attackRangeBonus;
+export function createBattleUnit(unit, classId, formationRow = "front") {
+  const classData = getClassConfig(classId);
+  if (!classData) {
+    throw new Error(`Missing class config for ${classId}`);
+  }
+
+  const maxHealth = Math.round(unit.baseHealth * classData.healthMult);
+  const attackType = classData.attackType ?? "melee";
+  const attackRange = classData.attackRange ?? getMeleeReach();
 
   return {
     id: generateId("battle"),
     sourceUnitId: unit.id,
-    name: unit.name,
+    name: classData.name,
+    class: classId,
     level: unit.level,
-    weaponKey,
-    armorKey,
-    icon: unit.icon,
-    weaponIcon: weapon.icon ?? "",
-    armorIcon: armor?.icon ?? "",
-    attackType: weapon.attackType,
-    attack: unit.baseAttack * weapon.attackMultiplier,
-    attackSpeed: unit.baseAttackSpeed * weapon.attackSpeedMultiplier,
-    moveSpeed: CONFIG.battle.allyMoveSpeed,
+    icon: classData.icon,
+    formationRow,
+
+    attackType,
+    attack: Math.round(unit.baseAttack * classData.attackMult),
+    attackSpeed: unit.baseAttackSpeed,
+    moveSpeed: (CONFIG.battle.allyMoveSpeed ?? 24) * (classData.moveSpeedMult ?? 1),
     attackRange,
-    attackRangeBonus,
+    splashRadius: classData.splashRadius ?? 0,
+    canHitFlying: classData.canHitFlying ?? false,
+
+    movementType: classData.movementType ?? "ground",
+    targetMode: classData.targetMode ?? "closest",
+    explosionDamage: classData.explosionDamage ?? 0,
+    explosionRadius: classData.explosionRadius ?? 0,
+
+    poisonDps: classData.poisonDps ?? 0,
+    poisonDuration: classData.poisonDuration ?? 0,
+    healAmount: classData.healAmount ?? 0,
+    healInterval: classData.healInterval ?? 0,
+    healRadius: classData.healRadius ?? 0,
+    berserkerScaling: classData.berserkerScaling ?? false,
+
     maxHealth,
     health: maxHealth,
     x: CONFIG.battle.allySpawnX,
     y: CONFIG.battle.fieldHeight / 2,
     radius: CONFIG.battle.unitRadius,
     physicsRadius: CONFIG.battle.physicsRadius,
+    side: "ally",
     state: "marching",
     lastAttackAt: 0,
-    targetHint: "castle",
+    lastHealTime: 0,
+    poisonStacks: [],
+    targetHint: "advance",
     hitUntil: 0
   };
 }
 
-export function createEnemy(definition) {
-  const attackRangeBonus = definition.attackRangeBonus ?? definition.attackRange ?? CONFIG.battle.enemyAttackRangeBonus ?? 0;
+export function createEnemy(definition, formationRow = "front") {
+  const hasExplicitRange = definition.attackRange !== undefined;
+  const attackRangeBonus = definition.attackRangeBonus ?? CONFIG.battle.enemyAttackRangeBonus ?? 0;
+  const attackRange = hasExplicitRange
+    ? definition.attackRange
+    : (CONFIG.battle.baseAttackReach ?? 0) + attackRangeBonus;
 
   return {
     id: generateId("enemy"),
     name: definition.name,
     icon: definition.icon ?? "🚧",
+    class: definition.class ?? null,
     level: definition.level ?? 1,
-    maxHealth: definition.health,
-    health: definition.health,
+    formationRow,
+
+    attackType: definition.attackType ?? (hasExplicitRange ? "ranged" : "melee"),
     attack: definition.attack,
     attackSpeed: definition.attackSpeed,
     moveSpeed: definition.moveSpeed ?? CONFIG.battle.enemyMoveSpeed,
-    attackRange: (CONFIG.battle.baseAttackReach ?? 0) + attackRangeBonus,
+    attackRange,
     attackRangeBonus,
+    splashRadius: definition.splashRadius ?? 0,
+    canHitFlying: definition.canHitFlying ?? false,
+
+    movementType: definition.movementType ?? "ground",
+    targetMode: definition.targetMode ?? "closest",
+    explosionDamage: definition.explosionDamage ?? 0,
+    explosionRadius: definition.explosionRadius ?? 0,
+    poisonDps: definition.poisonDps ?? 0,
+    poisonDuration: definition.poisonDuration ?? 0,
+
     goldReward: definition.goldReward ?? 0,
+    isBoss: definition.isBoss ?? false,
+    maxHealth: definition.health,
+    health: definition.health,
     x: CONFIG.battle.enemySpawnX,
     y: CONFIG.battle.fieldHeight / 2,
     radius: CONFIG.battle.unitRadius,
     physicsRadius: CONFIG.battle.physicsRadius,
+    side: "enemy",
     state: "marching",
     lastAttackAt: 0,
-    hitUntil: 0,
-    isRetreating: false
+    lastHealTime: 0,
+    poisonStacks: [],
+    hitUntil: 0
   };
 }

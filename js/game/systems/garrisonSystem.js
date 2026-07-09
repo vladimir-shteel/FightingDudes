@@ -1,31 +1,8 @@
-import { CONFIG, getArmorConfig, getResourceLabel, getWeaponConfig } from "../config.js";
+import { CONFIG, getClassConfig, getResourceLabel } from "../config.js";
 import { createBattleUnit } from "../factories.js";
 import { removeUnitFromReserve, returnUnitToReserve } from "./reserveSystem.js";
 import { removeUnitFromMine, restoreUnitToMine } from "./mineSystem.js";
-
-function assignBattlePosition(state, unit, indexOffset = 0) {
-  const index = state.battleUnits.length + indexOffset;
-  const padding = 4;
-  const spread = Math.max(1, CONFIG.battle.fieldHeight - padding * 2);
-  const wave = index % 5;
-  const ratio = wave / 4;
-  unit.x = CONFIG.battle.allySpawnX;
-  unit.y = padding + spread * ratio;
-}
-
-function getCombinedCosts(weapon, armor) {
-  const costs = {};
-
-  for (const [resourceKey, amount] of Object.entries(weapon.costs ?? {})) {
-    costs[resourceKey] = (costs[resourceKey] ?? 0) + amount;
-  }
-
-  for (const [resourceKey, amount] of Object.entries(armor.costs ?? {})) {
-    costs[resourceKey] = (costs[resourceKey] ?? 0) + amount;
-  }
-
-  return costs;
-}
+import { isBattleActive, startBattle } from "./battleSystem.js";
 
 function getMissingCosts(state, costs) {
   const missing = [];
@@ -46,19 +23,36 @@ function spendCosts(state, costs) {
   }
 }
 
-export function stageUnitOnBridgehead(state, unitId) {
-  const maxSlots = CONFIG.bridgehead?.maxSlots ?? 8;
-  if (state.bridgeheadUnits.length >= maxSlots) {
-    return { ok: false, reason: `Bridgehead is full (${state.bridgeheadUnits.length}/${maxSlots}).` };
+function getAllyRowSpawnX(formationRow) {
+  const rows = CONFIG.battle.allyRowSpawnX ?? {};
+  if (rows[formationRow] !== undefined) {
+    return rows[formationRow];
+  }
+  const back = rows.back ?? CONFIG.battle.allySpawnX;
+  return formationRow === "front" ? back + 10 : back;
+}
+
+function assignBattleY(state, unit, indexOffset = 0) {
+  const index = state.battleUnits.length + indexOffset;
+  const padding = 4;
+  const spread = Math.max(1, CONFIG.battle.fieldHeight - padding * 2);
+  const wave = index % 5;
+  unit.y = padding + spread * (wave / 4);
+}
+
+export function stageUnitOnBridgehead(state, unitId, classId = state.ui.selectedClassId, formationRow = "front") {
+  if (isBattleActive(state)) {
+    return { ok: false, reason: "Казарма заблокирована на время боя." };
   }
 
-  const weaponKey = state.ui.selectedWeaponKey;
-  const armorKey = state.ui.selectedArmorKey;
-  const weapon = getWeaponConfig(weaponKey);
-  const armor = getArmorConfig(armorKey);
+  const maxSlots = CONFIG.bridgehead?.maxSlots ?? 8;
+  if (state.bridgeheadUnits.length >= maxSlots) {
+    return { ok: false, reason: `Плацдарм заполнен (${state.bridgeheadUnits.length}/${maxSlots}).` };
+  }
 
-  if (!weapon || !armor) {
-    return { ok: false, reason: "Select both weapon and armor before preparing a unit." };
+  const classConfig = getClassConfig(classId);
+  if (!classConfig) {
+    return { ok: false, reason: "Выберите класс перед подготовкой юнита." };
   }
 
   let source = "reserve";
@@ -74,57 +68,74 @@ export function stageUnitOnBridgehead(state, unitId) {
   }
 
   if (!sourceUnit) {
-    return { ok: false, reason: "Only reserve or mining units can be sent to the garrison." };
+    return { ok: false, reason: "Только юнит из резерва или шахты может уйти в казарму." };
   }
 
-  const combinedCosts = getCombinedCosts(weapon, armor);
-  const missingCosts = getMissingCosts(state, combinedCosts);
-  if (missingCosts.length > 0) {
+  const restoreSource = () => {
     if (source === "reserve") {
       returnUnitToReserve(state, sourceUnit);
     } else {
       restoreUnitToMine(state, removedMineSlot.mineId, removedMineSlot.slotIndex, sourceUnit);
     }
+  };
+
+  if (sourceUnit.level < (classConfig.minLevel ?? 1)) {
+    restoreSource();
     return {
       ok: false,
-      reason: `Not enough resources for ${weapon.label} + ${armor.label}: ${missingCosts.join(", ")}.`
+      reason: `${classConfig.name}: нужен уровень ${classConfig.minLevel} (у юнита ${sourceUnit.level}).`
     };
   }
 
-  spendCosts(state, combinedCosts);
-  const battleUnit = createBattleUnit(sourceUnit, weaponKey, armorKey);
+  const costs = classConfig.costs ?? {};
+  const missingCosts = getMissingCosts(state, costs);
+  if (missingCosts.length > 0) {
+    restoreSource();
+    return {
+      ok: false,
+      reason: `Не хватает ресурсов на ${classConfig.name}: ${missingCosts.join(", ")}.`
+    };
+  }
+
+  spendCosts(state, costs);
+  const battleUnit = createBattleUnit(sourceUnit, classId, formationRow);
   battleUnit.state = "ready";
   battleUnit.targetHint = "bridgehead";
   state.bridgeheadUnits.push(battleUnit);
-  state.battle.log =
-    `${sourceUnit.name} is ready on the bridgehead with ${weapon.label} and ${armor.label}.`;
+  state.battle.log = `${classConfig.name} готов на плацдарме (${formationRow === "front" ? "передний" : "задний"} ряд).`;
 
   return { ok: true, reason: state.battle.log };
 }
 
+export function setBridgeheadUnitRow(state, unitId, formationRow) {
+  const unit = state.bridgeheadUnits.find((entity) => entity.id === unitId);
+  if (!unit) {
+    return { ok: false, reason: "Юнит не найден на плацдарме." };
+  }
+  unit.formationRow = formationRow === "back" ? "back" : "front";
+  return { ok: true, reason: `${unit.name}: ${unit.formationRow === "front" ? "передний" : "задний"} ряд.` };
+}
+
 export function sendBridgeheadToBattle(state) {
+  if (isBattleActive(state)) {
+    return { ok: false, reason: "Бой уже идёт." };
+  }
   if (state.bridgeheadUnits.length === 0) {
-    return { ok: false, reason: "Bridgehead is empty." };
+    return { ok: false, reason: "Плацдарм пуст." };
   }
 
   const deployingUnits = state.bridgeheadUnits.splice(0);
   deployingUnits.forEach((unit, index) => {
-    assignBattlePosition(state, unit, index);
+    unit.x = getAllyRowSpawnX(unit.formationRow);
+    assignBattleY(state, unit, index);
     unit.state = "marching";
-    unit.targetHint = "castle";
+    unit.targetHint = "advance";
     unit.lastAttackAt = 0;
     state.battleUnits.push(unit);
   });
 
-  if (state.battle.retreatWaveIndex !== null && state.battle.status === "retreating") {
-    state.battle.log = `${deployingUnits.length} units entered the field. Enemies are returning from the castle.`;
-  } else if (state.battle.status === "idle") {
-    state.battle.status = "cooldown";
-    state.battle.waveCooldownRemaining = CONFIG.battle.waveCooldownSeconds;
-    state.battle.log = `${deployingUnits.length} units moved from the bridgehead into battle.`;
-  } else {
-    state.battle.log = `${deployingUnits.length} units moved from the bridgehead into battle.`;
-  }
+  startBattle(state);
+  state.battle.log = `${deployingUnits.length} юнит(ов) вступили в бой (волна ${state.battle.currentWaveIndex + 1}).`;
 
   return { ok: true, reason: state.battle.log };
 }

@@ -11,9 +11,6 @@ export const CONFIG = {
   bridgehead: {
     maxSlots: 8
   },
-  castle: {
-    maxHealth: 0
-  },
   merge: {
     maxLevel: 1
   },
@@ -33,7 +30,7 @@ function getBasePath() {
 }
 
 async function fetchJson(fileName) {
-  const response = await fetch(new URL(fileName, getBasePath()));
+  const response = await fetch(new URL(fileName, getBasePath()), { cache: "no-store" });
   if (!response.ok) {
     throw new Error(`Failed to load ${fileName}: ${response.status}`);
   }

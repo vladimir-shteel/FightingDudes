@@ -9,14 +9,12 @@
   "unitBuyBaseCost": 16,
   "unitBuyExponent": 1.22,
   "battle": {
-    "waveCooldownSeconds": 12,
     "fieldWidth": 100,
     "fieldHeight": 30,
     "allySpawnX": 8,
     "enemySpawnX": 78,
-    "castleX": 92,
-    "castleY": 15,
-    "castleRadius": 6,
+    "allyRowSpawnX": { "front": 22, "back": 8 },
+    "enemyRowSpawnX": { "front": 72, "back": 88 },
     "unitRadius": 4.5,
     "physicsRadius": 0.24,
     "allyMoveSpeed": 24,
@@ -27,7 +25,6 @@
     "enemyAttackRangeBonus": 1.2,
     "attackRangeTolerance": 0.45,
     "targetLeashDistance": 8,
-    "castleAttackRangeBonus": 0,
     "steering": {
       "acceleration": 30,
       "maxForce": 30,
@@ -48,10 +45,7 @@
   "bridgehead": {
     "maxSlots": 8
   },
-  "castle": {
-    "maxHealth": 3200
-  },
   "merge": {
-    "maxLevel": 6
+    "maxLevel": 4
   }
 }

@@ -525,11 +525,35 @@ h3 {
   border-style: solid;
   border-color: rgba(62, 142, 77, 0.45);
   background: var(--paper);
+  flex-direction: column;
+  gap: 4px;
 }
 
 .bridgehead-slot .unit-card {
   width: 100%;
   cursor: default;
+}
+
+.bridgehead-row-toggle {
+  width: 100%;
+  padding: 3px 6px;
+  border: 1px solid rgba(51, 48, 31, 0.25);
+  border-radius: 9px;
+  background: #f2ead0;
+  color: #333;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.bridgehead-row-toggle[data-row="back"] {
+  background: #d8e6f2;
+  border-color: rgba(45, 90, 140, 0.35);
+}
+
+.bridgehead-row-toggle:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .bridgehead-slot .slot-placeholder {

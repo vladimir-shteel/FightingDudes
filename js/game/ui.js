@@ -1,11 +1,12 @@
 import {
   CONFIG,
-  getArmorConfig,
+  getAvailableClasses,
+  getClassConfig,
   getMineLevelData,
   getMineMaxLevel,
   getResourceIcon,
   getResourceLabel,
-  getWeaponConfig
+  getUnitLevelData
 } from "./config.js";
 import { formatNumber } from "./utils.js";
 import {
@@ -23,7 +24,11 @@ import {
   unlockMine,
   upgradeMine
 } from "./systems/mineSystem.js";
-import { sendBridgeheadToBattle, stageUnitOnBridgehead } from "./systems/garrisonSystem.js";
+import {
+  sendBridgeheadToBattle,
+  setBridgeheadUnitRow,
+  stageUnitOnBridgehead
+} from "./systems/garrisonSystem.js";
 import { getBattleSummary } from "./systems/battleSystem.js";
 
 function getResourceIconMarkup(resourceKey, extraClass = "") {
@@ -47,15 +52,12 @@ function createUnitCard(unit, options = {}) {
   card.dataset.unitId = unit.id;
   card.draggable = draggable;
 
-  const weapon = unit.weaponKey ? getWeaponConfig(unit.weaponKey) : null;
-  const armor = unit.armorKey ? getArmorConfig(unit.armorKey) : null;
   const health = unit.maxHealth ?? unit.baseHealth ?? unit.health ?? 0;
   const attack = unit.attack ?? unit.baseAttack ?? 0;
   const level = unit.level ?? 1;
-  const visualGear = unit.weaponKey ?? (origin === "enemy" ? "enemy" : "worker");
-  const armorText = armor?.label ?? "No armor";
+  const visualGear = unit.class ?? (origin === "enemy" ? "enemy" : "worker");
+  const className = unit.class ? (getClassConfig(unit.class)?.name ?? "") : "";
   const icon = unit.icon ?? "🚧";
-  const weaponIcon = unit.weaponIcon ?? weapon?.icon ?? "";
 
   card.dataset.gear = visualGear;
   card.dataset.level = String(level);
@@ -68,14 +70,13 @@ function createUnitCard(unit, options = {}) {
     <div class="unit-character" aria-hidden="true">
       <div class="unit-icon">
         <span class="unit-icon-main">${icon}</span>
-        ${weaponIcon ? `<span class="unit-icon-gear">${weaponIcon}</span>` : ""}
       </div>
       <div class="unit-shadow"></div>
     </div>
     <div class="unit-ui">
       <div class="unit-name">${unit.name}</div>
       <span class="unit-meta">ATK ${Math.round(attack)} | HP ${Math.round(health)}</span>
-      <span class="unit-gear">${armorText}</span>
+      ${className ? `<span class="unit-gear">${className}</span>` : ""}
     </div>
     ${compact ? `<span class="compact-caption">ATK ${Math.round(attack)} | HP ${Math.round(health)}</span>` : ""}
   `;
@@ -111,20 +112,6 @@ function formatCosts(costs) {
     .join(" | ");
 }
 
-function getCombinedCosts(weapon, armor) {
-  const combinedCosts = {};
-
-  for (const [resourceKey, amount] of Object.entries(weapon?.costs ?? {})) {
-    combinedCosts[resourceKey] = (combinedCosts[resourceKey] ?? 0) + amount;
-  }
-
-  for (const [resourceKey, amount] of Object.entries(armor?.costs ?? {})) {
-    combinedCosts[resourceKey] = (combinedCosts[resourceKey] ?? 0) + amount;
-  }
-
-  return combinedCosts;
-}
-
 function renderCostMarkup(costs) {
   const entries = Object.entries(costs ?? {});
   if (entries.length === 0) {
@@ -144,9 +131,8 @@ function canAffordCosts(resources, costs) {
 }
 
 function getSelectedLoadoutCosts(state) {
-  const weapon = getWeaponConfig(state.ui.selectedWeaponKey);
-  const armor = getArmorConfig(state.ui.selectedArmorKey);
-  return weapon && armor ? getCombinedCosts(weapon, armor) : null;
+  const classConfig = getClassConfig(state.ui.selectedClassId);
+  return classConfig ? (classConfig.costs ?? {}) : null;
 }
 
 function playResourceBurst(elements, burst) {
@@ -215,8 +201,6 @@ export function mountUI(state, onStateChanged) {
     waveValue: document.querySelector("#waveValue"),
     battleSummary: document.querySelector("#battleSummary"),
     battleTimer: document.querySelector("#battleTimer"),
-    castleHealth: document.querySelector("#castleHealth"),
-    castleHealthBar: document.querySelector("#castleHealthBar"),
     battleLog: document.querySelector("#battleLog"),
     bridgeheadSlots: document.querySelector("#bridgeheadSlots"),
     sendBridgeheadButton: document.querySelector("#sendBridgeheadButton"),
@@ -233,15 +217,11 @@ export function mountUI(state, onStateChanged) {
     battleUnits: document.querySelector("#battleUnits"),
     garrisonDropzone: document.querySelector("#garrisonDropzone"),
     gearInfo: document.querySelector("#gearInfo"),
-    weaponCostInfo: document.querySelector("#weaponCostInfo"),
-    armorCostInfo: document.querySelector("#armorCostInfo"),
-    gearTotalCostInfo: document.querySelector("#gearTotalCostInfo"),
-    weaponSelect: document.querySelector("#weaponSelect"),
-    armorSelect: document.querySelector("#armorSelect"),
+    classSelect: document.querySelector("#classSelect"),
+    classInfo: document.querySelector("#classInfo"),
     buyUnitButton: document.querySelector("#buyUnitButton"),
     massMergeButton: document.querySelector("#massMergeButton"),
     restartButton: document.querySelector("#restartButton"),
-    castleSprite: document.querySelector("#castleSprite"),
     fxLayer: document.querySelector("#fxLayer")
   };
 
@@ -267,24 +247,15 @@ export function mountUI(state, onStateChanged) {
     resourceValueMap.set(resourceKey, chip.querySelector("strong"));
   }
 
-  elements.weaponSelect.innerHTML = "";
-  for (const [weaponKey, weapon] of Object.entries(CONFIG.equipment.weapons ?? {})) {
+  elements.classSelect.innerHTML = "";
+  for (const classConfig of getAvailableClasses(99)) {
     const option = document.createElement("option");
-    option.value = weaponKey;
-    option.textContent = weapon.icon ? `${weapon.icon}  ${weapon.label}` : weapon.label;
-    elements.weaponSelect.append(option);
+    option.value = classConfig.id;
+    option.textContent = `${classConfig.icon} ${classConfig.name} (ур.${classConfig.minLevel ?? 1}+)`;
+    elements.classSelect.append(option);
   }
 
-  elements.armorSelect.innerHTML = "";
-  for (const [armorKey, armor] of Object.entries(CONFIG.equipment.armors ?? {})) {
-    const option = document.createElement("option");
-    option.value = armorKey;
-    option.textContent = armor.icon ? `${armor.icon}  ${armor.label}` : armor.label;
-    elements.armorSelect.append(option);
-  }
-
-  elements.weaponSelect.value = state.ui.selectedWeaponKey;
-  elements.armorSelect.value = state.ui.selectedArmorKey;
+  elements.classSelect.value = state.ui.selectedClassId;
 
   const mineProgressCache = new Map();
 
@@ -435,15 +406,9 @@ export function mountUI(state, onStateChanged) {
     onStateChanged();
   });
 
-  elements.weaponSelect.addEventListener("change", () => {
-    state.ui.selectedWeaponKey = elements.weaponSelect.value;
-    state.battle.log = `Selected weapon: ${getWeaponConfig(state.ui.selectedWeaponKey)?.label}.`;
-    onStateChanged();
-  });
-
-  elements.armorSelect.addEventListener("change", () => {
-    state.ui.selectedArmorKey = elements.armorSelect.value;
-    state.battle.log = `Selected armor: ${getArmorConfig(state.ui.selectedArmorKey)?.label}.`;
+  elements.classSelect.addEventListener("change", () => {
+    state.ui.selectedClassId = elements.classSelect.value;
+    state.battle.log = `Выбран класс: ${getClassConfig(state.ui.selectedClassId)?.name}.`;
     onStateChanged();
   });
 
@@ -689,11 +654,7 @@ export function mountUI(state, onStateChanged) {
   }
 
   function renderBattle() {
-    const castleRatio = state.castle.health / state.castle.maxHealth;
-    elements.castleHealth.textContent = `${formatNumber(state.castle.health)}/${formatNumber(state.castle.maxHealth)}`;
-    elements.castleHealthBar.style.width = `${castleRatio * 100}%`;
     elements.battleLog.textContent = state.battle.log;
-    elements.castleSprite.classList.toggle("is-hit", (state.castle.hitUntil ?? 0) > performance.now() / 1000);
 
     elements.battleUnits.innerHTML = "";
     for (const unit of state.battleUnits) {
@@ -737,7 +698,10 @@ export function mountUI(state, onStateChanged) {
   function renderBridgehead() {
     const maxSlots = CONFIG.bridgehead?.maxSlots ?? 8;
     elements.bridgeheadSlots.innerHTML = "";
-    elements.sendBridgeheadButton.disabled = state.bridgeheadUnits.length === 0 || state.game.isOver;
+    elements.sendBridgeheadButton.disabled =
+      state.bridgeheadUnits.length === 0 ||
+      state.game.isOver ||
+      state.battle.status === "fighting";
 
     for (let index = 0; index < maxSlots; index += 1) {
       const slot = document.createElement("div");
@@ -746,6 +710,20 @@ export function mountUI(state, onStateChanged) {
       const unit = state.bridgeheadUnits[index];
       if (unit) {
         slot.append(createUnitCard(unit, { origin: "battle", compact: true }));
+
+        const rowToggle = document.createElement("button");
+        rowToggle.type = "button";
+        rowToggle.className = "bridgehead-row-toggle";
+        rowToggle.dataset.row = unit.formationRow === "back" ? "back" : "front";
+        rowToggle.textContent = unit.formationRow === "back" ? "Задний" : "Передний";
+        rowToggle.disabled = state.battle.status === "fighting";
+        rowToggle.addEventListener("click", () => {
+          const nextRow = unit.formationRow === "front" ? "back" : "front";
+          const result = setBridgeheadUnitRow(state, unit.id, nextRow);
+          state.battle.log = result.reason;
+          onStateChanged();
+        });
+        slot.append(rowToggle);
       } else {
         slot.innerHTML = '<span class="slot-placeholder">Empty</span>';
       }
@@ -768,27 +746,23 @@ export function mountUI(state, onStateChanged) {
   function renderBattleMeta() {
     const summary = getBattleSummary(state);
     const totalWaves = CONFIG.waves.length;
-    elements.waveValue.textContent = `${state.battle.nextWaveIndex} / ${totalWaves}`;
+    elements.waveValue.textContent = `${state.battle.currentWaveIndex + 1} / ${totalWaves}`;
     elements.battleSummary.textContent =
       `${summary.friendlyCount} allies | ${state.bridgeheadUnits.length} staged | ${summary.enemyCount} enemies | power ${Math.round(summary.squadPower)}`;
 
-    const activeWaveNumber = state.battle.activeWaveIndex !== null
-      ? state.battle.activeWaveIndex + 1
-      : state.battle.nextWaveIndex + 1;
-    const wavePrefix = totalWaves > 0 ? `Wave ${Math.min(activeWaveNumber, totalWaves)}/${totalWaves} · ` : "";
+    const waveNumber = Math.min(state.battle.currentWaveIndex + 1, totalWaves);
+    const wavePrefix = totalWaves > 0 ? `Волна ${waveNumber}/${totalWaves} · ` : "";
 
-    if (state.battle.status === "cooldown" && !state.game.isOver) {
-      elements.battleTimer.textContent = `${wavePrefix}next in ${Math.ceil(state.battle.waveCooldownRemaining)}s`;
-    } else if (state.battle.status === "fighting") {
-      elements.battleTimer.textContent = `${wavePrefix}in progress`;
-    } else if (state.battle.status === "retreating") {
-      elements.battleTimer.textContent = `${wavePrefix}retreating`;
-    } else if (state.battle.status === "siege") {
-      elements.battleTimer.textContent = "All waves cleared";
+    if (state.battle.status === "won") {
+      elements.battleTimer.textContent = "Победа!";
     } else if (state.game.isOver) {
       elements.battleTimer.textContent = "Run complete";
+    } else if (state.battle.status === "fighting") {
+      elements.battleTimer.textContent = `${wavePrefix}бой идёт`;
+    } else if (state.battle.status === "lost") {
+      elements.battleTimer.textContent = `${wavePrefix}${state.battle.log}`;
     } else {
-      elements.battleTimer.textContent = `${wavePrefix}awaiting`;
+      elements.battleTimer.textContent = `${wavePrefix}готовьте отряд`;
     }
   }
 
@@ -899,22 +873,35 @@ export function mountUI(state, onStateChanged) {
   }
 
   function renderGearMeta() {
-    elements.weaponSelect.value = state.ui.selectedWeaponKey;
-    elements.armorSelect.value = state.ui.selectedArmorKey;
-    const selectedWeapon = getWeaponConfig(state.ui.selectedWeaponKey);
-    const selectedArmor = getArmorConfig(state.ui.selectedArmorKey);
-    const totalCosts = getCombinedCosts(selectedWeapon, selectedArmor);
-    elements.weaponCostInfo.innerHTML = renderCostMarkup(selectedWeapon.costs);
-    elements.armorCostInfo.innerHTML = renderCostMarkup(selectedArmor.costs);
-    elements.gearTotalCostInfo.innerHTML = `
-      <span class="gear-total-label">Total</span>
-      <span class="gear-total-pills">${renderCostMarkup(totalCosts)}</span>
-    `;
+    elements.classSelect.value = state.ui.selectedClassId;
+    const classConfig = getClassConfig(state.ui.selectedClassId);
+
+    if (!classConfig) {
+      elements.classInfo.innerHTML = "";
+      elements.gearInfo.textContent = "Выберите класс.";
+      return;
+    }
+
+    elements.classInfo.innerHTML = renderCostMarkup(classConfig.costs);
+
+    const healthMult = classConfig.healthMult ?? 1;
+    const attackMult = classConfig.attackMult ?? 1;
+    const selected = getSelectedUnitContext();
+    const levelData = selected ? getUnitLevelData(selected.unit.level) : null;
+
+    let statsText;
+    if (levelData) {
+      const hp = Math.round(levelData.baseHealth * healthMult);
+      const atk = Math.round(levelData.baseAttack * attackMult);
+      statsText = `HP ${hp} | ATK ${atk} (ур.${selected.unit.level})`;
+    } else {
+      statsText = `HP ×${healthMult} | ATK ×${attackMult}`;
+    }
+
+    const costText = formatCosts(classConfig.costs) || "free";
     elements.gearInfo.textContent =
-      `Weapon: ${selectedWeapon.label} (${formatCosts(selectedWeapon.costs) || "free"}) | ` +
-      `ATK x${selectedWeapon.attackMultiplier} | speed x${selectedWeapon.attackSpeedMultiplier} | ` +
-      `range ${Math.round(((CONFIG.battle.baseAttackReach ?? 0) + (selectedWeapon.attackRangeBonus ?? selectedWeapon.attackRange ?? 0)) * 10) / 10}. ` +
-      `Armor: ${selectedArmor.label} (${formatCosts(selectedArmor.costs) || "free"}) | HP +${selectedArmor.healthBonus}.`;
+      `${classConfig.icon} ${classConfig.name} (ур.${classConfig.minLevel ?? 1}+) | ` +
+      `${statsText} | ${costText}. ${classConfig.description ?? ""}`;
   }
 
   function flushResourceBursts() {

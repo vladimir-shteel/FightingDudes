@@ -8,6 +8,9 @@ async function bootstrap() {
   await initConfig();
 
   const state = createInitialState();
+  if (typeof window !== "undefined") {
+    window.gameState = state;
+  }
   const ui = mountUI(state, () => ui.render());
 
   let previousTimestamp = performance.now();

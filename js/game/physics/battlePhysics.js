@@ -83,16 +83,6 @@ function buildArena() {
     filterMaskBits: CATEGORY_ALLY | CATEGORY_ENEMY
   });
 
-  arena.createFixture({
-    shape: planck.Box(
-      CONFIG.battle.castleRadius * 1.15,
-      CONFIG.battle.castleRadius + 2,
-      planck.Vec2(CONFIG.battle.castleX + CONFIG.battle.castleRadius * 0.6, CONFIG.battle.castleY),
-      0
-    ),
-    filterCategoryBits: CATEGORY_WALL,
-    filterMaskBits: CATEGORY_ALLY
-  });
 }
 
 function createUnitBody(unit, kind) {
@@ -236,15 +226,9 @@ function driveActorBody(body, actor, target, fallbackPoint) {
 }
 
 function driveBodies(state) {
-  const castleTarget = {
-    id: "castle",
-    x: CONFIG.battle.castleX,
-    y: CONFIG.battle.castleY,
-    physicsRadius: CONFIG.battle.castleRadius
-  };
-  const retreatPoint = {
-    x: CONFIG.battle.castleX + CONFIG.battle.castleRadius * 0.55,
-    y: CONFIG.battle.castleY
+  const allyAdvancePoint = {
+    x: CONFIG.battle.fieldWidth * 0.82,
+    y: CONFIG.battle.fieldHeight / 2
   };
   const enemyAdvancePoint = {
     x: CONFIG.battle.fieldWidth * 0.18,
@@ -256,17 +240,18 @@ function driveBodies(state) {
     driveActorBody(
       allyBodies.get(unit.id),
       unit,
-      targetEnemy ?? castleTarget,
-      null
+      targetEnemy,
+      allyAdvancePoint
     );
   }
 
   for (const enemy of state.enemies) {
+    const targetUnit = state.battleUnits.find((unit) => unit.id === enemy.targetId) ?? null;
     driveActorBody(
       enemyBodies.get(enemy.id),
       enemy,
-      enemy.isRetreating ? null : state.battleUnits.find((unit) => unit.id === enemy.targetId) ?? null,
-      enemy.isRetreating ? retreatPoint : enemyAdvancePoint
+      targetUnit,
+      enemyAdvancePoint
     );
   }
 }
