@@ -3,7 +3,6 @@ import { formatNumber } from "../utils.js";
 import { getUnitBuyCost } from "../systems/reserveSystem.js";
 import { getBattleSummary } from "../systems/battleSystem.js";
 import { renderBridgehead } from "./battlefield.js";
-import { renderGearMeta } from "./panels.js";
 
 export function renderEconomyMeta(ctx) {
   const { state, elements, resourceOrder, resourceValueMap } = ctx;
@@ -67,17 +66,10 @@ export function renderSelectedUnitMeta(ctx) {
 
 export function renderActionHints(ctx) {
   const { elements, selection } = ctx;
-  const { getSelectedUnitContext, canDeploySelectedUnit } = selection;
+  const { getSelectedUnitContext } = selection;
 
   const selected = getSelectedUnitContext();
-  const canDeploy = canDeploySelectedUnit();
-
-  elements.garrisonDropzone.classList.toggle("actionable-target", Boolean(selected) && canDeploy);
-  elements.garrisonDropzone.classList.toggle("is-disabled-target", Boolean(selected) && !canDeploy);
   elements.selectedUnitChip.classList.toggle("is-selected", Boolean(selected));
-  if (!selected) {
-    elements.selectedUnitChip.classList.remove("is-selected");
-  }
 }
 
 export function renderVictoryState(ctx) {
@@ -94,7 +86,6 @@ export function renderMeta(ctx) {
   renderBattleMeta(ctx);
   renderSelectedUnitMeta(ctx);
   renderActionHints(ctx);
-  renderGearMeta(ctx);
   renderBridgehead(ctx);
   elements.cheatPanel.hidden = !state.ui.isCheatsOpen;
   renderVictoryState(ctx);

@@ -267,16 +267,3 @@ export function renderMines(ctx) {
   }
 }
 
-export function renderGearMeta(ctx) {
-  const { elements, selection } = ctx;
-  const { getSelectedUnitContext } = selection;
-
-  const selected = getSelectedUnitContext();
-  if (!selected) {
-    elements.gearInfo.textContent = "Выберите юнита в резерве или на шахте.";
-    return;
-  }
-
-  elements.gearInfo.textContent =
-    `«${selected.unit.name}» ур.${selected.unit.level} выбран — нажмите на плацдарм, чтобы выбрать класс.`;
-}

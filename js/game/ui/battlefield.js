@@ -1,5 +1,6 @@
 import { CONFIG, getMineLevelData } from "../config.js";
 import { setBridgeheadUnitRow } from "../systems/garrisonSystem.js";
+import { openClassModal } from "./classModal.js";
 import {
   appendTokenHealth,
   createUnitCard,
@@ -120,7 +121,7 @@ export function renderBattle(ctx) {
 let bridgeheadSignature = null;
 
 export function renderBridgehead(ctx) {
-  const { state, elements, onStateChanged } = ctx;
+  const { state, elements, onStateChanged, selection } = ctx;
 
   const maxSlots = CONFIG.bridgehead?.maxSlots ?? 8;
   elements.sendBridgeheadButton.disabled =
@@ -128,9 +129,13 @@ export function renderBridgehead(ctx) {
     state.game.isOver ||
     state.battle.status === "fighting";
 
+  // Empty slots become tap targets when a unit is staged for deployment.
+  const canDeploy = selection.canDeploySelectedUnit();
+
   const signature = JSON.stringify({
     status: state.battle.status,
     maxSlots,
+    droptarget: canDeploy ? (state.ui.selectedUnitId ?? "") : "",
     slots: state.bridgeheadUnits.map(
       (unit) => `${unit.id}:${unit.formationRow}:${unit.level}:${Math.round(unit.health)}`
     )
@@ -164,7 +169,20 @@ export function renderBridgehead(ctx) {
       });
       slot.append(rowToggle);
     } else {
-      slot.innerHTML = '<span class="slot-placeholder">Empty</span>';
+      slot.classList.toggle("is-droptarget", canDeploy);
+      slot.innerHTML = `<span class="slot-placeholder">${canDeploy ? "Выбрать класс" : "Пусто"}</span>`;
+      slot.addEventListener("click", () => {
+        const selected = selection.getSelectedUnitContext();
+        if (!selected) {
+          return;
+        }
+        if (state.battle.status === "fighting") {
+          state.battle.log = "Плацдарм заблокирован на время боя.";
+          onStateChanged();
+          return;
+        }
+        openClassModal(ctx, selected.unit);
+      });
     }
 
     elements.bridgeheadSlots.append(slot);

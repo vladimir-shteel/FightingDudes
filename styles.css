@@ -417,8 +417,8 @@ h3 {
 .middle-row {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 7fr) minmax(220px, 3fr);
-  grid-template-areas: "mines garrison";
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "mines";
   gap: 18px;
   align-items: start;
   padding-top: 54px;
@@ -730,24 +730,12 @@ h3 {
 
 .mines-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
 }
 
-.mines-grid > .mine-card:nth-child(1) {
-  order: 3;
-}
-
-.mines-grid > .mine-card:nth-child(2) {
-  order: 4;
-}
-
-.mines-grid > .mine-card:nth-child(3) {
-  order: 1;
-}
-
-.mines-grid > .mine-card:nth-child(4) {
-  order: 2;
+.mines-grid > .mine-card {
+  order: 0;
 }
 
 .mine-card {
@@ -2047,8 +2035,8 @@ h3 {
   }
 
   .middle-row {
-    grid-template-columns: minmax(0, 1fr) 138px;
-    grid-template-areas: "mines garrison";
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "mines";
     gap: 8px;
     padding-top: 30px;
   }
@@ -2610,7 +2598,7 @@ h3 {
 
 @media (orientation: portrait) and (min-width: 721px) {
   .middle-row {
-    grid-template-columns: minmax(0, 7fr) minmax(150px, 3fr);
+    grid-template-columns: minmax(0, 1fr);
     gap: 10px;
     padding-top: 38px;
   }
@@ -2618,14 +2606,6 @@ h3 {
   .mines-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
-  }
-
-  .garrison-panel {
-    clip-path: polygon(0 0, 100% 0, 100% 94%, 64% 100%, 0 100%);
-  }
-
-  .gear-grid {
-    grid-template-columns: 1fr;
   }
 }
 

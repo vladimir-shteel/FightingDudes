@@ -12,10 +12,7 @@ import {
 import {
   getResourceIconMarkup
 } from "./ui/helpers.js";
-import {
-  openClassModal,
-  setupClassModal
-} from "./ui/classModal.js";
+import { setupClassModal } from "./ui/classModal.js";
 import {
   flushBattleEffects,
   flushResourceBursts,
@@ -60,8 +57,6 @@ export function mountUI(state, onStateChanged) {
     minesGrid: document.querySelector("#minesGrid"),
     enemyUnits: document.querySelector("#enemyUnits"),
     battleUnits: document.querySelector("#battleUnits"),
-    garrisonDropzone: document.querySelector("#garrisonDropzone"),
-    gearInfo: document.querySelector("#gearInfo"),
     classModal: document.querySelector("#classModal"),
     classModalTitle: document.querySelector("#classModalTitle"),
     classModalGrid: document.querySelector("#classModalGrid"),
@@ -205,21 +200,6 @@ export function mountUI(state, onStateChanged) {
   });
 
   setupClassModal(ctx);
-
-  elements.garrisonDropzone.addEventListener("click", () => {
-    const selected = getSelectedUnitContext();
-    if (!selected) {
-      return;
-    }
-
-    if (state.battle.status === "fighting") {
-      state.battle.log = "Казарма заблокирована на время боя.";
-      onStateChanged();
-      return;
-    }
-
-    openClassModal(ctx, selected.unit);
-  });
 
   // Fire the "location cleared" toast once per new seq, then auto-dismiss it.
   let lastToastSeq = 0;
