@@ -17,6 +17,8 @@
     "enemyRowSpawnX": { "front": 72, "back": 88 },
     "unitRadius": 4.5,
     "physicsRadius": 0.24,
+    "splashRadiusMultiplier": 1,
+    "spawnSpreadPadding": 3.5,
     "allyMoveSpeed": 24,
     "enemyMoveSpeed": 10,
     "baseAttackReach": 5.4,

@@ -34,7 +34,7 @@ function getAllyRowSpawnX(formationRow) {
 
 function assignBattleY(state, unit, indexOffset = 0) {
   const index = state.battleUnits.length + indexOffset;
-  const padding = 4;
+  const padding = CONFIG.battle.spawnSpreadPadding ?? 4;
   const spread = Math.max(1, CONFIG.battle.fieldHeight - padding * 2);
   const wave = index % 5;
   unit.y = padding + spread * (wave / 4);

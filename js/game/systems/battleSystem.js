@@ -75,10 +75,16 @@ function pushSplashEffect(state, target, radius, nowSeconds) {
   }
 }
 
-// Unified damage for both sides: single-target, or splash over `splashRadius`
-// around the primary target when the attacker has one (Громила, Маг, Камнемёт).
+function getSplashRadius(attacker) {
+  return (attacker.splashRadius ?? 0) * (CONFIG.battle.splashRadiusMultiplier ?? 1);
+}
+
+// Unified damage for both sides: single-target, or splash over the effective
+// `splashRadius` around the primary target (Громила, Маг, Камнемёт). The global
+// `battle.splashRadiusMultiplier` knob lets us tune AoE reach live vs the
+// combat spacing without touching per-class GDD numbers.
 function applyDamage(state, attacker, target, defenders, nowSeconds) {
-  const splashRadius = attacker.splashRadius ?? 0;
+  const splashRadius = getSplashRadius(attacker);
   if (splashRadius > 0) {
     for (const entity of defenders) {
       if (getDistance(target, entity) <= splashRadius) {
@@ -114,7 +120,7 @@ function pushRangedAttackEffect(state, attacker, target, nowSeconds) {
 }
 
 function getSpawnY(index, total) {
-  const padding = 3.5;
+  const padding = CONFIG.battle.spawnSpreadPadding ?? 3.5;
   const usableHeight = Math.max(1, CONFIG.battle.fieldHeight - padding * 2);
   const ratio = total <= 1 ? 0.5 : index / (total - 1);
   return padding + usableHeight * ratio;

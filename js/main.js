@@ -10,6 +10,7 @@ async function bootstrap() {
   const state = createInitialState();
   if (typeof window !== "undefined") {
     window.gameState = state;
+    window.CONFIG = CONFIG; // dev hook: tune balance knobs (e.g. battle.splashRadiusMultiplier) live
   }
   const ui = mountUI(state, () => ui.render());
 
