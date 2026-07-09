@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "root-nocache",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8769", "--bind", "127.0.0.1"],
+      "port": 8769
+    },
+    {
+      "name": "combat-rework",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8771", "--bind", "127.0.0.1"],
+      "port": 8771
+    }
+  ]
+}
