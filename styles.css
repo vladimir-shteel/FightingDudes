@@ -730,13 +730,16 @@ h3 {
 
 .mines-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
 }
 
-.mines-grid > .mine-card {
-  order: 0;
-}
+/* Fixed 2x2 layout: bottom row Дерево→Камень, top row Iron→Crystal.
+   Creation order is wood, ore(Камень), crystal, iron. */
+.mines-grid > .mine-card:nth-child(1) { order: 3; } /* Дерево  → bottom-left */
+.mines-grid > .mine-card:nth-child(2) { order: 4; } /* Камень  → bottom-right */
+.mines-grid > .mine-card:nth-child(3) { order: 2; } /* Crystal → top-right */
+.mines-grid > .mine-card:nth-child(4) { order: 1; } /* Iron    → top-left */
 
 .mine-card {
   border-radius: 26px;
