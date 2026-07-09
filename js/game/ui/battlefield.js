@@ -63,7 +63,10 @@ function placeToken(card, entity) {
   const isFlying = (entity.movementType ?? "ground") === "flying";
   // Anchor the token on the ground; the flight altitude is a CSS lift applied
   // to the icon only, so the shadow stays on the ground to convey height.
-  const renderY = entity.y ?? fieldHeight / 2;
+  // Keep a minimum ground anchor for flyers so the lifted icon never clips the
+  // top edge of the (overflow-hidden) battlefield — worst on short mobile fields.
+  const rawY = entity.y ?? fieldHeight / 2;
+  const renderY = isFlying ? Math.max(fieldHeight * 0.28, rawY) : rawY;
   card.style.left = `${entity.x}%`;
   card.style.top = `${(renderY / fieldHeight) * 100}%`;
   card.classList.toggle("is-flying", isFlying);

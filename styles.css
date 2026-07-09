@@ -1556,18 +1556,20 @@ h3 {
   transform: translateX(-50%) scale(0.58);
 }
 
-/* Only the icon rises — the gap to the grounded shadow conveys altitude. */
+/* Only the icon rises — the gap to the grounded shadow conveys altitude.
+   Lift is a variable so mobile (smaller tokens/field) can shrink it. */
 .battle-token.is-flying .unit-icon {
+  --fly-lift: 34px;
   filter: drop-shadow(0 10px 6px rgba(51, 48, 31, 0.32));
   animation: flying-bob 2.4s ease-in-out infinite;
 }
 
 @keyframes flying-bob {
   0%, 100% {
-    transform: translateX(-50%) scale(1.04) translateY(-34px);
+    transform: translateX(-50%) scale(1.04) translateY(calc(var(--fly-lift) * -1));
   }
   50% {
-    transform: translateX(-50%) scale(1.04) translateY(-40px);
+    transform: translateX(-50%) scale(1.04) translateY(calc(var(--fly-lift) * -1 - 6px));
   }
 }
 
@@ -2166,6 +2168,11 @@ h3 {
   .battle-token .unit-shadow {
     width: 36px;
     height: 10px;
+  }
+
+  /* Smaller tokens on a short field need a smaller lift to avoid top clipping. */
+  .battle-token.is-flying .unit-icon {
+    --fly-lift: 22px;
   }
 
   .battle-token .unit-level-badge {
