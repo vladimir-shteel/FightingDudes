@@ -61,8 +61,9 @@ export function updateSelectionTether(ctx) {
 function placeToken(card, entity) {
   const fieldHeight = CONFIG.battle.fieldHeight;
   const isFlying = (entity.movementType ?? "ground") === "flying";
-  const flyHeight = isFlying ? (CONFIG.battle.flyHeight ?? 0) : 0;
-  const renderY = (entity.y ?? fieldHeight / 2) - flyHeight;
+  // Anchor the token on the ground; the flight altitude is a CSS lift applied
+  // to the icon only, so the shadow stays on the ground to convey height.
+  const renderY = entity.y ?? fieldHeight / 2;
   card.style.left = `${entity.x}%`;
   card.style.top = `${(renderY / fieldHeight) * 100}%`;
   card.classList.toggle("is-flying", isFlying);
@@ -110,15 +111,33 @@ export function renderBattle(ctx) {
   }
 }
 
+// Cache the last rendered composition so the rAF loop doesn't wipe and rebuild
+// the bridgehead DOM every frame — that race destroyed the row-toggle button
+// between mousedown and mouseup, so clicks were silently dropped.
+let bridgeheadSignature = null;
+
 export function renderBridgehead(ctx) {
   const { state, elements, onStateChanged } = ctx;
 
   const maxSlots = CONFIG.bridgehead?.maxSlots ?? 8;
-  elements.bridgeheadSlots.innerHTML = "";
   elements.sendBridgeheadButton.disabled =
     state.bridgeheadUnits.length === 0 ||
     state.game.isOver ||
     state.battle.status === "fighting";
+
+  const signature = JSON.stringify({
+    status: state.battle.status,
+    maxSlots,
+    slots: state.bridgeheadUnits.map(
+      (unit) => `${unit.id}:${unit.formationRow}:${unit.level}:${Math.round(unit.health)}`
+    )
+  });
+  if (signature === bridgeheadSignature) {
+    return;
+  }
+  bridgeheadSignature = signature;
+
+  elements.bridgeheadSlots.innerHTML = "";
 
   for (let index = 0; index < maxSlots; index += 1) {
     const slot = document.createElement("div");

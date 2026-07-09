@@ -1,7 +1,7 @@
 import { CONFIG } from "../config.js";
 import { createEnemy } from "../factories.js";
 import { clamp, generateId, sum } from "../utils.js";
-import { initBattlePhysics, stepBattlePhysics } from "../physics/battlePhysics.js";
+import { initBattlePhysics, stepBattlePhysics, resetBattleBodies } from "../physics/battlePhysics.js";
 
 function getAttackInterval(actor) {
   return 1 / actor.attackSpeed;
@@ -358,6 +358,9 @@ export function startBattle(state) {
   if (state.enemies.length === 0) {
     state.enemies = createWaveEnemies(state, state.battle.currentWaveIndex);
   }
+  // Clear stale bodies so allies and enemies respawn at their spawn coords
+  // instead of wherever they were parked when the previous battle ended.
+  resetBattleBodies();
   state.battle.status = "fighting";
 }
 

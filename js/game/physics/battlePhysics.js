@@ -345,6 +345,23 @@ export function initBattlePhysics() {
   buildArena();
 }
 
+// Destroy all combat bodies so the next battle rebuilds them at fresh spawn
+// coordinates. Without this, survivors reused across waves keep their stale
+// planck body (parked near the enemy side) and appear to teleport on deploy.
+export function resetBattleBodies() {
+  if (!world) {
+    return;
+  }
+  for (const body of allyBodies.values()) {
+    world.destroyBody(body);
+  }
+  for (const body of enemyBodies.values()) {
+    world.destroyBody(body);
+  }
+  allyBodies = new Map();
+  enemyBodies = new Map();
+}
+
 export function stepBattlePhysics(state, deltaSeconds) {
   if (!world) {
     initBattlePhysics();

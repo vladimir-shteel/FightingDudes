@@ -1548,24 +1548,26 @@ h3 {
 
 .battle-token.is-flying {
   z-index: 4;
-  filter: drop-shadow(0 7px 5px rgba(51, 48, 31, 0.3));
 }
 
+/* Shadow stays on the ground, shrunk and dimmed to read as distance below. */
 .battle-token.is-flying .unit-shadow {
-  opacity: 0.32;
-  transform: translateX(-50%) scale(0.7);
+  opacity: 0.24;
+  transform: translateX(-50%) scale(0.58);
 }
 
+/* Only the icon rises — the gap to the grounded shadow conveys altitude. */
 .battle-token.is-flying .unit-icon {
+  filter: drop-shadow(0 10px 6px rgba(51, 48, 31, 0.32));
   animation: flying-bob 2.4s ease-in-out infinite;
 }
 
 @keyframes flying-bob {
   0%, 100% {
-    transform: translateX(-50%) scale(1.04) translateY(0);
+    transform: translateX(-50%) scale(1.04) translateY(-34px);
   }
   50% {
-    transform: translateX(-50%) scale(1.04) translateY(-3px);
+    transform: translateX(-50%) scale(1.04) translateY(-40px);
   }
 }
 
