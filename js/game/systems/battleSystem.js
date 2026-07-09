@@ -90,22 +90,45 @@ function getSplashRadius(attacker) {
   return (attacker.splashRadius ?? 0) * (CONFIG.battle.splashRadiusMultiplier ?? 1);
 }
 
+// Берсерк: атака растёт по мере потери HP — ×1 при полном здоровье до ×3 у смерти.
+function getEffectiveAttack(attacker) {
+  if (!attacker.berserkerScaling || !attacker.maxHealth) {
+    return attacker.attack;
+  }
+  const missing = 1 - Math.max(0, attacker.health) / attacker.maxHealth;
+  return attacker.attack * (1 + 2 * Math.min(1, Math.max(0, missing)));
+}
+
+// Отравитель: вешает стак яда (DoT, тикает в tickPoison, игнорирует броню).
+function applyPoison(attacker, target, nowSeconds) {
+  if ((attacker.poisonDps ?? 0) <= 0 || (attacker.poisonDuration ?? 0) <= 0) {
+    return;
+  }
+  if (!Array.isArray(target.poisonStacks)) {
+    target.poisonStacks = [];
+  }
+  target.poisonStacks.push({ dps: attacker.poisonDps, until: nowSeconds + attacker.poisonDuration });
+}
+
 // Unified damage for both sides: single-target, or splash over the effective
 // `splashRadius` around the primary target (Громила, Маг, Камнемёт). The global
 // `battle.splashRadiusMultiplier` knob lets us tune AoE reach live vs the
 // combat spacing without touching per-class GDD numbers.
 function applyDamage(state, attacker, target, defenders, nowSeconds) {
+  const damage = getEffectiveAttack(attacker);
   const splashRadius = getSplashRadius(attacker);
   if (splashRadius > 0) {
     for (const entity of defenders) {
       if (getDistance(target, entity) <= splashRadius) {
-        entity.health -= attacker.attack;
+        entity.health -= damage;
+        applyPoison(attacker, entity, nowSeconds);
         markHit(entity, nowSeconds);
       }
     }
     pushSplashEffect(state, target, splashRadius, nowSeconds);
   } else {
-    target.health -= attacker.attack;
+    target.health -= damage;
+    applyPoison(attacker, target, nowSeconds);
     markHit(target, nowSeconds);
   }
 }
@@ -249,6 +272,65 @@ function updateKamikazes(state, attackers, defenders, nowSeconds) {
     pushSplashEffect(state, actor, radius, nowSeconds);
     actor.health = 0;
     actor.state = "exploded";
+  }
+}
+
+// Яд: суммируем активные стаки, тикаем DoT, отбрасываем истёкшие.
+function tickPoison(entities, deltaSeconds, nowSeconds) {
+  for (const entity of entities) {
+    const stacks = entity.poisonStacks;
+    if (!Array.isArray(stacks) || stacks.length === 0) {
+      continue;
+    }
+    let dps = 0;
+    const active = [];
+    for (const stack of stacks) {
+      if (stack.until > nowSeconds) {
+        dps += stack.dps;
+        active.push(stack);
+      }
+    }
+    entity.poisonStacks = active;
+    if (dps > 0) {
+      entity.health -= dps * deltaSeconds;
+      entity.hitUntil = Math.max(entity.hitUntil ?? 0, nowSeconds + 0.05);
+    }
+  }
+}
+
+// Паладин: раз в healInterval лечит самого раненого союзника в healRadius.
+function updateHealers(state, allies, nowSeconds) {
+  for (const healer of allies) {
+    if ((healer.healAmount ?? 0) <= 0 || healer.health <= 0) {
+      continue;
+    }
+    const interval = healer.healInterval ?? 0;
+    if (interval <= 0 || nowSeconds - (healer.lastHealTime ?? 0) < interval) {
+      continue;
+    }
+
+    const radius = healer.healRadius ?? 0;
+    let best = null;
+    let bestMissing = 0;
+    for (const ally of allies) {
+      if (ally === healer || ally.health <= 0 || ally.health >= ally.maxHealth) {
+        continue;
+      }
+      if (getDistance(healer, ally) > radius) {
+        continue;
+      }
+      const missing = ally.maxHealth - ally.health;
+      if (missing > bestMissing) {
+        bestMissing = missing;
+        best = ally;
+      }
+    }
+
+    if (best) {
+      best.health = Math.min(best.maxHealth, best.health + healer.healAmount);
+      healer.lastHealTime = nowSeconds;
+      pushSplashEffect(state, best, 1.4, nowSeconds);
+    }
   }
 }
 
@@ -408,8 +490,12 @@ export function tickBattle(state, deltaSeconds, nowSeconds) {
   stepBattlePhysics(state, deltaSeconds);
   updateKamikazes(state, state.battleUnits, state.enemies, nowSeconds);
   updateKamikazes(state, state.enemies, state.battleUnits, nowSeconds);
+  updateHealers(state, state.battleUnits, nowSeconds);
+  updateHealers(state, state.enemies, nowSeconds);
   applySideAttacks(state, state.battleUnits, state.enemies, nowSeconds);
   applySideAttacks(state, state.enemies, state.battleUnits, nowSeconds);
+  tickPoison(state.battleUnits, deltaSeconds, nowSeconds);
+  tickPoison(state.enemies, deltaSeconds, nowSeconds);
   cleanupDefeated(state);
 
   const alliesAlive = state.battleUnits.length > 0;
