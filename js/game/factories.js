@@ -56,7 +56,8 @@ export function createBattleUnit(unit, classId, formationRow = "front") {
     name: classData.name,
     class: classId,
     level: unit.level,
-    icon: classData.icon,
+    icon: unit.icon,
+    classIcon: classData.icon,
     formationRow,
 
     attackType,

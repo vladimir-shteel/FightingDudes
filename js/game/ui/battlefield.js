@@ -1,0 +1,266 @@
+import { CONFIG, getMineLevelData } from "../config.js";
+import { setBridgeheadUnitRow } from "../systems/garrisonSystem.js";
+import {
+  appendTokenHealth,
+  createUnitCard,
+  playResourceBurst
+} from "./helpers.js";
+
+export function updateSelectionTether(ctx) {
+  const { elements, selection } = ctx;
+  const { getSelectedUnitContext } = selection;
+
+  const existing = elements.fxLayer.querySelector(".selection-tether");
+  const selected = getSelectedUnitContext();
+
+  if (!selected) {
+    existing?.remove();
+    return;
+  }
+
+  const source = document.querySelector(`.unit-card[data-unit-id="${selected.unit.id}"]`);
+  if (!source || !elements.selectedUnitChip) {
+    existing?.remove();
+    return;
+  }
+
+  const sourceRect = source.getBoundingClientRect();
+  const viewportW = window.innerWidth || document.documentElement.clientWidth;
+  const viewportH = window.innerHeight || document.documentElement.clientHeight;
+  const isSourceVisible =
+    sourceRect.bottom > 0 &&
+    sourceRect.right > 0 &&
+    sourceRect.top < viewportH &&
+    sourceRect.left < viewportW;
+
+  if (isSourceVisible) {
+    existing?.remove();
+    return;
+  }
+
+  const targetRect = elements.selectedUnitChip.getBoundingClientRect();
+  const startX = sourceRect.left + sourceRect.width / 2;
+  const startY = sourceRect.top + sourceRect.height / 2;
+  const endX = targetRect.left + targetRect.width / 2;
+  const endY = targetRect.top + targetRect.height / 2;
+  const length = Math.hypot(endX - startX, endY - startY);
+  const angle = Math.atan2(endY - startY, endX - startX) * (180 / Math.PI);
+  const tether = existing ?? document.createElement("div");
+
+  tether.className = "selection-tether";
+  tether.style.left = `${startX}px`;
+  tether.style.top = `${startY}px`;
+  tether.style.width = `${length}px`;
+  tether.style.transform = `rotate(${angle}deg)`;
+
+  if (!existing) {
+    elements.fxLayer.append(tether);
+  }
+}
+
+export function renderBattle(ctx) {
+  const { state, elements } = ctx;
+
+  elements.battleLog.textContent = state.battle.log;
+
+  elements.battleUnits.innerHTML = "";
+  for (const unit of state.battleUnits) {
+    const card = createUnitCard(unit, { origin: "battle" });
+    card.classList.add("battle-token");
+    card.classList.toggle("is-engaged", unit.state === "engaged");
+    card.classList.toggle("is-hit", (unit.hitUntil ?? 0) > performance.now() / 1000);
+    card.dataset.state = unit.state ?? "marching";
+    card.style.left = `${unit.x}%`;
+    card.style.top = `${((unit.y ?? (CONFIG.battle.fieldHeight / 2)) / CONFIG.battle.fieldHeight) * 100}%`;
+
+    const meta = document.createElement("span");
+    meta.className = "battle-caption";
+    meta.textContent = `${Math.max(0, Math.round(unit.health))}`;
+    card.append(meta);
+    appendTokenHealth(card, unit.health, unit.maxHealth);
+    elements.battleUnits.append(card);
+  }
+
+  elements.enemyUnits.innerHTML = "";
+  for (const enemy of state.enemies) {
+    const card = createUnitCard(enemy, { origin: "enemy" });
+    card.classList.add("battle-token");
+    card.classList.toggle("is-engaged", enemy.state === "engaged");
+    card.classList.toggle("is-hit", (enemy.hitUntil ?? 0) > performance.now() / 1000);
+    card.dataset.state = enemy.state ?? "marching";
+    card.style.left = `${enemy.x}%`;
+    card.style.top = `${((enemy.y ?? (CONFIG.battle.fieldHeight / 2)) / CONFIG.battle.fieldHeight) * 100}%`;
+
+    const meta = document.createElement("span");
+    meta.className = "battle-caption";
+    meta.textContent = enemy.state === "retreating"
+      ? `Ret ${Math.max(0, Math.round(enemy.health))}`
+      : `${Math.max(0, Math.round(enemy.health))}`;
+    card.append(meta);
+    appendTokenHealth(card, enemy.health, enemy.maxHealth);
+    elements.enemyUnits.append(card);
+  }
+}
+
+export function renderBridgehead(ctx) {
+  const { state, elements, onStateChanged } = ctx;
+
+  const maxSlots = CONFIG.bridgehead?.maxSlots ?? 8;
+  elements.bridgeheadSlots.innerHTML = "";
+  elements.sendBridgeheadButton.disabled =
+    state.bridgeheadUnits.length === 0 ||
+    state.game.isOver ||
+    state.battle.status === "fighting";
+
+  for (let index = 0; index < maxSlots; index += 1) {
+    const slot = document.createElement("div");
+    slot.className = `bridgehead-slot ${state.bridgeheadUnits[index] ? "is-filled" : "is-empty"}`;
+
+    const unit = state.bridgeheadUnits[index];
+    if (unit) {
+      slot.append(createUnitCard(unit, { origin: "battle", compact: true }));
+
+      const rowToggle = document.createElement("button");
+      rowToggle.type = "button";
+      rowToggle.className = "bridgehead-row-toggle";
+      rowToggle.dataset.row = unit.formationRow === "back" ? "back" : "front";
+      rowToggle.textContent = unit.formationRow === "back" ? "Задний" : "Передний";
+      rowToggle.disabled = state.battle.status === "fighting";
+      rowToggle.addEventListener("click", () => {
+        const nextRow = unit.formationRow === "front" ? "back" : "front";
+        const result = setBridgeheadUnitRow(state, unit.id, nextRow);
+        state.battle.log = result.reason;
+        onStateChanged();
+      });
+      slot.append(rowToggle);
+    } else {
+      slot.innerHTML = '<span class="slot-placeholder">Empty</span>';
+    }
+
+    elements.bridgeheadSlots.append(slot);
+  }
+}
+
+export function renderMineProgressFrame(ctx) {
+  const { state, elements, mineProgressCache } = ctx;
+
+  const collectionInterval = Math.max(0.001, CONFIG.mine.collectionIntervalSeconds ?? 1);
+  const passiveInterval = Math.max(0.001, CONFIG.passiveGoldPayoutIntervalSeconds ?? 1);
+
+  for (const mine of state.mines) {
+    if (!mine.isUnlocked) {
+      continue;
+    }
+
+    const passiveFill = elements.minesGrid.querySelector(`[data-mine-passive-fill="${mine.id}"]`);
+    if (passiveFill) {
+      const passiveProgress = Math.min(1, (mine.passiveProgress ?? 0) / passiveInterval);
+      const cacheKey = `${mine.id}:passive`;
+      const previousProgress = mineProgressCache.get(cacheKey) ?? passiveProgress;
+      const isPassiveReset = passiveProgress < previousProgress;
+      if (isPassiveReset) {
+        passiveFill.classList.add("is-resetting");
+      } else {
+        passiveFill.classList.remove("is-resetting");
+      }
+      passiveFill.style.width = `${passiveProgress * 100}%`;
+      mineProgressCache.set(cacheKey, passiveProgress);
+      if (isPassiveReset) {
+        requestAnimationFrame(() => passiveFill.classList.remove("is-resetting"));
+      }
+    }
+
+    const openSlots = getMineLevelData(mine.level)?.slots ?? 0;
+    for (let index = 0; index < openSlots; index += 1) {
+      if (!mine.workerIds[index]) {
+        continue;
+      }
+
+      const fill = elements.minesGrid.querySelector(`[data-mine-progress-fill="${mine.id}:${index}"]`);
+      if (!fill) {
+        continue;
+      }
+
+      const progress = Math.min(1, (mine.workerProgress[index] ?? 0) / collectionInterval);
+      const progressKey = `${mine.id}:${index}`;
+      const previousProgress = mineProgressCache.get(progressKey) ?? progress;
+      const isReset = progress < previousProgress;
+
+      if (isReset) {
+        fill.classList.add("is-resetting");
+      } else {
+        fill.classList.remove("is-resetting");
+      }
+
+      fill.style.width = `${progress * 100}%`;
+      mineProgressCache.set(progressKey, progress);
+
+      if (isReset) {
+        requestAnimationFrame(() => {
+          fill.classList.remove("is-resetting");
+        });
+      }
+    }
+  }
+}
+
+export function flushResourceBursts(ctx) {
+  const { state, elements } = ctx;
+
+  const handled = new Set(state.ui.handledResourceBurstIds);
+
+  for (const burst of state.resourceBursts) {
+    if (handled.has(burst.id)) {
+      continue;
+    }
+    handled.add(burst.id);
+    playResourceBurst(elements, burst);
+  }
+
+  state.ui.handledResourceBurstIds = [...handled].slice(-160);
+  if (state.resourceBursts.length > 80) {
+    state.resourceBursts = state.resourceBursts.slice(-80);
+  }
+}
+
+export function playRangedAttackEffect(ctx, effect) {
+  const { elements } = ctx;
+
+  const rect = elements.battlefield.getBoundingClientRect();
+  const startX = rect.left + (effect.fromX / CONFIG.battle.fieldWidth) * rect.width;
+  const startY = rect.top + (effect.fromY / CONFIG.battle.fieldHeight) * rect.height;
+  const endX = rect.left + (effect.toX / CONFIG.battle.fieldWidth) * rect.width;
+  const endY = rect.top + (effect.toY / CONFIG.battle.fieldHeight) * rect.height;
+  const length = Math.hypot(endX - startX, endY - startY);
+  const angle = Math.atan2(endY - startY, endX - startX) * (180 / Math.PI);
+  const line = document.createElement("div");
+
+  line.className = "ranged-shot-line";
+  line.style.left = `${startX}px`;
+  line.style.top = `${startY}px`;
+  line.style.width = `${length}px`;
+  line.style.transform = `rotate(${angle}deg)`;
+  elements.fxLayer.append(line);
+  window.setTimeout(() => line.remove(), 220);
+}
+
+export function flushBattleEffects(ctx) {
+  const { state } = ctx;
+
+  const handled = new Set(state.ui.handledBattleEffectIds);
+
+  for (const effect of state.battleEffects) {
+    if (handled.has(effect.id)) {
+      continue;
+    }
+    handled.add(effect.id);
+    if (effect.type === "ranged-line") {
+      playRangedAttackEffect(ctx, effect);
+    }
+  }
+
+  state.ui.handledBattleEffectIds = [...handled].slice(-160);
+  if (state.battleEffects.length > 80) {
+    state.battleEffects = state.battleEffects.slice(-80);
+  }
+}
