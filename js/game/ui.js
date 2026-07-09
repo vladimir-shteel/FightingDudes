@@ -52,6 +52,7 @@ export function mountUI(state, onStateChanged) {
     cheatPanel: document.querySelector("#cheatPanel"),
     grantResourcesButton: document.querySelector("#grantResourcesButton"),
     victoryOverlay: document.querySelector("#victoryOverlay"),
+    locationToast: document.querySelector("#locationToast"),
     victoryRestartButton: document.querySelector("#victoryRestartButton"),
     buyCostValue: document.querySelector("#buyCostValue"),
     reservePanel: document.querySelector(".reserve-panel"),
@@ -220,6 +221,34 @@ export function mountUI(state, onStateChanged) {
     openClassModal(ctx, selected.unit);
   });
 
+  // Fire the "location cleared" toast once per new seq, then auto-dismiss it.
+  let lastToastSeq = 0;
+  let toastTimer = null;
+  function renderLocationToast() {
+    const toast = state.battle.locationToast;
+    if (!toast || toast.seq === lastToastSeq) {
+      return;
+    }
+    lastToastSeq = toast.seq;
+
+    const el = elements.locationToast;
+    el.innerHTML =
+      `<span class="location-toast-title">Локация ${toast.location} пройдена!</span>` +
+      `<span class="location-toast-sub">Слияние теперь до ур.${toast.mergeCap}</span>`;
+    el.hidden = false;
+    el.classList.remove("is-visible");
+    void el.offsetWidth; // restart the entrance animation
+    el.classList.add("is-visible");
+
+    if (toastTimer) {
+      clearTimeout(toastTimer);
+    }
+    toastTimer = window.setTimeout(() => {
+      el.classList.remove("is-visible");
+      window.setTimeout(() => { el.hidden = true; }, 400);
+    }, 3200);
+  }
+
   function render() {
     renderMeta(ctx);
     renderReserve(ctx);
@@ -227,6 +256,7 @@ export function mountUI(state, onStateChanged) {
     renderMineProgressFrame(ctx);
     renderBattle(ctx);
     renderBridgehead(ctx);
+    renderLocationToast();
     updateSelectionTether(ctx);
     flushResourceBursts(ctx);
     flushBattleEffects(ctx);
@@ -240,6 +270,7 @@ export function mountUI(state, onStateChanged) {
     renderBridgehead(ctx);
     renderActionHints(ctx);
     renderVictoryState(ctx);
+    renderLocationToast();
     updateSelectionTether(ctx);
     flushResourceBursts(ctx);
     flushBattleEffects(ctx);

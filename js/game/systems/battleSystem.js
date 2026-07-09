@@ -449,6 +449,11 @@ function handleVictory(state) {
       state.battle.log =
         `🏰 Локация ${justCleared} пройдена! Слияние теперь до ур.${getMergeMaxLevel(state)}. ` +
         `Впереди Локация ${nextLocation}.`;
+      state.battle.locationToast = {
+        seq: (state.battle.locationToast?.seq ?? 0) + 1,
+        location: justCleared,
+        mergeCap: getMergeMaxLevel(state)
+      };
     } else {
       state.battle.log = `Волна ${clearedWaveIndex + 1} зачищена. Готовьте отряд к волне ${nextWaveIndex + 1}.`;
     }

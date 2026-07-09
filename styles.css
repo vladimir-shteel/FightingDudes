@@ -1803,6 +1803,54 @@ h3 {
   color: var(--muted);
 }
 
+/* Transient "location cleared" toast over the top of the battlefield. */
+.location-toast {
+  position: absolute;
+  top: 40%;
+  left: 50%;
+  z-index: 32;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 10px 24px;
+  border: 3px solid rgba(47, 112, 64, 0.35);
+  border-radius: 999px;
+  text-align: center;
+  color: #ffffff;
+  background: linear-gradient(180deg, var(--green) 0%, var(--green-dark) 100%);
+  box-shadow: 0 9px 0 rgba(28, 74, 40, 0.26), 0 16px 32px rgba(24, 60, 30, 0.34);
+  opacity: 0;
+  /* Centered in the visible field — the top of the battlefield is covered by the HUD. */
+  transform: translate(-50%, calc(-50% - 14px));
+  pointer-events: none;
+  transition: opacity 360ms ease, transform 360ms ease;
+}
+
+.location-toast[hidden] {
+  display: none;
+}
+
+.location-toast.is-visible {
+  opacity: 1;
+  transform: translate(-50%, -50%);
+}
+
+.location-toast-title {
+  font-size: clamp(14px, 3.4vw, 18px);
+  font-weight: 900;
+}
+
+.location-toast-title::before {
+  content: "🏰 ";
+}
+
+.location-toast-sub {
+  font-size: clamp(10px, 2.6vw, 12px);
+  font-weight: 800;
+  opacity: 0.92;
+}
+
 @media (max-width: 720px) {
   /* Cover the whole viewport instead of the short battlefield so the card
      is never taller than its container (button was spilling past the edge). */
