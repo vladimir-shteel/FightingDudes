@@ -30,7 +30,7 @@
     "rangeTiles": 0.42,
     "speedTilesPerSecond": 0.7,
     "tag": "armored",
-    "armor": 12
+    "armor": 9
   },
   "archerE": {
     "name": "Sniper",
@@ -46,17 +46,17 @@
   "orcKing": {
     "name": "Orc King",
     "icon": "🐗",
-    "hp": 240,
-    "attack": 18,
+    "hp": 215,
+    "attack": 16,
     "cooldownSeconds": 1.1,
     "rangeTiles": 0.5,
     "speedTilesPerSecond": 0.65,
     "tag": "boss",
-    "armor": 10,
+    "armor": 8,
     "mechanic": {
       "kind": "aura",
       "radius": 2.2,
-      "damagePerSecond": 6
+      "damagePerSecond": 4
     }
   },
   "necromancer": {
@@ -68,7 +68,7 @@
     "rangeTiles": 2.0,
     "speedTilesPerSecond": 0.7,
     "tag": "boss",
-    "armor": 6,
+    "armor": 5,
     "mechanic": {
       "kind": "summon",
       "archetype": "grunt",
@@ -84,7 +84,7 @@
     "rangeTiles": 0.45,
     "speedTilesPerSecond": 0.55,
     "tag": "boss",
-    "armor": 10,
+    "armor": 8,
     "mechanic": {
       "kind": "breach",
       "damageMultVsBuildings": 3
