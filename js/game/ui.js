@@ -1383,6 +1383,36 @@ export function mountUI(state, onStateChanged) {
     state.ui.fortressPopup = null;
   }
 
+  // Position the action popover with `position: fixed` so it escapes the panel's overflow:hidden
+  // (which otherwise clips it now that the battle panel is content-height). Anchors on the tapped
+  // tile, prefers to sit below it, flips above when it would run off the bottom, and stays on screen.
+  function positionFortressPopover(popup, tileX, tileY) {
+    const fieldRect = elements.fortressField.getBoundingClientRect();
+    if (!fieldRect.width || !fieldRect.height) {
+      return;
+    }
+    const anchorX = fieldRect.left + ((tileX + 0.5) / FORTRESS_WIDTH) * fieldRect.width;
+    const anchorY = fieldRect.top + ((tileY + 0.5) / FORTRESS_HEIGHT) * fieldRect.height;
+    const cellH = fieldRect.height / FORTRESS_HEIGHT;
+    const margin = 6;
+    popup.style.position = "fixed";
+    popup.style.transform = "none";
+    popup.style.left = "0px";
+    popup.style.top = "0px";
+    const rect = popup.getBoundingClientRect();
+    const width = rect.width;
+    const height = rect.height;
+    let left = anchorX - width / 2;
+    left = Math.max(margin, Math.min(left, window.innerWidth - width - margin));
+    let top = anchorY + cellH / 2 + 8;
+    if (top + height > window.innerHeight - margin) {
+      const above = anchorY - cellH / 2 - 8 - height;
+      top = above >= margin ? above : Math.max(margin, window.innerHeight - height - margin);
+    }
+    popup.style.left = `${Math.round(left)}px`;
+    popup.style.top = `${Math.round(top)}px`;
+  }
+
   function renderFortressPopup() {
     const popupState = state.ui.fortressPopup;
     if (!popupState) {
@@ -1511,6 +1541,7 @@ export function mountUI(state, onStateChanged) {
       onStateChanged();
     });
     elements.fortressField.append(popup);
+    positionFortressPopover(popup, popupState.x, popupState.y);
   }
 
   function buildFortressShopCard(type, definition) {
