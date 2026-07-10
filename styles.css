@@ -2426,11 +2426,13 @@ h3 {
 .fortress-field {
   position: relative;
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  grid-template-rows: repeat(7, minmax(54px, 1fr));
+  --fortress-cols: 8;
+  --fortress-rows: 5;
+  grid-template-columns: repeat(var(--fortress-cols), minmax(0, 1fr));
+  grid-template-rows: repeat(var(--fortress-rows), minmax(54px, 1fr));
   gap: 8px;
-  width: min(100%, 520px);
-  aspect-ratio: 5 / 7;
+  width: min(100%, 760px);
+  aspect-ratio: var(--fortress-cols) / var(--fortress-rows);
   margin: 0 auto;
 }
 
@@ -2485,6 +2487,21 @@ h3 {
 }
 
 .fortress-field.is-battle-active .fortress-tile.is-building {
+  pointer-events: auto;
+}
+
+/* Non-rectangular buildings (T / L shapes) span a bounding box larger than their real footprint.
+   The empty corners of that box must NOT swallow clicks — otherwise a shaped building overlaps and
+   blocks a neighbour placed in one of those corners. So the spanning <button> itself is click-through
+   (pointer-events inherits down to the icon/label too) and only the real footprint cells stay clickable;
+   a click on a footprint cell still bubbles to the button and fires its handler. */
+.fortress-tile.is-shaped-building,
+.fortress-field.is-battle-active .fortress-tile.is-shaped-building {
+  pointer-events: none;
+}
+
+.fortress-tile.is-shaped-building .fortress-building-shape-cell,
+.fortress-field.is-battle-active .fortress-tile.is-shaped-building .fortress-building-shape-cell {
   pointer-events: auto;
 }
 
@@ -2547,10 +2564,10 @@ h3 {
   --popover-half-width: calc(var(--popover-width) / 2);
   left: clamp(
     calc(var(--popover-half-width) + 6px),
-    calc((var(--x) / 5) * 100%),
+    calc((var(--x) / var(--fortress-cols)) * 100%),
     calc(100% - var(--popover-half-width) - 6px)
   );
-  top: clamp(76px, calc((var(--y) / 7) * 100%), calc(100% - 76px));
+  top: clamp(76px, calc((var(--y) / var(--fortress-rows)) * 100%), calc(100% - 76px));
   z-index: 6;
   display: grid;
   gap: 6px;
@@ -2985,8 +3002,8 @@ h3 {
 .fortress-actor,
 .fortress-projectile {
   position: absolute;
-  left: calc((var(--x) / 5) * 100%);
-  top: calc((var(--y) / 7) * 100%);
+  left: calc((var(--x) / var(--fortress-cols)) * 100%);
+  top: calc((var(--y) / var(--fortress-rows)) * 100%);
   transform: translate(-50%, -50%);
   pointer-events: none;
   z-index: 5;
@@ -3070,7 +3087,7 @@ h3 {
   }
 
   .fortress-field {
-    grid-template-rows: repeat(7, minmax(42px, 1fr));
+    grid-template-rows: repeat(var(--fortress-rows), minmax(42px, 1fr));
     gap: 5px;
   }
 

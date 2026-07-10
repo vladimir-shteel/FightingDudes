@@ -35,6 +35,8 @@ import {
   getBuildingActiveCost,
   getBuildingActiveDefinition,
   demolishFortressBuilding,
+  FORTRESS_HEIGHT,
+  FORTRESS_WIDTH,
   getFortressBuildingBuyCost,
   getFortressBuildingRefund,
   getFortressRepairCost,
@@ -1228,6 +1230,9 @@ export function mountUI(state, onStateChanged) {
 
   function renderFortressField() {
     elements.fortressField.innerHTML = "";
+    // Drive the grid + actor/popover positioning off the real field size so the CSS never drifts.
+    elements.fortressField.style.setProperty("--fortress-cols", String(FORTRESS_WIDTH));
+    elements.fortressField.style.setProperty("--fortress-rows", String(FORTRESS_HEIGHT));
     elements.fortressField.classList.toggle("is-battle-active", state.fortress.battle.active);
     renderBossHpBar();
 

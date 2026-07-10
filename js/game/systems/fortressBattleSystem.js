@@ -107,11 +107,11 @@ function getActorTile(actor) {
 }
 
 function chooseGoalTileForBuilding(building) {
-  // For rectangular / multi-tile buildings pick the tile closest to top (enemy spawn side) so the enemy
-  // ends up in contact with the outer edge and can attack.
+  // For rectangular / multi-tile buildings pick the tile closest to the right (enemy spawn side) so the
+  // enemy ends up in contact with the outer edge and can attack.
   let best = null;
   for (const tile of building.tiles) {
-    if (!best || tile.y < best.y || (tile.y === best.y && tile.x < best.x)) {
+    if (!best || tile.x > best.x || (tile.x === best.x && tile.y < best.y)) {
       best = tile;
     }
   }
@@ -233,9 +233,10 @@ function resolveUnitCollisions(state) {
       b.y += ny * push;
     }
   }
-  // Keep everyone inside the horizontal grid.
+  // Keep everyone inside the field vertically (the travel axis is now horizontal, so leave X free so
+  // enemies can walk in from just off the right edge).
   for (const actor of actors) {
-    actor.x = clamp(actor.x, -0.4, FORTRESS_WIDTH - 0.6);
+    actor.y = clamp(actor.y, -0.4, FORTRESS_HEIGHT - 0.6);
   }
 }
 
@@ -283,8 +284,9 @@ function createFortressEnemy(state, archetypeKey) {
     mechanic: base.mechanic ?? null,
     auraTimer: 0,
     summonTimer: base.mechanic?.kind === "summon" ? base.mechanic.intervalSeconds : 0,
-    x: Math.random() * (FORTRESS_WIDTH - 0.5) + 0.25,
-    y: -0.45
+    // Enemies pour in from just off the RIGHT edge, spread across the field height.
+    x: FORTRESS_WIDTH + 0.45,
+    y: Math.random() * (FORTRESS_HEIGHT - 0.5) + 0.25
   };
 }
 
@@ -345,7 +347,11 @@ export function spawnAllyForBuilding(state, building, unitKey, count) {
   const center = getBuildingCenter(building);
   for (let index = 0; index < count; index += 1) {
     const offset = (index - (count - 1) / 2) * 0.4;
-    battle.allies.push(createFortressAlly(unitKey, { x: center.x + offset, y: Math.max(0, center.y - 0.65) }, building.level));
+    battle.allies.push(createFortressAlly(
+      unitKey,
+      { x: Math.min(FORTRESS_WIDTH, center.x + 0.65), y: center.y + offset },
+      building.level
+    ));
   }
 }
 
@@ -466,7 +472,7 @@ function tickBuildingActions(state, deltaSeconds) {
     if (level.unit) {
       building.cooldownTimer -= deltaSeconds;
       if (building.cooldownTimer <= 0) {
-        battle.allies.push(createFortressAlly(level.unit, { x: center.x, y: Math.max(0, center.y - 0.65) }, building.level));
+        battle.allies.push(createFortressAlly(level.unit, { x: Math.min(FORTRESS_WIDTH, center.x + 0.65), y: center.y }, building.level));
         building.cooldownTimer = level.cooldownSeconds;
       }
     }

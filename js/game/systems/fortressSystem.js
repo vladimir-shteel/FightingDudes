@@ -2,8 +2,9 @@ import { CONFIG, getFortressBuildingUnlockWave } from "../config.js";
 import { clamp, generateId } from "../utils.js";
 import { spawnAllyForBuilding, volleyFromBuilding } from "./fortressBattleSystem.js";
 
-export const FORTRESS_WIDTH = 5;
-export const FORTRESS_HEIGHT = 7;
+// Field is played horizontally: base on the LEFT, enemies march in from the RIGHT.
+export const FORTRESS_WIDTH = 8;
+export const FORTRESS_HEIGHT = 5;
 
 function costEntries(costs = {}) {
   return Object.entries(costs).filter(([, amount]) => amount > 0);
@@ -31,7 +32,8 @@ export function createFortressState() {
     }
   }
 
-  const hq = createFortressBuilding("hq", { x: 1, y: 5 });
+  // Base hugs the left edge, vertically centred on the 5-row field (rows 1-3).
+  const hq = createFortressBuilding("hq", { x: 0, y: 1 });
   for (const tile of hq.tiles) {
     getTile({ fortress: { field } }, tile.x, tile.y).occupant = { buildingId: hq.id };
   }
