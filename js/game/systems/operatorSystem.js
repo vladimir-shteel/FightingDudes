@@ -2,7 +2,7 @@ import { CONFIG } from "../config.js";
 import { removeUnitFromReserve, returnUnitToReserve } from "./reserveSystem.js";
 import { removeUnitFromMine } from "./mineSystem.js";
 import { getBuildingBaseHp } from "./fortressSystem.js";
-import { ensureWorkerTraits, getMaxRestCharges } from "./workerTraitSystem.js";
+import { ensureWorkerTraits, getMaxRestCharges, trimWorkerTraitsToLevel } from "./workerTraitSystem.js";
 
 // === Building operator (FMFM vector B core) ===============================================
 // One worker can operate a building (exactly one slot per building). While operating it buffs the
@@ -159,6 +159,8 @@ export function resolveOperatorAttrition(state) {
       } else {
         worker.level = newLevel;
         worker.restCharges = Math.min(getMaxRestCharges(newLevel), worker.restCharges ?? 0);
+        // Losing a level must also shed trait points so a downgraded worker isn't over-powered.
+        trimWorkerTraitsToLevel(worker);
         messages.push(`${worker.name} dropped to level ${newLevel} when the ${buildingName(building)} fell.`);
       }
     } else {

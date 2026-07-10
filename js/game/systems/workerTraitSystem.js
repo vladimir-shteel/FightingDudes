@@ -46,6 +46,30 @@ export function getTraitTotal(traits = {}) {
   return WORKER_TRAIT_KEYS.reduce((sum, key) => sum + (traits[key] ?? 0), 0);
 }
 
+// Trait points a worker of this level can hold. A merge sums both parents' points and adds
+// mergeBonusPoints, from a level-1 roll of 1 point: T(1)=1, T(n)=2·T(n-1)+b → 2^(n-1)·(1+b) − b.
+// Used to CLAMP traits when a worker loses a level (operator attrition) so power can't outrun tier.
+export function getMaxTraitTotalForLevel(level) {
+  const bonus = getTraitConfig().mergeBonusPoints ?? 1;
+  const lvl = Math.max(1, level ?? 1);
+  return Math.max(1, Math.round(Math.pow(2, lvl - 1) * (1 + bonus) - bonus));
+}
+
+// Scale a worker's trait vector down so its total fits its (reduced) level, preserving the mix.
+export function trimWorkerTraitsToLevel(unit) {
+  const traits = ensureWorkerTraits(unit);
+  const target = getMaxTraitTotalForLevel(unit?.level);
+  const total = getTraitTotal(traits);
+  if (total <= target) {
+    return traits;
+  }
+  const scale = target / total;
+  for (const key of WORKER_TRAIT_KEYS) {
+    traits[key] = Math.max(0, Math.floor((traits[key] ?? 0) * scale));
+  }
+  return traits;
+}
+
 export function getDominantTraitKey(traits = {}) {
   return WORKER_TRAIT_KEYS
     .map((key) => ({ key, value: traits[key] ?? 0 }))

@@ -68,16 +68,16 @@ function buildTraitInfoMarkup() {
   const traits = CONFIG.workerTraits ?? {};
   const lines = traits.lines ?? {};
   const shift = traits.battleShift ?? {};
-  const yieldPer = lines.yield?.resourceMultiplierPerPoint ?? 0;
+  const maintainerPer = CONFIG.operator?.maintainerPerPoint ?? 0;
   const goldenPer = lines.golden?.goldPerResourcePerPoint ?? 0;
   const rushPer = lines.rush?.battleMultiplierPerPoint ?? 0;
   const shiftBase = shift.baseMultiplier ?? 1;
   const rows = [
     {
       key: "yield",
-      label: lines.yield?.label ?? "Yield",
-      icon: lines.yield?.icon ?? "Y",
-      text: `Each point adds +${(yieldPer * 100).toFixed(0)}% to that worker's mine output. Pill number = points.`
+      label: lines.yield?.label ?? "Maintainer",
+      icon: lines.yield?.icon ?? "M",
+      text: `Each point adds +${(maintainerPer * 100).toFixed(0)}% to the buff this worker gives while operating a building (HP / damage / summon rate). Pill number = points.`
     },
     {
       key: "golden",
@@ -237,7 +237,7 @@ function createUnitCard(unit, options = {}) {
       const points = traits[key];
       const lineCfg = CONFIG.workerTraits?.lines?.[key] ?? {};
       let tip;
-      if (key === "yield") tip = `Yield ${points} · +${Math.round((lineCfg.resourceMultiplierPerPoint ?? 0) * points * 100)}% mine output`;
+      if (key === "yield") tip = `${getTraitLabel(key)} ${points} · +${Math.round((CONFIG.operator?.maintainerPerPoint ?? 0) * points * 100)}% operator buff`;
       else if (key === "golden") tip = `Golden ${points} · +${((lineCfg.goldPerResourcePerPoint ?? 0) * points * 100).toFixed(1)}% of production paid as gold`;
       else if (key === "rush") tip = `Rush ${points} · +${Math.round((lineCfg.battleMultiplierPerPoint ?? 0) * points * 100)}% Shift multiplier`;
       else tip = `${getTraitLabel(key)} ${points}`;
@@ -1337,10 +1337,14 @@ export function mountUI(state, onStateChanged) {
             tileButton.disabled = true;
           }
         } else {
-          // When a worker is selected, an un-manned building is a valid assign target — highlight it
-          // like an open mine slot so the operator affordance is discoverable.
+          // When a worker is selected, an un-manned building is a valid operator target. Make the
+          // affordance unmistakable: pulsing green target class + an explicit "add operator" badge.
           if (!state.fortress.battle.active && !building.operator && getSelectedUnitContext()) {
-            tileButton.classList.add("actionable-target");
+            tileButton.classList.add("actionable-target", "is-operator-target");
+            const addHint = document.createElement("span");
+            addHint.className = "fortress-operator-add-hint";
+            addHint.innerHTML = `<span class="fortress-operator-add-icon">🧑‍🔧</span><i>＋</i>`;
+            tileButton.append(addHint);
           }
           tileButton.addEventListener("click", () => {
             if (state.fortress.movingBuildingId === building.id) {

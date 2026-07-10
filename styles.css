@@ -2567,6 +2567,47 @@ h3 {
   font-style: normal;
 }
 
+/* An un-manned building highlighted as an operator target when a worker is selected. Stronger,
+   pulsing green so it reads as "drop the selected worker here". */
+.fortress-tile.is-operator-target {
+  outline: 3px solid rgba(46, 160, 90, 0.9);
+  outline-offset: 0;
+  box-shadow: 0 0 0 4px rgba(120, 214, 140, 0.35);
+  animation: operator-target-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes operator-target-pulse {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(120, 214, 140, 0.3); }
+  50% { box-shadow: 0 0 0 7px rgba(120, 214, 140, 0.55); }
+}
+
+.fortress-operator-add-hint {
+  position: absolute;
+  left: 3px;
+  top: 3px;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  padding: 1px 4px 1px 2px;
+  border: 1px solid rgba(46, 108, 74, 0.6);
+  border-radius: 999px;
+  background: rgba(120, 214, 140, 0.95);
+  color: #143d24;
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.fortress-operator-add-icon {
+  font-size: 13px;
+}
+
+.fortress-operator-add-hint i {
+  font-style: normal;
+}
+
 .fortress-popover-operator {
   display: grid;
   gap: 2px;

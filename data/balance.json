@@ -54,8 +54,8 @@
     },
     "lines": {
       "yield": {
-        "label": "Yield",
-        "icon": "Y",
+        "label": "Maintainer",
+        "icon": "M",
         "rollWeight": 1,
         "resourceMultiplierPerPoint": 0.04
       },
