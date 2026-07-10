@@ -32,6 +32,14 @@
     "refundFraction": 0.4,
     "goldCostPerCopy": 8
   },
+  "operator": {
+    "hpPerLevel": 0.08,
+    "damagePerLevel": 0.08,
+    "summonCooldownPerLevel": 0.06,
+    "summonCooldownMaxReduction": 0.6,
+    "maintainerPerPoint": 0.05,
+    "restBonusMultiplier": 1.25
+  },
   "abilityCostAccumulation": 1.6,
   "waveDemand": {
     "slotProductionMultiplier": 1.25

@@ -90,7 +90,10 @@ export function createFortressBuilding(type, origin) {
     activeBoostRemaining: 0,
     activeBoost: null,
     shieldRemaining: 0,
-    shieldReduction: 0
+    shieldReduction: 0,
+    operator: null,
+    operatorBuff: { hpMult: 1, damageMult: 1, cooldownMult: 1 },
+    operatorHpBonus: 0
   };
 }
 
