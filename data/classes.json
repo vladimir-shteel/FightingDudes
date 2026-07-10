@@ -9,7 +9,9 @@
       "attackMult": 1.0,
       "attackType": "melee",
       "canHitFlying": false,
-      "costs": { "wood": 10 },
+      "costs": {
+        "wood": 10
+      },
       "description": "Простой боец. Дешёвый. Сила в количестве."
     },
     "archer": {
@@ -22,7 +24,10 @@
       "attackType": "ranged",
       "attackRange": 10,
       "canHitFlying": true,
-      "costs": { "wood": 12, "crystal": 6 },
+      "costs": {
+        "wood": 12,
+        "crystal": 6
+      },
       "description": "Стреляет издалека. Единственный способ бить летающих на базовом ярусе. Хрупок — гибнет, если враг прорвётся к тылу."
     },
     "knight": {
@@ -34,7 +39,10 @@
       "attackMult": 1.6,
       "attackType": "melee",
       "canHitFlying": false,
-      "costs": { "ore": 14, "wood": 10 },
+      "costs": {
+        "ore": 14,
+        "wood": 10
+      },
       "description": "Соло-танк. Огромное HP, высокая атака, бьёт одного."
     },
     "brute": {
@@ -47,7 +55,10 @@
       "attackType": "melee_aoe",
       "splashRadius": 1.8,
       "canHitFlying": false,
-      "costs": { "ore": 10, "wood": 8 },
+      "costs": {
+        "ore": 10,
+        "wood": 8
+      },
       "description": "Удар по площади. Перебивает толпу."
     },
     "shieldbearer": {
@@ -59,7 +70,10 @@
       "attackMult": 0.3,
       "attackType": "melee",
       "canHitFlying": false,
-      "costs": { "iron": 12, "ore": 8 },
+      "costs": {
+        "iron": 12,
+        "ore": 8
+      },
       "description": "Почти не бьёт, но крайне крепкий. Задерживает врагов."
     },
     "spearman": {
@@ -71,7 +85,10 @@
       "attackMult": 2.2,
       "attackType": "melee",
       "canHitFlying": false,
-      "costs": { "wood": 10, "ore": 12 },
+      "costs": {
+        "wood": 10,
+        "ore": 12
+      },
       "description": "Хрупкий, но огромный урон. Пробивает танков."
     },
     "poisoner": {
@@ -85,7 +102,10 @@
       "canHitFlying": false,
       "poisonDps": 4,
       "poisonDuration": 5,
-      "costs": { "crystal": 14, "wood": 8 },
+      "costs": {
+        "crystal": 14,
+        "wood": 8
+      },
       "description": "Вешает яд, игнорирующий броню."
     },
     "paladin": {
@@ -100,7 +120,10 @@
       "healAmount": 15,
       "healInterval": 3,
       "healRadius": 6,
-      "costs": { "iron": 18, "crystal": 10 },
+      "costs": {
+        "iron": 18,
+        "crystal": 10
+      },
       "description": "Периодически лечит раненого союзника рядом."
     },
     "berserker": {
@@ -113,7 +136,10 @@
       "attackType": "melee",
       "canHitFlying": false,
       "berserkerScaling": true,
-      "costs": { "iron": 16, "ore": 14 },
+      "costs": {
+        "iron": 16,
+        "ore": 14
+      },
       "description": "Атака растёт по мере потери HP (до ×3)."
     },
     "mage": {
@@ -127,7 +153,10 @@
       "attackRange": 11,
       "splashRadius": 2.0,
       "canHitFlying": true,
-      "costs": { "crystal": 18, "iron": 10 },
+      "costs": {
+        "crystal": 18,
+        "iron": 10
+      },
       "description": "Дальний удар по площади. Бьёт летающих. Хрупкий."
     }
   }

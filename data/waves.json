@@ -1145,7 +1145,7 @@
             "health": 80,
             "attack": 12,
             "attackSpeed": 1.0,
-            "moveSpeed": 9,
+            "moveSpeed": 14,
             "goldReward": 5
           },
           {
@@ -1155,7 +1155,7 @@
             "health": 80,
             "attack": 12,
             "attackSpeed": 1.0,
-            "moveSpeed": 9,
+            "moveSpeed": 14,
             "goldReward": 5
           },
           {
@@ -1165,7 +1165,7 @@
             "health": 80,
             "attack": 12,
             "attackSpeed": 1.0,
-            "moveSpeed": 9,
+            "moveSpeed": 14,
             "goldReward": 5
           }
         ]
@@ -1244,7 +1244,7 @@
             "health": 80,
             "attack": 12,
             "attackSpeed": 1.0,
-            "moveSpeed": 9,
+            "moveSpeed": 14,
             "goldReward": 5
           },
           {
@@ -1254,7 +1254,7 @@
             "health": 80,
             "attack": 12,
             "attackSpeed": 1.0,
-            "moveSpeed": 9,
+            "moveSpeed": 14,
             "goldReward": 5
           },
           {
@@ -1264,7 +1264,7 @@
             "health": 650,
             "attack": 22,
             "attackSpeed": 0.8,
-            "moveSpeed": 6,
+            "moveSpeed": 12,
             "goldReward": 36,
             "isBoss": true
           }
@@ -1304,7 +1304,7 @@
             "health": 80,
             "attack": 12,
             "attackSpeed": 1.0,
-            "moveSpeed": 9,
+            "moveSpeed": 14,
             "goldReward": 5
           },
           {
@@ -1314,7 +1314,7 @@
             "health": 80,
             "attack": 12,
             "attackSpeed": 1.0,
-            "moveSpeed": 9,
+            "moveSpeed": 14,
             "goldReward": 5
           },
           {
@@ -1446,7 +1446,7 @@
             "health": 175,
             "attack": 12,
             "attackSpeed": 1.0,
-            "moveSpeed": 12,
+            "moveSpeed": 15,
             "berserkerScaling": true,
             "goldReward": 16
           },
@@ -1457,7 +1457,7 @@
             "health": 175,
             "attack": 12,
             "attackSpeed": 1.0,
-            "moveSpeed": 12,
+            "moveSpeed": 15,
             "berserkerScaling": true,
             "goldReward": 16
           },
@@ -1468,7 +1468,7 @@
             "health": 175,
             "attack": 12,
             "attackSpeed": 1.0,
-            "moveSpeed": 12,
+            "moveSpeed": 15,
             "berserkerScaling": true,
             "goldReward": 16
           }
@@ -1484,7 +1484,7 @@
             "health": 80,
             "attack": 12,
             "attackSpeed": 1.0,
-            "moveSpeed": 9,
+            "moveSpeed": 14,
             "goldReward": 5
           },
           {
@@ -1494,7 +1494,7 @@
             "health": 80,
             "attack": 12,
             "attackSpeed": 1.0,
-            "moveSpeed": 9,
+            "moveSpeed": 14,
             "goldReward": 5
           }
         ]
@@ -1542,7 +1542,7 @@
             "health": 380,
             "attack": 22,
             "attackSpeed": 0.8,
-            "moveSpeed": 6,
+            "moveSpeed": 12,
             "goldReward": 24
           },
           {
@@ -1552,7 +1552,7 @@
             "health": 380,
             "attack": 22,
             "attackSpeed": 0.8,
-            "moveSpeed": 6,
+            "moveSpeed": 12,
             "goldReward": 24
           }
         ]
@@ -1642,7 +1642,7 @@
             "health": 400,
             "attack": 22,
             "attackSpeed": 0.8,
-            "moveSpeed": 6,
+            "moveSpeed": 12,
             "goldReward": 24
           },
           {
@@ -1652,7 +1652,7 @@
             "health": 400,
             "attack": 22,
             "attackSpeed": 0.8,
-            "moveSpeed": 6,
+            "moveSpeed": 12,
             "goldReward": 24
           },
           {
@@ -1662,7 +1662,7 @@
             "health": 65,
             "attack": 24,
             "attackSpeed": 1.0,
-            "moveSpeed": 11,
+            "moveSpeed": 13,
             "goldReward": 7
           }
         ]
@@ -1763,7 +1763,7 @@
             "health": 360,
             "attack": 22,
             "attackSpeed": 0.8,
-            "moveSpeed": 6,
+            "moveSpeed": 12,
             "goldReward": 24
           },
           {
@@ -1773,7 +1773,7 @@
             "health": 360,
             "attack": 22,
             "attackSpeed": 0.8,
-            "moveSpeed": 6,
+            "moveSpeed": 12,
             "goldReward": 24
           },
           {
@@ -1811,10 +1811,10 @@
             "class": "knight",
             "name": "Владыка",
             "icon": "😈",
-            "health": 720,
+            "health": 640,
             "attack": 30,
             "attackSpeed": 0.9,
-            "moveSpeed": 7,
+            "moveSpeed": 10,
             "goldReward": 60,
             "isBoss": true
           },
@@ -1826,7 +1826,7 @@
             "attack": 4,
             "attackSpeed": 0.8,
             "moveSpeed": 7,
-            "healAmount": 30,
+            "healAmount": 26,
             "healInterval": 2.5,
             "healRadius": 12,
             "goldReward": 16
@@ -1836,19 +1836,6 @@
       {
         "formationRow": "front",
         "enemies": [
-          {
-            "class": "brute",
-            "name": "Колесница",
-            "icon": "🐗",
-            "health": 110,
-            "attack": 0,
-            "attackSpeed": 1.0,
-            "moveSpeed": 22,
-            "movementType": "kamikaze",
-            "explosionDamage": 50,
-            "explosionRadius": 2.5,
-            "goldReward": 12
-          },
           {
             "class": "brute",
             "name": "Колесница",
