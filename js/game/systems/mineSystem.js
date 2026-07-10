@@ -18,13 +18,10 @@ import {
   getCapstoneDemandMultiplierBonus,
   getCapstoneGoldenBonus,
   getCapstonePassiveGoldPerSecond,
-  getCapstoneWarlordProductionMultiplier,
-  getCapstoneYieldMultiplier,
   getMaxRestCharges,
   getMaxWorkerLevel,
   getWorkerGoldenConversion,
   getWorkerRushMultiplier,
-  getWorkerYieldMultiplier,
   isWorkerBattleShiftLocked,
   mergeWorkerTraitVectors,
   pickCapstoneCandidates
@@ -530,7 +527,7 @@ export function tickMineProduction(state, deltaSeconds) {
       const slotMultiplier = mineLevelData.slotProductionMultipliers[index] ?? 1;
       const productionTable = CONFIG.mine.workerProductionByLevel ?? null;
       const productionMultiplier = getProductionMultiplier(state);
-      const traitMultiplier = getWorkerYieldMultiplier(worker) * getCapstoneYieldMultiplier(worker) * getCapstoneWarlordProductionMultiplier(state, worker);
+      const traitMultiplier = 1;
       const demandMultiplier = getDemandMultiplier(state, mine) * getCapstoneDemandMultiplierBonus(worker);
       const totalWorkerMultiplier = traitMultiplier * demandMultiplier;
       const resourceAmount = productionTable

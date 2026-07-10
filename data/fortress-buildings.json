@@ -322,7 +322,7 @@
   "turret": {
     "name": "Turret",
     "icon": "🎯",
-    "description": "Auto-fires at enemies in range. Lv 5 can overcharge its damage.",
+    "description": "Auto-fires at enemies in range. Assign an operator for bonus damage & HP. Lv 5 can overcharge its damage.",
     "footprint": [
       [
         0,

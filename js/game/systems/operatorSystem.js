@@ -2,7 +2,13 @@ import { CONFIG } from "../config.js";
 import { removeUnitFromReserve, returnUnitToReserve } from "./reserveSystem.js";
 import { removeUnitFromMine } from "./mineSystem.js";
 import { getBuildingBaseHp } from "./fortressSystem.js";
-import { ensureWorkerTraits, getMaxRestCharges, trimWorkerTraitsToLevel } from "./workerTraitSystem.js";
+import {
+  ensureWorkerTraits,
+  getCapstoneOperatorBuffMultiplier,
+  getCapstoneOperatorNoDelevel,
+  getMaxRestCharges,
+  trimWorkerTraitsToLevel
+} from "./workerTraitSystem.js";
 
 // === Building operator (FMFM vector B core) ===============================================
 // One worker can operate a building (exactly one slot per building). While operating it buffs the
@@ -20,11 +26,9 @@ export function isBuildingOperable(type) {
   return CONFIG.fortressBuildings?.[type]?.operable !== false;
 }
 
-// TODO(maintainer trait): the yield trait line will be renamed to `maintainer`. Read both keys so
-// this keeps working across that rename.
 function getMaintainerPoints(worker) {
   const traits = ensureWorkerTraits(worker);
-  return (traits.maintainer ?? 0) + (traits.yield ?? 0);
+  return traits.maintainer ?? 0;
 }
 
 // Pure: the multipliers an operator grants its building. Identity ({1,1,1}) when there is no operator.
@@ -40,7 +44,7 @@ export function getOperatorBuff(building) {
 
   const maintainerScale = 1 + (cfg.maintainerPerPoint ?? 0) * maintainer;
   const restScale = rested ? (cfg.restBonusMultiplier ?? 1) : 1;
-  const scale = maintainerScale * restScale;
+  const scale = maintainerScale * restScale * getCapstoneOperatorBuffMultiplier(worker);
 
   const hpFrac = (cfg.hpPerLevel ?? 0) * level * scale;
   const damageFrac = (cfg.damagePerLevel ?? 0) * level * scale;
@@ -158,7 +162,10 @@ export function resolveOperatorAttrition(state) {
     if (!worker) continue;
 
     const destroyed = building.hp <= 0;
-    if (destroyed) {
+    if (destroyed && getCapstoneOperatorNoDelevel(worker)) {
+      // Steadfast: the operator holds its level even as the building falls.
+      messages.push(`${worker.name} held the line (Steadfast) as the ${buildingName(building)} fell.`);
+    } else if (destroyed) {
       const newLevel = (worker.level ?? 1) - 1;
       if (newLevel < 1) {
         // L1 operator is lost entirely — this is the bottom-of-the-loop churn: buy a fresh worker.

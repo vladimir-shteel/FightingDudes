@@ -1204,7 +1204,8 @@ h3 {
   line-height: 1;
 }
 
-.unit-trait-yield {
+.unit-trait-yield,
+.unit-trait-maintainer {
   background: #e5f7cc;
 }
 

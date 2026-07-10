@@ -60,7 +60,6 @@ import {
   getWorkerCapstoneEffect,
   getWorkerGoldenConversion,
   getWorkerRushMultiplier,
-  getWorkerYieldMultiplier,
   WORKER_TRAIT_KEYS
 } from "./systems/workerTraitSystem.js";
 
@@ -74,9 +73,9 @@ function buildTraitInfoMarkup() {
   const shiftBase = shift.baseMultiplier ?? 1;
   const rows = [
     {
-      key: "yield",
-      label: lines.yield?.label ?? "Maintainer",
-      icon: lines.yield?.icon ?? "M",
+      key: "maintainer",
+      label: lines.maintainer?.label ?? "Maintainer",
+      icon: lines.maintainer?.icon ?? "M",
       text: `Each point adds +${(maintainerPer * 100).toFixed(0)}% to the buff this worker gives while operating a building (HP / damage / summon rate). Pill number = points.`
     },
     {
@@ -237,7 +236,7 @@ function createUnitCard(unit, options = {}) {
       const points = traits[key];
       const lineCfg = CONFIG.workerTraits?.lines?.[key] ?? {};
       let tip;
-      if (key === "yield") tip = `${getTraitLabel(key)} ${points} · +${Math.round((CONFIG.operator?.maintainerPerPoint ?? 0) * points * 100)}% operator buff`;
+      if (key === "maintainer") tip = `${getTraitLabel(key)} ${points} · +${Math.round((CONFIG.operator?.maintainerPerPoint ?? 0) * points * 100)}% operator buff`;
       else if (key === "golden") tip = `Golden ${points} · +${((lineCfg.goldPerResourcePerPoint ?? 0) * points * 100).toFixed(1)}% of production paid as gold`;
       else if (key === "rush") tip = `Rush ${points} · +${Math.round((lineCfg.battleMultiplierPerPoint ?? 0) * points * 100)}% Shift multiplier`;
       else tip = `${getTraitLabel(key)} ${points}`;
@@ -624,7 +623,7 @@ export function mountUI(state, onStateChanged) {
     const popover = document.createElement("div");
     popover.className = "worker-action-popover";
 
-    const yieldPct = Math.round((getWorkerYieldMultiplier(unit) - 1) * 100);
+    const maintainerPct = Math.round((CONFIG.operator?.maintainerPerPoint ?? 0) * (unit.traits?.maintainer ?? 0) * 100);
     const goldenPct = Math.round(getWorkerGoldenConversion(unit) * 1000) / 10;
     const rushMult = Math.round(getWorkerRushMultiplier(unit) * 100) / 100;
     const capstoneEffect = getWorkerCapstoneEffect(unit);
@@ -652,7 +651,7 @@ export function mountUI(state, onStateChanged) {
     popover.innerHTML = `
       <strong>${unit.name} · Lv${unit.level}${headerStatus}</strong>
       <div class="worker-popover-traits">
-        <span class="unit-trait unit-trait-yield" title="Yield">Y +${yieldPct}%</span>
+        <span class="unit-trait unit-trait-maintainer" title="Maintainer">M +${maintainerPct}%</span>
         <span class="unit-trait unit-trait-golden" title="Golden">G ${goldenPct}%</span>
         <span class="unit-trait unit-trait-rush" title="Rush">R ${rushMult}× Shift</span>
       </div>

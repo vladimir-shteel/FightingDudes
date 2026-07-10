@@ -1,6 +1,6 @@
 import { CONFIG } from "../config.js";
 
-export const WORKER_TRAIT_KEYS = ["yield", "golden", "rush"];
+export const WORKER_TRAIT_KEYS = ["maintainer", "golden", "rush"];
 
 // Worker merge level is gated by wave: starts at workerLevelCapBase and rises one tier every
 // workerLevelCapWavesPerStep waves up to merge.maxLevel. Keeps the early roster WIDE (surplus
@@ -73,7 +73,7 @@ export function trimWorkerTraitsToLevel(unit) {
 export function getDominantTraitKey(traits = {}) {
   return WORKER_TRAIT_KEYS
     .map((key) => ({ key, value: traits[key] ?? 0 }))
-    .sort((left, right) => right.value - left.value || WORKER_TRAIT_KEYS.indexOf(left.key) - WORKER_TRAIT_KEYS.indexOf(right.key))[0]?.key ?? "yield";
+    .sort((left, right) => right.value - left.value || WORKER_TRAIT_KEYS.indexOf(left.key) - WORKER_TRAIT_KEYS.indexOf(right.key))[0]?.key ?? "maintainer";
 }
 
 export function getTraitLabel(key) {
@@ -99,7 +99,7 @@ export function rollWorkerTraitVector() {
     }
   }
 
-  return normalizeTraitVector({ yield: 1 });
+  return normalizeTraitVector({ maintainer: 1 });
 }
 
 export function mergeWorkerTraitVectors(firstTraits = {}, secondTraits = {}) {
@@ -118,12 +118,6 @@ export function ensureWorkerTraits(unit) {
   }
   unit.traits = normalizeTraitVector(unit.traits);
   return unit.traits;
-}
-
-export function getWorkerYieldMultiplier(unit) {
-  const traits = ensureWorkerTraits(unit);
-  const perPoint = getLineConfig("yield").resourceMultiplierPerPoint ?? 0;
-  return 1 + traits.yield * perPoint;
 }
 
 export function getWorkerGoldenConversion(unit) {
@@ -165,7 +159,7 @@ export function pickCapstoneCandidates(traits = {}) {
 
   if (dominantValue > 0 && secondValue >= dominantValue * 0.6) {
     const pairKey = [dominantKey, secondKey].sort().join("+");
-    const hybridId = pairKey === "golden+yield" ? "foreman" : pairKey === "rush+yield" ? "warlord" : null;
+    const hybridId = pairKey === "golden+maintainer" ? "foreman" : pairKey === "maintainer+rush" ? "warlord" : null;
     if (hybridId) {
       candidates.push(hybridId);
     }
@@ -188,18 +182,18 @@ export function getWorkerCapstoneEffect(unit) {
   return null;
 }
 
-export function getCapstoneYieldMultiplier(unit) {
+export function getCapstoneOperatorBuffMultiplier(unit) {
   const capstone = getWorkerCapstoneEffect(unit);
-  if (!capstone) {
-    return 1;
-  }
-  if (capstone.effect.kind === "yieldMul") {
-    return capstone.effect.value ?? 1;
-  }
-  if (capstone.effect.kind === "foreman") {
-    return 1 + 0.4;
-  }
+  if (!capstone) return 1;
+  if (capstone.effect.kind === "operatorBuffMul") return capstone.effect.value ?? 1;
+  if (capstone.effect.kind === "foreman") return 1.25;
+  if (capstone.effect.kind === "warlord") return 1.25;
   return 1;
+}
+
+export function getCapstoneOperatorNoDelevel(unit) {
+  const capstone = getWorkerCapstoneEffect(unit);
+  return capstone?.effect?.kind === "operatorNoDelevel";
 }
 
 export function getCapstoneGoldenBonus(unit) {
@@ -249,15 +243,6 @@ export function getCapstoneBattleDamageBonus(unit) {
     return 0;
   }
   return capstone.effect.value ?? 0;
-}
-
-export function getCapstoneWarlordProductionMultiplier(state, unit) {
-  const capstone = getWorkerCapstoneEffect(unit);
-  if (!capstone || capstone.effect.kind !== "warlord") {
-    return 1;
-  }
-  const active = Boolean(unit?.battleShiftCommitted && state?.fortress?.battle?.active);
-  return active ? 1 + 0.5 : 1;
 }
 
 export function applyWorkerCapstone(state, unitId, capstoneId) {

@@ -53,11 +53,10 @@
       "restRechargePerWave": 2
     },
     "lines": {
-      "yield": {
+      "maintainer": {
         "label": "Maintainer",
         "icon": "M",
-        "rollWeight": 1,
-        "resourceMultiplierPerPoint": 0.04
+        "rollWeight": 1
       },
       "golden": {
         "label": "Golden",
@@ -73,23 +72,22 @@
       }
     },
     "capstones": {
-      "yield": [
+      "maintainer": [
         {
-          "id": "yield-master",
-          "label": "Yield Master",
-          "description": "Slot production +60%.",
+          "id": "master-engineer",
+          "label": "Master Engineer",
+          "description": "Operator buff strength +50%.",
           "effect": {
-            "kind": "yieldMul",
-            "value": 1.6
+            "kind": "operatorBuffMul",
+            "value": 1.5
           }
         },
         {
-          "id": "deep-vein",
-          "label": "Deep Vein",
-          "description": "Double demand bonus.",
+          "id": "steadfast",
+          "label": "Steadfast",
+          "description": "The operated worker never loses a level when its building falls.",
           "effect": {
-            "kind": "demandMul",
-            "value": 2.0
+            "kind": "operatorNoDelevel"
           }
         }
       ],
@@ -136,16 +134,16 @@
       "hybrid": [
         {
           "id": "foreman",
-          "label": "Foreman (Y+G)",
-          "description": "+40% production, +8% goldenConversion.",
+          "label": "Foreman (M+G)",
+          "description": "+8% gold conversion and +25% operator buff.",
           "effect": {
             "kind": "foreman"
           }
         },
         {
           "id": "warlord",
-          "label": "Warlord (R+Y)",
-          "description": "+50% production during battle shift.",
+          "label": "Warlord (R+M)",
+          "description": "+25% operator buff, keeps Rush.",
           "effect": {
             "kind": "warlord"
           }
