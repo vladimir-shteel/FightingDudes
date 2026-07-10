@@ -68,15 +68,15 @@
       {
         "hp": 340,
         "upgradeCost": {
-          "wood": 150,
-          "ore": 80
+          "wood": 225,
+          "ore": 120
         }
       },
       {
         "hp": 560,
         "upgradeCost": {
-          "wood": 240,
-          "ore": 150
+          "wood": 360,
+          "ore": 225
         }
       },
       {
@@ -134,15 +134,15 @@
       {
         "hp": 300,
         "upgradeCost": {
-          "wood": 210,
-          "ore": 110
+          "wood": 262,
+          "ore": 138
         }
       },
       {
         "hp": 560,
         "upgradeCost": {
-          "wood": 330,
-          "ore": 180
+          "wood": 495,
+          "ore": 270
         }
       },
       {
@@ -208,8 +208,8 @@
         "cooldownSeconds": 4.2,
         "unit": "warrior",
         "upgradeCost": {
-          "wood": 120,
-          "ore": 55
+          "wood": 150,
+          "ore": 69
         }
       },
       {
@@ -217,8 +217,8 @@
         "cooldownSeconds": 3.1,
         "unit": "warrior",
         "upgradeCost": {
-          "wood": 190,
-          "ore": 95
+          "wood": 285,
+          "ore": 142
         }
       },
       {
@@ -285,8 +285,8 @@
         "cooldownSeconds": 5.9,
         "unit": "archer",
         "upgradeCost": {
-          "wood": 150,
-          "ore": 70
+          "wood": 188,
+          "ore": 88
         }
       },
       {
@@ -294,9 +294,9 @@
         "cooldownSeconds": 4.8,
         "unit": "archer",
         "upgradeCost": {
-          "wood": 240,
-          "ore": 120,
-          "crystal": 40
+          "wood": 360,
+          "ore": 180,
+          "crystal": 60
         }
       },
       {
@@ -351,8 +351,8 @@
         "damage": 22,
         "cooldownSeconds": 1.0,
         "upgradeCost": {
-          "ore": 150,
-          "iron": 70
+          "ore": 188,
+          "iron": 88
         },
         "range": 2.0
       },
@@ -361,8 +361,8 @@
         "damage": 40,
         "cooldownSeconds": 0.85,
         "upgradeCost": {
-          "ore": 240,
-          "iron": 120
+          "ore": 360,
+          "iron": 180
         },
         "range": 2.2
       },
@@ -371,8 +371,8 @@
         "damage": 72,
         "cooldownSeconds": 0.75,
         "upgradeCost": {
-          "ore": 380,
-          "iron": 200
+          "ore": 570,
+          "iron": 300
         },
         "range": 2.4
       },
@@ -440,8 +440,8 @@
         "cooldownSeconds": 6.3,
         "unit": "rider",
         "upgradeCost": {
-          "wood": 175,
-          "iron": 85
+          "wood": 219,
+          "iron": 106
         }
       },
       {
@@ -449,9 +449,9 @@
         "cooldownSeconds": 4.8,
         "unit": "rider",
         "upgradeCost": {
-          "wood": 275,
-          "iron": 140,
-          "crystal": 50
+          "wood": 412,
+          "iron": 210,
+          "crystal": 75
         }
       },
       {
@@ -517,8 +517,8 @@
         "cooldownSeconds": 7,
         "unit": "mage",
         "upgradeCost": {
-          "ore": 175,
-          "crystal": 85
+          "ore": 219,
+          "crystal": 106
         }
       },
       {
@@ -526,8 +526,8 @@
         "cooldownSeconds": 5.3,
         "unit": "mage",
         "upgradeCost": {
-          "ore": 275,
-          "crystal": 140
+          "ore": 412,
+          "crystal": 210
         }
       },
       {
@@ -585,16 +585,16 @@
         "hp": 1,
         "damage": 115,
         "upgradeCost": {
-          "iron": 140,
-          "crystal": 55
+          "iron": 210,
+          "crystal": 82
         }
       },
       {
         "hp": 1,
         "damage": 180,
         "upgradeCost": {
-          "iron": 230,
-          "crystal": 90
+          "iron": 345,
+          "crystal": 135
         }
       },
       {
