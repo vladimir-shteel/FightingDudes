@@ -1,6 +1,16 @@
 import { CONFIG, getFortressBuildingUnlockWave } from "../config.js";
 import { clamp, generateId } from "../utils.js";
 import { spawnAllyForBuilding, volleyFromBuilding } from "./fortressBattleSystem.js";
+import { returnUnitToReserve } from "./reserveSystem.js";
+
+// A building being removed (demolish / merge source) must hand its operator worker back to the
+// reserve instead of silently deleting it.
+function releaseBuildingOperator(state, building) {
+  if (building?.operator) {
+    returnUnitToReserve(state, building.operator);
+    building.operator = null;
+  }
+}
 
 // Field is played horizontally: base on the LEFT, enemies march in from the RIGHT.
 export const FORTRESS_WIDTH = 8;
@@ -445,6 +455,7 @@ export function mergeFortressBuildings(state, sourceId, targetId) {
     return { ok: false, reason: `Need ${crystalCost} 💎 to merge to level ${target.level + 1}.` };
   }
 
+  releaseBuildingOperator(state, source);
   clearBuilding(state, source);
   state.fortress.buildings = state.fortress.buildings.filter((item) => item.id !== source.id);
 
@@ -586,6 +597,7 @@ export function demolishFortressBuilding(state, buildingId) {
     return { ok: false, reason: `Need ${goldCost} gold to demolish.` };
   }
   state.resources.gold -= goldCost;
+  releaseBuildingOperator(state, building);
   const refund = getFortressBuildingRefund(state, building);
   clearBuilding(state, building);
   state.fortress.buildings = state.fortress.buildings.filter((item) => item.id !== building.id);
