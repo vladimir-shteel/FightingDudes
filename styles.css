@@ -2567,8 +2567,14 @@ h3 {
   font-style: normal;
 }
 
-/* An un-manned building highlighted as an operator target when a worker is selected. Stronger,
-   pulsing green so it reads as "drop the selected worker here". */
+/* An operable building with an EMPTY operator slot: always flagged red so it's obvious a worker
+   goes here. When a worker is selected it upgrades to a green, pulsing drop target. */
+.fortress-tile.is-operator-empty {
+  outline: 2px solid rgba(200, 66, 52, 0.7);
+  outline-offset: 0;
+  box-shadow: 0 0 0 3px rgba(200, 66, 52, 0.18);
+}
+
 .fortress-tile.is-operator-target {
   outline: 3px solid rgba(46, 160, 90, 0.9);
   outline-offset: 0;
@@ -2581,7 +2587,8 @@ h3 {
   50% { box-shadow: 0 0 0 7px rgba(120, 214, 140, 0.55); }
 }
 
-.fortress-operator-add-hint {
+/* Empty operator-slot badge (top-left). Red by default; green (.is-target) when a worker is picked. */
+.fortress-operator-slot {
   position: absolute;
   left: 3px;
   top: 3px;
@@ -2590,21 +2597,23 @@ h3 {
   align-items: center;
   gap: 1px;
   padding: 1px 4px 1px 2px;
-  border: 1px solid rgba(46, 108, 74, 0.6);
+  border: 1px solid rgba(150, 44, 34, 0.7);
   border-radius: 999px;
-  background: rgba(120, 214, 140, 0.95);
-  color: #143d24;
+  background: rgba(232, 122, 108, 0.95);
+  color: #3d1410;
   font-size: 11px;
   font-weight: 900;
   line-height: 1;
   pointer-events: none;
 }
 
-.fortress-operator-add-icon {
-  font-size: 13px;
+.fortress-operator-slot.is-target {
+  border-color: rgba(46, 108, 74, 0.7);
+  background: rgba(120, 214, 140, 0.95);
+  color: #143d24;
 }
 
-.fortress-operator-add-hint i {
+.fortress-operator-slot i {
   font-style: normal;
 }
 

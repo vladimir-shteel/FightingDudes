@@ -15,6 +15,11 @@ function operatorConfig() {
   return CONFIG.operator ?? {};
 }
 
+// Only some buildings accept an operator (walls/turret/trap mine opt out via `operable: false`).
+export function isBuildingOperable(type) {
+  return CONFIG.fortressBuildings?.[type]?.operable !== false;
+}
+
 // TODO(maintainer trait): the yield trait line will be renamed to `maintainer`. Read both keys so
 // this keeps working across that rename.
 function getMaintainerPoints(worker) {
@@ -70,6 +75,9 @@ export function assignOperatorToBuilding(state, buildingId, workerId) {
   const building = state.fortress.buildings.find((item) => item.id === buildingId);
   if (!building) {
     return { ok: false, reason: "Building not found." };
+  }
+  if (!isBuildingOperable(building.type)) {
+    return { ok: false, reason: `${buildingName(building)} cannot take an operator.` };
   }
   if (building.hp <= 0) {
     return { ok: false, reason: "Repair the building before assigning an operator." };

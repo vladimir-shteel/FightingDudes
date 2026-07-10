@@ -97,7 +97,8 @@
         }
       }
     ],
-    "unlockWave": 1
+    "unlockWave": 1,
+    "operable": false
   },
   "bigWall": {
     "name": "Big Wall",
@@ -162,7 +163,8 @@
         }
       }
     ],
-    "unlockWave": 12
+    "unlockWave": 12,
+    "operable": false
   },
   "barracks": {
     "name": "Barracks",
@@ -393,7 +395,8 @@
         },
         "range": 2.6
       }
-    ]
+    ],
+    "operable": false
   },
   "stables": {
     "name": "Stables",
@@ -599,6 +602,7 @@
         "hp": 1,
         "damage": 270
       }
-    ]
+    ],
+    "operable": false
   }
 }
