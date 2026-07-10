@@ -2,32 +2,30 @@ import { CONFIG } from "../config.js";
 import { createReserveUnit } from "../factories.js";
 import { getMaxWorkerLevel, isWorkerBattleShiftLocked, mergeWorkerTraitVectors, pickCapstoneCandidates } from "./workerTraitSystem.js";
 
-function getWorkerPower(unit) {
-  const level = Math.max(1, unit?.level ?? 1);
-  return 2 ** (level - 1);
-}
-
-function getTotalWorkerPower(state) {
+// Buy cost scales with the NUMBER of bodies in the roster, NOT their levels. The old curve used
+// Σ2^(level-1) (doubly-exponential in level), so a handful of high-tier workers pushed the price of
+// the next worker into the tens of thousands of gold — more than the whole game yields. That bricked
+// the vector-B loop: an operator who deleveled (or was lost) could never be replaced. Counting bodies
+// keeps replacements cheap so churn stays alive, while still gently taxing a wide roster.
+function getWorkerCount(state) {
   let total = 0;
-
   for (const unit of state.reserveUnits) {
-    total += getWorkerPower(unit);
+    if (unit) total += 1;
   }
-
   for (const mine of state.mines) {
     for (const unit of mine.workerIds) {
-      if (unit) {
-        total += getWorkerPower(unit);
-      }
+      if (unit) total += 1;
     }
   }
-
+  for (const building of state.fortress.buildings) {
+    if (building.operator) total += 1;
+  }
   return total;
 }
 
 export function getUnitBuyCost(state) {
-  const workerPower = getTotalWorkerPower(state);
-  const baseCost = CONFIG.unitBuyBaseCost * ((CONFIG.unitBuyExponent ?? 1) ** workerPower);
+  const workerCount = getWorkerCount(state);
+  const baseCost = CONFIG.unitBuyBaseCost * ((CONFIG.unitBuyExponent ?? 1) ** workerCount);
   return Math.max(1, Math.floor(baseCost * (state.economy.workerBuyDiscount ?? 1)));
 }
 

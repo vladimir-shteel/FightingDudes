@@ -330,7 +330,7 @@
       ]
     ],
     "unlockedByDefault": false,
-    "unlockWave": 5,
+    "unlockWave": 4,
     "buyCost": {
       "ore": 105,
       "iron": 33
@@ -395,8 +395,7 @@
         },
         "range": 2.6
       }
-    ],
-    "operable": false
+    ]
   },
   "stables": {
     "name": "Stables",

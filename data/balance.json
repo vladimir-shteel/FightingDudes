@@ -11,15 +11,15 @@
   },
   "startingOre": 0,
   "unitBuyBaseCost": 5,
-  "unitBuyExponent": 1.09,
+  "unitBuyExponent": 1.07,
   "productionMultipliers": {
     "rest": 0.55
   },
   "combat": {
     "hpScalePerWave": 0.11,
     "attackScalePerWave": 0.045,
-    "armorScalePerWave": 0.08,
-    "armorMinFraction": 0.15,
+    "armorScalePerWave": 0.07,
+    "armorMinFraction": 0.25,
     "unitAttackPerLevel": 0.35,
     "unitHpPerLevel": 0.2
   },

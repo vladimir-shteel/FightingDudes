@@ -346,13 +346,16 @@ export function spawnAllyForBuilding(state, building, unitKey, count) {
     return;
   }
   const center = getBuildingCenter(building);
+  const damageMult = building.operatorBuff?.damageMult ?? 1;
   for (let index = 0; index < count; index += 1) {
     const offset = (index - (count - 1) / 2) * 0.4;
-    battle.allies.push(createFortressAlly(
+    const ally = createFortressAlly(
       unitKey,
       { x: Math.min(FORTRESS_WIDTH, center.x + 0.65), y: center.y + offset },
       building.level
-    ));
+    );
+    ally.attack *= damageMult;
+    battle.allies.push(ally);
   }
 }
 
@@ -362,10 +365,11 @@ export function volleyFromBuilding(state, building, count, damage) {
     return;
   }
   const center = getBuildingCenter(building);
+  const damageMult = building.operatorBuff?.damageMult ?? 1;
   const aliveEnemies = battle.enemies.filter((enemy) => enemy.hp > 0);
   const targets = [...aliveEnemies].sort((a, b) => getDistance(center, a) - getDistance(center, b)).slice(0, count);
   for (const target of targets) {
-    battle.projectiles.push(createProjectile(center, target, damage, "volley"));
+    battle.projectiles.push(createProjectile(center, target, damage * damageMult, "volley"));
   }
 }
 
@@ -477,7 +481,11 @@ function tickBuildingActions(state, deltaSeconds) {
     if (level.unit) {
       building.cooldownTimer -= deltaSeconds;
       if (building.cooldownTimer <= 0) {
-        battle.allies.push(createFortressAlly(level.unit, { x: Math.min(FORTRESS_WIDTH, center.x + 0.65), y: center.y }, building.level));
+        const ally = createFortressAlly(level.unit, { x: Math.min(FORTRESS_WIDTH, center.x + 0.65), y: center.y }, building.level);
+        // Operator damage buff now actually reaches spawner output: a stronger operator trains
+        // stronger warriors/archers/riders/mages (previously damageMult only touched turrets).
+        ally.attack *= (opBuff.damageMult ?? 1);
+        battle.allies.push(ally);
         building.cooldownTimer = level.cooldownSeconds * (opBuff.cooldownMult ?? 1);
       }
     }
