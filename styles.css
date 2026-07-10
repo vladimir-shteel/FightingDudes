@@ -2921,6 +2921,10 @@ h3 {
     linear-gradient(135deg, rgba(192, 85, 58, 0.16), transparent 44%),
     #fff7dd;
   border-color: rgba(192, 85, 58, 0.6);
+  box-shadow:
+    inset 0 -3px 0 rgba(107, 74, 45, 0.07),
+    0 0 0 3px rgba(209, 83, 55, 0.16),
+    0 0 16px rgba(209, 83, 55, 0.18);
 }
 
 .fortress-tile.is-shaped-building.is-damaged {
@@ -2932,6 +2936,46 @@ h3 {
   background:
     linear-gradient(135deg, rgba(192, 85, 58, 0.16), transparent 44%),
     #fff7dd;
+}
+
+.fortress-repair-hint {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  z-index: 4;
+  max-width: calc(100% - 10px);
+  padding: 2px 5px;
+  border: 1px solid rgba(134, 38, 27, 0.24);
+  border-radius: 999px;
+  background: rgba(255, 238, 196, 0.94);
+  color: #8c2f1f;
+  font-size: 9px;
+  font-weight: 900;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.fortress-hp-meter {
+  position: absolute;
+  left: 7px;
+  right: 7px;
+  bottom: 6px;
+  z-index: 4;
+  height: 6px;
+  overflow: hidden;
+  border: 1px solid rgba(134, 38, 27, 0.28);
+  border-radius: 999px;
+  background: rgba(134, 38, 27, 0.15);
+  pointer-events: none;
+}
+
+.fortress-hp-meter i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #d44a35, #f0bd2f);
 }
 
 .fortress-tile.is-building.is-destroyed {
@@ -3216,6 +3260,20 @@ h3 {
   .fortress-tile {
     border-radius: 12px;
     padding: 3px;
+  }
+
+  .fortress-repair-hint {
+    top: 3px;
+    right: 3px;
+    padding: 1px 4px;
+    font-size: 7px;
+  }
+
+  .fortress-hp-meter {
+    left: 5px;
+    right: 5px;
+    bottom: 4px;
+    height: 5px;
   }
 
   .fortress-upgrade-button {

@@ -1293,6 +1293,8 @@ export function mountUI(state, onStateChanged) {
         tileButton.classList.toggle("is-hit", isHitFlashing(building));
         tileButton.classList.toggle("is-damaged", building.hp > 0 && building.hp < building.maxHp);
         tileButton.classList.toggle("is-destroyed", building.hp <= 0);
+        const hpFraction = building.maxHp > 0 ? Math.max(0, Math.min(1, building.hp / building.maxHp)) : 0;
+        const needsRepair = building.hp > 0 && building.hp < building.maxHp;
         const activeDefinition = state.fortress.battle.active ? getBuildingActiveDefinition(building) : null;
         tileButton.innerHTML = `
           ${isSolidBuilding ? "" : renderFortressBuildingShape(building, buildingBounds)}
@@ -1300,6 +1302,19 @@ export function mountUI(state, onStateChanged) {
           <strong>${definition.name}</strong>
           <small>Lv ${building.level} · HP ${Math.round(building.hp)}/${building.maxHp}</small>
         `;
+
+        if (needsRepair) {
+          const repairHint = document.createElement("span");
+          repairHint.className = "fortress-repair-hint";
+          repairHint.textContent = "Repair";
+          tileButton.append(repairHint);
+
+          const hpMeter = document.createElement("span");
+          hpMeter.className = "fortress-hp-meter";
+          hpMeter.setAttribute("aria-hidden", "true");
+          hpMeter.innerHTML = `<i style="width:${Math.round(hpFraction * 100)}%"></i>`;
+          tileButton.append(hpMeter);
+        }
 
         if (activeDefinition && building.hp > 0) {
           const onCooldown = (building.activeCooldown ?? 0) > 0;

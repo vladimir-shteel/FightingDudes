@@ -53,20 +53,20 @@
     },
     "levels": [
       {
-        "hp": 70,
+        "hp": 95,
         "upgradeCost": {
           "wood": 55
         }
       },
       {
-        "hp": 150,
+        "hp": 180,
         "upgradeCost": {
           "wood": 90,
           "ore": 40
         }
       },
       {
-        "hp": 300,
+        "hp": 340,
         "upgradeCost": {
           "wood": 150,
           "ore": 80
@@ -195,8 +195,8 @@
     },
     "levels": [
       {
-        "hp": 70,
-        "cooldownSeconds": 6,
+        "hp": 82,
+        "cooldownSeconds": 5.6,
         "unit": "warrior",
         "upgradeCost": {
           "wood": 70,
@@ -204,8 +204,8 @@
         }
       },
       {
-        "hp": 85,
-        "cooldownSeconds": 4.5,
+        "hp": 100,
+        "cooldownSeconds": 4.2,
         "unit": "warrior",
         "upgradeCost": {
           "wood": 120,
@@ -213,8 +213,8 @@
         }
       },
       {
-        "hp": 100,
-        "cooldownSeconds": 3.3,
+        "hp": 118,
+        "cooldownSeconds": 3.1,
         "unit": "warrior",
         "upgradeCost": {
           "wood": 190,
@@ -222,7 +222,7 @@
         }
       },
       {
-        "hp": 130,
+        "hp": 150,
         "cooldownSeconds": 1.9,
         "unit": "warrior",
         "active": {
@@ -272,8 +272,8 @@
     },
     "levels": [
       {
-        "hp": 55,
-        "cooldownSeconds": 8,
+        "hp": 66,
+        "cooldownSeconds": 7.4,
         "unit": "archer",
         "upgradeCost": {
           "wood": 95,
@@ -281,8 +281,8 @@
         }
       },
       {
-        "hp": 68,
-        "cooldownSeconds": 6.3,
+        "hp": 80,
+        "cooldownSeconds": 5.9,
         "unit": "archer",
         "upgradeCost": {
           "wood": 150,

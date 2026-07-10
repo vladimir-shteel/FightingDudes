@@ -16,9 +16,9 @@
     "rest": 0.55
   },
   "combat": {
-    "hpScalePerWave": 0.14,
-    "attackScalePerWave": 0.06,
-    "armorScalePerWave": 0.1,
+    "hpScalePerWave": 0.11,
+    "attackScalePerWave": 0.045,
+    "armorScalePerWave": 0.08,
     "armorMinFraction": 0.15,
     "unitAttackPerLevel": 0.35,
     "unitHpPerLevel": 0.2
@@ -162,9 +162,9 @@
     }
   },
   "attrition": {
-    "floorPerDefeat": 0.2,
-    "postDefeatHpFraction": 0.4,
-    "repairCostPerHpFractionOfBuyCost": 1.0
+    "floorPerDefeat": 0.16,
+    "postDefeatHpFraction": 0.45,
+    "repairCostPerHpFractionOfBuyCost": 0.6
   },
   "rewardDraft": {
     "permanent": {
