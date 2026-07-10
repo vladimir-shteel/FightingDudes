@@ -2458,6 +2458,10 @@ h3 {
 
 .fortress-battle-active .fortress-panel {
   min-height: calc(100dvh - 72px);
+  /* The panel is a grid; with the battle min-height its auto rows would STRETCH to fill, ballooning
+     the battle-log and field rows and spraying big vertical gaps between them. Pack rows to the top
+     at their natural height instead — any leftover space collects harmlessly below the field. */
+  align-content: start;
 }
 
 /* During battle the action row stays visible ONLY for Give Up — other controls (Buffs, To Battle)
