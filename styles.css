@@ -310,6 +310,12 @@ h3 {
   background: rgba(40, 12, 10, 0.75);
 }
 
+/* `display:flex` above overrides the [hidden] UA default, so an empty boss bar kept reserving
+   vertical space and pushed the battle field off-screen on mobile. Force it truly gone when hidden. */
+.boss-hp-bar[hidden] {
+  display: none;
+}
+
 .boss-hp-row {
   display: flex;
   align-items: center;
@@ -2432,8 +2438,14 @@ h3 {
   grid-template-rows: repeat(var(--fortress-rows), minmax(54px, 1fr));
   gap: 8px;
   width: min(100%, 760px);
+  max-width: 100%;
   aspect-ratio: var(--fortress-cols) / var(--fortress-rows);
   margin: 0 auto;
+  /* As a grid item the field must NOT stretch vertically: a stretched height + aspect-ratio would
+     derive an over-wide width that overflows the panel (worst on mobile once battle hides the shop
+     and the panel goes full-height). Pin to the top and centre horizontally so width stays == container. */
+  align-self: start;
+  justify-self: center;
 }
 
 .fortress-battle-active .fortress-shop-panel {
