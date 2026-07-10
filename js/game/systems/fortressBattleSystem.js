@@ -7,6 +7,7 @@ import {
   syncFortressBuildingUnlocks
 } from "./fortressSystem.js";
 import { accrueWorkerRest, autoCommitBattleShifts, clearWorkerBattleShifts, consumeShiftRestFlags } from "./mineSystem.js";
+import { applyOperatorPrepAtBattleStart, resolveOperatorAttrition } from "./operatorSystem.js";
 import { findTilePath } from "./pathfinding.js";
 import {
   beginFortressWave,
@@ -426,6 +427,8 @@ export function startFortressBattle(state) {
   for (const building of state.fortress.buildings) {
     building.cooldownTimer = 0.5;
   }
+  // Lock in operator buffs (HP bonus + damage/summon multipliers) and spend their Rest prep charge.
+  applyOperatorPrepAtBattleStart(state);
   beginFortressWave(state);
   // Rested workers staffing a mine automatically take the battle shift (up to the per-mine cap).
   autoCommitBattleShifts(state);
@@ -468,12 +471,14 @@ function tickBuildingActions(state, deltaSeconds) {
     const definition = CONFIG.fortressBuildings[building.type];
     const level = definition.levels[building.level - 1];
     const center = getBuildingCenter(building);
+    // Operator buffs: faster summon (cooldownMult < 1) and stronger direct damage.
+    const opBuff = building.operatorBuff ?? { damageMult: 1, cooldownMult: 1 };
 
     if (level.unit) {
       building.cooldownTimer -= deltaSeconds;
       if (building.cooldownTimer <= 0) {
         battle.allies.push(createFortressAlly(level.unit, { x: Math.min(FORTRESS_WIDTH, center.x + 0.65), y: center.y }, building.level));
-        building.cooldownTimer = level.cooldownSeconds;
+        building.cooldownTimer = level.cooldownSeconds * (opBuff.cooldownMult ?? 1);
       }
     }
 
@@ -483,8 +488,9 @@ function tickBuildingActions(state, deltaSeconds) {
         const target = chooseNearest(center, battle.enemies.filter((enemy) => enemy.hp > 0));
         if (target && target.distance <= (level.range ?? 3.2)) {
           const boostMultiplier = building.activeBoostRemaining > 0 ? (building.activeBoost?.multiplier ?? 1) : 1;
-          battle.projectiles.push(createProjectile(center, target.item, level.damage * boostMultiplier, "turret"));
-          building.cooldownTimer = level.cooldownSeconds;
+          const damage = level.damage * boostMultiplier * (opBuff.damageMult ?? 1);
+          battle.projectiles.push(createProjectile(center, target.item, damage, "turret"));
+          building.cooldownTimer = level.cooldownSeconds * (opBuff.cooldownMult ?? 1);
         }
       }
     }
@@ -738,6 +744,10 @@ function finishBattle(state, result) {
   state.fortress.battle.allies = [];
   state.fortress.battle.projectiles = [];
 
+  // Operator attrition FIRST: peel the temporary operator HP bonus off maxHp (so the restore below
+  // uses the real cap) and drop/lose operators whose building was destroyed this wave.
+  const operatorMessages = resolveOperatorAttrition(state);
+
   if (result === "defeat") {
     const postDefeatHpFraction = CONFIG.attrition?.postDefeatHpFraction ?? 0.4;
     const floorPerDefeat = CONFIG.attrition?.floorPerDefeat ?? 0;
@@ -798,6 +808,10 @@ function finishBattle(state, result) {
   clearWorkerBattleShifts(state);
   // Every worker NOT on its desired mine (reserve or a wrong mine) builds Rest toward that mine.
   accrueWorkerRest(state);
+
+  if (operatorMessages.length > 0) {
+    state.fortress.message = `${state.fortress.message} ${operatorMessages.join(" ")}`.trim();
+  }
 }
 
 export function giveUpFortressBattle(state) {
