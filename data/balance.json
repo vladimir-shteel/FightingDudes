@@ -164,12 +164,43 @@
     "postDefeatHpFraction": 0.45,
     "repairCostPerHpFractionOfBuyCost": 0.6
   },
-  "rewardDraft": {
+  "hqUpgrades": {
+    "cardsOffered": 3,
     "permanent": {
-      "goldGainMultiplier": 1.1,
-      "resourceGainMultiplier": 1.1,
-      "baseHealthBonus": 12
+      "gold": {
+        "label": "Gold Dividend",
+        "icon": "🪙",
+        "description": "All gold income ×1.1 per level.",
+        "multiplier": 1.1,
+        "baseCost": { "gold": 40, "crystal": 8 },
+        "costGrowth": 1.7
+      },
+      "resource": {
+        "label": "Supply Line",
+        "icon": "⛏️",
+        "description": "Mine production ×1.1 per level.",
+        "multiplier": 1.1,
+        "baseCost": { "wood": 55, "ore": 55 },
+        "costGrowth": 1.7
+      },
+      "health": {
+        "label": "Fortified Core",
+        "icon": "🛡️",
+        "description": "+14 base HP to every building per level.",
+        "baseHealthBonus": 14,
+        "baseCost": { "ore": 60, "iron": 35 },
+        "costGrowth": 1.65
+      }
     },
+    "temporary": {
+      "durationWaves": 2,
+      "production": { "label": "Harvest Surge", "icon": "⛏️", "multiplier": 1.25, "cost": { "crystal": 25 } },
+      "damage": { "label": "War Drums", "icon": "⚔️", "multiplier": 1.2, "cost": { "iron": 30 } },
+      "defense": { "label": "Shield Wall", "icon": "🛡️", "multiplier": 1.15, "cost": { "ore": 45 } }
+    }
+  },
+  "rewardDraft": {
+    "cardsOffered": 3,
     "temporary": {
       "durationWaves": 2,
       "productionMultiplier": 1.25,
@@ -177,8 +208,8 @@
       "defenseMultiplier": 1.15
     },
     "oneShot": {
-      "goldInjection": 180,
-      "resourceInjection": 70
+      "goldInjection": 80,
+      "resourceInjection": 40
     }
   }
 }

@@ -43,6 +43,7 @@ export function createInitialState() {
       damageMultiplier: 1,
       defenseMultiplier: 1,
       baseHealthBonus: 0,
+      hqUpgradeLevels: { gold: 0, resource: 0, health: 0 },
       queuedTemporaryBonuses: [],
       temporaryBonuses: []
     },

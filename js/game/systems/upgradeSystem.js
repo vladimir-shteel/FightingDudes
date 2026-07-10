@@ -1,6 +1,6 @@
 import { CONFIG, getMineMaxLevel, getUnitLevelData } from "../config.js";
 import { getMaxWorkerLevel } from "./workerTraitSystem.js";
-import { applyFortressBaseHealthBonus } from "./fortressSystem.js";
+import { applyFortressBaseHealthBonus, canAffordResources, spendResources } from "./fortressSystem.js";
 import { getCapstoneBattleDamageBonus } from "./workerTraitSystem.js";
 
 function shuffle(items) {
@@ -98,45 +98,72 @@ function getRewardCategoryLabel(category) {
   return category.charAt(0).toUpperCase() + category.slice(1);
 }
 
-function buildPermanentCards() {
-  const config = getRewardDraftConfig().permanent ?? {};
-  return [
-    createCard({
-      id: "perm-gold",
-      category: "permanent",
-      title: "Gold Dividend",
-      description: "All gold income is permanently increased.",
-      effectText: `Gold gain x${config.goldGainMultiplier ?? 1.15}`,
-      durationText: "Permanent",
-      apply(state) {
-        state.economy.goldMultiplier = (state.economy.goldMultiplier ?? 1) * (config.goldGainMultiplier ?? 1.15);
-      }
-    }),
-    createCard({
-      id: "perm-resource",
-      category: "permanent",
-      title: "Supply Line",
-      description: "Mine production is permanently increased.",
-      effectText: `Resource gain x${config.resourceGainMultiplier ?? 1.15}`,
-      durationText: "Permanent",
-      apply(state) {
-        state.economy.productionMultiplier = (state.economy.productionMultiplier ?? 1) * (config.resourceGainMultiplier ?? 1.15);
-      }
-    }),
-    createCard({
-      id: "perm-health",
-      category: "permanent",
-      title: "Fortified Core",
-      description: "Fortress buildings get a flat base health boost.",
-      effectText: `+${config.baseHealthBonus ?? 12} base HP`,
-      durationText: "Permanent",
-      apply(state) {
-        const bonus = config.baseHealthBonus ?? 12;
-        state.economy.baseHealthBonus = (state.economy.baseHealthBonus ?? 0) + bonus;
-        applyFortressBaseHealthBonus(state, bonus);
-      }
-    })
-  ];
+// === HQ upgrade shop =======================================================================
+// The former permanent reward CARDS are now purchasable HQ upgrades with an escalating cost curve —
+// a bottomless, wave-scaling resource+gold SINK that soaks the late-game surplus. The player either
+// BUYS the buff here or takes an equivalent (temporary/one-shot) reward after a wave.
+function hqPermConfig() {
+  return CONFIG.hqUpgrades?.permanent ?? {};
+}
+
+export function getHqUpgradeLevel(state, key) {
+  return state.economy.hqUpgradeLevels?.[key] ?? 0;
+}
+
+export function getHqUpgradeCost(state, key) {
+  const cfg = hqPermConfig()[key];
+  if (!cfg) return {};
+  const level = getHqUpgradeLevel(state, key);
+  const growth = cfg.costGrowth ?? 1.6;
+  return Object.fromEntries(
+    Object.entries(cfg.baseCost ?? {}).map(([resourceKey, amount]) => [
+      resourceKey,
+      Math.max(1, Math.round(amount * growth ** level))
+    ])
+  );
+}
+
+export function buyHqUpgrade(state, key) {
+  const cfg = hqPermConfig()[key];
+  if (!cfg) return { ok: false, reason: "Unknown HQ upgrade." };
+  if (state.fortress.battle.active) return { ok: false, reason: "Cannot upgrade the HQ during battle." };
+  state.economy.hqUpgradeLevels ??= { gold: 0, resource: 0, health: 0 };
+  const cost = getHqUpgradeCost(state, key);
+  if (!spendResources(state.resources, cost)) return { ok: false, reason: "Not enough resources for this HQ upgrade." };
+  state.economy.hqUpgradeLevels[key] = getHqUpgradeLevel(state, key) + 1;
+  if (key === "health") {
+    const bonus = cfg.baseHealthBonus ?? 0;
+    state.economy.baseHealthBonus = (state.economy.baseHealthBonus ?? 0) + bonus;
+    applyFortressBaseHealthBonus(state, bonus);
+  }
+  return { ok: true, reason: `${cfg.label} raised to level ${state.economy.hqUpgradeLevels[key]}.` };
+}
+
+function hqTempConfig() {
+  return CONFIG.hqUpgrades?.temporary ?? {};
+}
+
+export function getHqTemporaryCost(kind) {
+  return hqTempConfig()[kind]?.cost ?? {};
+}
+
+export function buyHqTemporaryBuff(state, kind) {
+  const cfg = hqTempConfig()[kind];
+  if (!cfg) return { ok: false, reason: "Unknown buff." };
+  const cost = cfg.cost ?? {};
+  if (!spendResources(state.resources, cost)) return { ok: false, reason: "Not enough resources for this buff." };
+  const duration = Math.max(1, hqTempConfig().durationWaves ?? 2);
+  state.economy.queuedTemporaryBonuses.push({
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    kind,
+    multiplier: cfg.multiplier ?? 1,
+    remainingWaves: duration
+  });
+  return { ok: true, reason: `${cfg.label} queued — begins next wave for ${duration} wave${duration === 1 ? "" : "s"}.` };
+}
+
+export function canAffordHqUpgrade(state, cost) {
+  return canAffordResources(state.resources, cost);
 }
 
 function buildTemporaryCards() {
@@ -383,12 +410,17 @@ function refreshTemporaryMultiplierState(state) {
 }
 
 export function rollUpgradeChoices(state) {
-  const draft = shuffle([
-    randomItem(buildPermanentCards()),
-    randomItem(buildTemporaryCards()),
-    randomItem(buildOneShotCards())
-  ].filter(Boolean));
-
+  // Permanent buffs moved to the HQ shop, so the draft is only temporary + one-shot now. Draw a
+  // varied hand (guarantee ≥1 of each so there's always a spread) from the whole pool.
+  const temps = buildTemporaryCards();
+  const shots = buildOneShotCards();
+  const count = Math.max(1, CONFIG.rewardDraft?.cardsOffered ?? 3);
+  const picks = [randomItem(temps), randomItem(shots)].filter(Boolean);
+  const rest = shuffle([...temps, ...shots].filter((card) => !picks.some((pick) => pick.id === card.id)));
+  while (picks.length < count && rest.length) {
+    picks.push(rest.shift());
+  }
+  const draft = shuffle(picks);
   state.fortress.pendingRewardDraft = draft;
   return draft;
 }
@@ -444,11 +476,18 @@ export function endFortressWave(state) {
 }
 
 export function getFortressGoldMultiplier(state) {
-  return Math.max(1, state.economy.goldMultiplier ?? 1);
+  const perm = CONFIG.hqUpgrades?.permanent?.gold;
+  const hqMult = perm ? (perm.multiplier ?? 1) ** getHqUpgradeLevel(state, "gold") : 1;
+  return Math.max(1, (state.economy.goldMultiplier ?? 1) * hqMult);
 }
 
 export function getFortressResourceMultiplier(state) {
-  return Math.max(1, state.economy.productionMultiplier ?? 1);
+  // NOTE: economy.productionMultiplier is seeded to the rest factor (0.55) and clamped by max(1,…),
+  // so it is effectively a no-op base of 1 — the real permanent boost comes from the HQ Supply Line
+  // level (1.1^level), computed directly here so early levels aren't swallowed by that 0.55 seed.
+  const perm = CONFIG.hqUpgrades?.permanent?.resource;
+  const hqMult = perm ? (perm.multiplier ?? 1) ** getHqUpgradeLevel(state, "resource") : 1;
+  return Math.max(1, hqMult);
 }
 
 export function getFortressBaseHealthBonus(state) {

@@ -50,7 +50,16 @@ import {
   repairFortressBuilding,
   triggerBuildingActive
 } from "./systems/fortressSystem.js";
-import { applyUpgradeChoice } from "./systems/upgradeSystem.js";
+import {
+  applyUpgradeChoice,
+  buyHqTemporaryBuff,
+  buyHqUpgrade,
+  getFortressGoldMultiplier,
+  getFortressResourceMultiplier,
+  getHqTemporaryCost,
+  getHqUpgradeCost,
+  getHqUpgradeLevel
+} from "./systems/upgradeSystem.js";
 import {
   applyWorkerCapstone,
   getDominantTraitKey,
@@ -141,13 +150,13 @@ function isHitFlashing(entity) {
 
 function buildFortressBuffsMarkup(state) {
   const eco = state.economy ?? {};
-  const goldMul = eco.goldMultiplier ?? 1;
-  const prodMul = eco.productionMultiplier ?? 1;
+  const goldMul = getFortressGoldMultiplier(state);
+  const prodMul = getFortressResourceMultiplier(state);
   const hpBonus = eco.baseHealthBonus ?? 0;
   const permRows = [];
-  if (goldMul > 1) permRows.push({ icon: "🪙", label: "Gold Dividend", effect: `Gold ×${goldMul.toFixed(2)}` });
-  if (prodMul > 1) permRows.push({ icon: "⛏️", label: "Supply Line", effect: `Mine output ×${prodMul.toFixed(2)}` });
-  if (hpBonus > 0) permRows.push({ icon: "🛡️", label: "Fortified Core", effect: `+${hpBonus} base HP` });
+  if (goldMul > 1) permRows.push({ icon: "🪙", label: `Gold Dividend Lv ${getHqUpgradeLevel(state, "gold")}`, effect: `Gold ×${goldMul.toFixed(2)}` });
+  if (prodMul > 1) permRows.push({ icon: "⛏️", label: `Supply Line Lv ${getHqUpgradeLevel(state, "resource")}`, effect: `Mine output ×${prodMul.toFixed(2)}` });
+  if (hpBonus > 0) permRows.push({ icon: "🛡️", label: `Fortified Core Lv ${getHqUpgradeLevel(state, "health")}`, effect: `+${hpBonus} base HP` });
 
   const tempActive = eco.temporaryBonuses ?? [];
   const tempQueued = eco.queuedTemporaryBonuses ?? [];
@@ -178,6 +187,39 @@ function buildFortressBuffsMarkup(state) {
     <strong>Temporary</strong>
     ${tempHtml}
     <p class="trait-info-hint">Rewards from wave victories stack here. Temporary buffs count down after each wave you win.</p>
+  `;
+}
+
+function buildHqShopMarkup(state, renderFortressCost) {
+  const perm = CONFIG.hqUpgrades?.permanent ?? {};
+  const temp = CONFIG.hqUpgrades?.temporary ?? {};
+  const permRows = Object.entries(perm).map(([key, cfg]) => {
+    const level = getHqUpgradeLevel(state, key);
+    const cost = getHqUpgradeCost(state, key);
+    const affordable = canAffordResources(state.resources, cost);
+    return `<button class="fortress-popover-action hq-shop-btn" type="button" data-hq-perm="${key}" ${affordable ? "" : "disabled"}>
+        <span>${cfg.icon ?? ""} ${cfg.label} · Lv ${level}</span>
+        <span class="fortress-popover-refund">${renderFortressCost(cost)}</span>
+      </button>`;
+  }).join("");
+  const tempRows = Object.entries(temp)
+    .filter(([key]) => key !== "durationWaves")
+    .map(([kind, cfg]) => {
+      const cost = getHqTemporaryCost(kind);
+      const affordable = canAffordResources(state.resources, cost);
+      return `<button class="fortress-popover-action hq-shop-btn" type="button" data-hq-temp="${kind}" ${affordable ? "" : "disabled"}>
+          <span>${cfg.icon ?? ""} ${cfg.label} ×${cfg.multiplier}</span>
+          <span class="fortress-popover-refund">${renderFortressCost(cost)}</span>
+        </button>`;
+    }).join("");
+  const duration = Math.max(1, temp.durationWaves ?? 2);
+  return `
+    <div class="fortress-popover-hqshop">
+      <strong class="fortress-popover-active-title">🏰 HQ Upgrades — permanent</strong>
+      ${permRows}
+      <strong class="fortress-popover-active-title">Buy a buff — ${duration} waves</strong>
+      ${tempRows}
+    </div>
   `;
 }
 
@@ -1579,16 +1621,30 @@ export function mountUI(state, onStateChanged) {
         : (selectedForOperator
             ? `<button class="fortress-popover-action primary-action" type="button" data-popup-operator-assign>Assign operator: ${selectedForOperator.unit.name} (Lv ${selectedForOperator.unit.level})</button>`
             : ""));
+      // HQ doubles as the upgrade shop: permanent buffs (the former reward cards) + buyable temp buffs.
+      const hqShopBlock = building.type === "hq" && !battleActive ? buildHqShopMarkup(state, renderFortressCost) : "";
       popup.innerHTML = `
         <strong>${definition.name} Lv ${building.level}</strong>
         ${upgradeNote}
         ${operatorBlock}
+        ${hqShopBlock}
         ${activeBlock}
         ${useButton}
         ${operatorButtons}
         ${outOfBattleButtons}
         <button class="fortress-popover-action" type="button" data-popup-close>Close</button>
       `;
+
+      popup.querySelectorAll("[data-hq-perm]").forEach((btn) => btn.addEventListener("click", () => {
+        const result = buyHqUpgrade(state, btn.dataset.hqPerm);
+        state.fortress.message = result.reason;
+        onStateChanged();
+      }));
+      popup.querySelectorAll("[data-hq-temp]").forEach((btn) => btn.addEventListener("click", () => {
+        const result = buyHqTemporaryBuff(state, btn.dataset.hqTemp);
+        state.fortress.message = result.reason;
+        onStateChanged();
+      }));
 
       popup.querySelector("[data-popup-operator-assign]")?.addEventListener("click", () => {
         const selected = getSelectedUnitContext();

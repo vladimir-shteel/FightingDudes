@@ -2673,6 +2673,25 @@ h3 {
   color: var(--muted);
 }
 
+.fortress-popover-hqshop {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 4px 0;
+}
+
+.fortress-popover-hqshop .fortress-popover-active-title {
+  margin-top: 4px;
+}
+
+.hq-shop-btn {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  text-align: left;
+}
+
 .fortress-action-popover {
   position: absolute;
   --popover-width: min(190px, 46vw, calc(100% - 12px));
