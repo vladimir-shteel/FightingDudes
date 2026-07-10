@@ -1,4 +1,4 @@
-import { CONFIG, getClassConfig, getResourceLabel } from "../config.js";
+import { CONFIG, getClassConfig, getClassCosts, getResourceLabel } from "../config.js";
 import { createBattleUnit } from "../factories.js";
 import { removeUnitFromReserve, returnUnitToReserve } from "./reserveSystem.js";
 import { removeUnitFromMine, restoreUnitToMine } from "./mineSystem.js";
@@ -87,7 +87,7 @@ export function stageUnitOnBridgehead(state, unitId, classId = state.ui.selected
     };
   }
 
-  const costs = classConfig.costs ?? {};
+  const costs = getClassCosts(classConfig, sourceUnit.level);
   const missingCosts = getMissingCosts(state, costs);
   if (missingCosts.length > 0) {
     restoreSource();

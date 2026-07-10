@@ -1,4 +1,4 @@
-import { CONFIG, getUnitLevelData } from "../config.js";
+import { CONFIG, getUnitLevelData, getClassCosts } from "../config.js";
 import { stageUnitOnBridgehead } from "../systems/garrisonSystem.js";
 import { canAffordCosts, renderCostMarkup } from "./helpers.js";
 
@@ -40,7 +40,7 @@ export function renderClassModal(ctx, unit) {
   for (const [classId, cfg] of Object.entries(CONFIG.classes ?? {})) {
     const minLevel = cfg.minLevel ?? 1;
     const levelLocked = unit.level < minLevel;
-    const costs = cfg.costs ?? {};
+    const costs = getClassCosts(cfg, unit.level);
     const affordable = canAffordCosts(state.resources, costs);
     const disabled = levelLocked || !affordable;
 

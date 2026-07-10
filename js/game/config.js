@@ -100,6 +100,20 @@ export function getClassConfig(classId) {
   return CONFIG.classes?.[classId] ?? null;
 }
 
+// Resource cost to stage a class scales with the merge level of the source
+// worker: a level-6 unit is 32 base units of investment, so its resource price
+// should dwarf a level-1's. Keeps the flat `costs` in classes.json as the
+// per-level base and multiplies by the unit level (level 1 = base, unchanged).
+export function getClassCosts(classConfig, level = 1) {
+  const base = classConfig?.costs ?? {};
+  const factor = Math.max(1, Math.floor(level));
+  const scaled = {};
+  for (const [resourceKey, amount] of Object.entries(base)) {
+    scaled[resourceKey] = Math.ceil(amount * factor);
+  }
+  return scaled;
+}
+
 // Merge cap rises with location progress (Д6): starts at 4, becomes 6 once
 // Location 1 is cleared (tier-2 Щитоносец/Копейщик, minLevel 5), and 8 once
 // Location 2 is cleared (tier-3/4 Отравитель/Паладин/Берсерк/Маг, minLevel 7-8).
