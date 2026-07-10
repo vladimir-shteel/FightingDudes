@@ -71,8 +71,8 @@
             "health": 12,
             "attack": 3,
             "attackSpeed": 1.3,
-            "moveSpeed": 16,
-            "goldReward": 1
+            "goldReward": 1,
+            "moveSpeed": 16
           },
           {
             "class": "swordsman",
@@ -81,8 +81,8 @@
             "health": 12,
             "attack": 3,
             "attackSpeed": 1.3,
-            "moveSpeed": 16,
-            "goldReward": 1
+            "goldReward": 1,
+            "moveSpeed": 16
           },
           {
             "class": "swordsman",
@@ -91,8 +91,8 @@
             "health": 12,
             "attack": 3,
             "attackSpeed": 1.3,
-            "moveSpeed": 16,
-            "goldReward": 1
+            "goldReward": 1,
+            "moveSpeed": 16
           },
           {
             "class": "swordsman",
@@ -101,8 +101,8 @@
             "health": 12,
             "attack": 3,
             "attackSpeed": 1.3,
-            "moveSpeed": 16,
-            "goldReward": 1
+            "goldReward": 1,
+            "moveSpeed": 16
           },
           {
             "class": "swordsman",
@@ -111,8 +111,8 @@
             "health": 12,
             "attack": 3,
             "attackSpeed": 1.3,
-            "moveSpeed": 16,
-            "goldReward": 1
+            "goldReward": 1,
+            "moveSpeed": 16
           },
           {
             "class": "swordsman",
@@ -121,8 +121,109 @@
             "health": 12,
             "attack": 3,
             "attackSpeed": 1.3,
-            "moveSpeed": 16,
-            "goldReward": 1
+            "goldReward": 1,
+            "moveSpeed": 16
+          },
+          {
+            "class": "swordsman",
+            "name": "Крыса",
+            "icon": "🐀",
+            "health": 12,
+            "attack": 3,
+            "attackSpeed": 1.3,
+            "goldReward": 1,
+            "moveSpeed": 16
+          },
+          {
+            "class": "swordsman",
+            "name": "Крыса",
+            "icon": "🐀",
+            "health": 12,
+            "attack": 3,
+            "attackSpeed": 1.3,
+            "goldReward": 1,
+            "moveSpeed": 16
+          },
+          {
+            "class": "swordsman",
+            "name": "Крыса",
+            "icon": "🐀",
+            "health": 12,
+            "attack": 3,
+            "attackSpeed": 1.3,
+            "goldReward": 1,
+            "moveSpeed": 16
+          },
+          {
+            "class": "swordsman",
+            "name": "Крыса",
+            "icon": "🐀",
+            "health": 12,
+            "attack": 3,
+            "attackSpeed": 1.3,
+            "goldReward": 1,
+            "moveSpeed": 16
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Разбойники",
+    "location": 1,
+    "groups": [
+      {
+        "formationRow": "front",
+        "enemies": [
+          {
+            "class": "swordsman",
+            "name": "Разбойник",
+            "icon": "🗡️",
+            "health": 26,
+            "attack": 7,
+            "attackSpeed": 1.1,
+            "goldReward": 3,
+            "moveSpeed": 12
+          },
+          {
+            "class": "swordsman",
+            "name": "Разбойник",
+            "icon": "🗡️",
+            "health": 26,
+            "attack": 7,
+            "attackSpeed": 1.1,
+            "goldReward": 3,
+            "moveSpeed": 12
+          },
+          {
+            "class": "swordsman",
+            "name": "Разбойник",
+            "icon": "🗡️",
+            "health": 26,
+            "attack": 7,
+            "attackSpeed": 1.1,
+            "goldReward": 3,
+            "moveSpeed": 12
+          },
+          {
+            "class": "swordsman",
+            "name": "Разбойник",
+            "icon": "🗡️",
+            "health": 26,
+            "attack": 7,
+            "attackSpeed": 1.1,
+            "goldReward": 3,
+            "moveSpeed": 12
+          },
+          {
+            "class": "swordsman",
+            "name": "Разбойник",
+            "icon": "🗡️",
+            "health": 26,
+            "attack": 7,
+            "attackSpeed": 1.1,
+            "goldReward": 3,
+            "moveSpeed": 12
           }
         ]
       }
@@ -198,6 +299,84 @@
     ]
   },
   {
+    "name": "Два фронта",
+    "location": 1,
+    "groups": [
+      {
+        "formationRow": "front",
+        "enemies": [
+          {
+            "class": "swordsman",
+            "name": "Крыса",
+            "icon": "🐀",
+            "health": 12,
+            "attack": 3,
+            "attackSpeed": 1.3,
+            "goldReward": 1,
+            "moveSpeed": 16
+          },
+          {
+            "class": "swordsman",
+            "name": "Крыса",
+            "icon": "🐀",
+            "health": 12,
+            "attack": 3,
+            "attackSpeed": 1.3,
+            "goldReward": 1,
+            "moveSpeed": 16
+          },
+          {
+            "class": "swordsman",
+            "name": "Крыса",
+            "icon": "🐀",
+            "health": 12,
+            "attack": 3,
+            "attackSpeed": 1.3,
+            "goldReward": 1,
+            "moveSpeed": 16
+          },
+          {
+            "class": "swordsman",
+            "name": "Крыса",
+            "icon": "🐀",
+            "health": 12,
+            "attack": 3,
+            "attackSpeed": 1.3,
+            "goldReward": 1,
+            "moveSpeed": 16
+          }
+        ]
+      },
+      {
+        "formationRow": "flying",
+        "enemies": [
+          {
+            "class": "flying",
+            "name": "Орёл",
+            "icon": "🦅",
+            "health": 20,
+            "attack": 5,
+            "attackSpeed": 1.0,
+            "moveSpeed": 14,
+            "movementType": "flying",
+            "goldReward": 5
+          },
+          {
+            "class": "flying",
+            "name": "Орёл",
+            "icon": "🦅",
+            "health": 20,
+            "attack": 5,
+            "attackSpeed": 1.0,
+            "moveSpeed": 14,
+            "movementType": "flying",
+            "goldReward": 5
+          }
+        ]
+      }
+    ]
+  },
+  {
     "name": "Первый паззл",
     "location": 1,
     "groups": [
@@ -211,8 +390,8 @@
             "health": 12,
             "attack": 3,
             "attackSpeed": 1.3,
-            "moveSpeed": 16,
-            "goldReward": 1
+            "goldReward": 1,
+            "moveSpeed": 16
           },
           {
             "class": "swordsman",
@@ -221,8 +400,8 @@
             "health": 12,
             "attack": 3,
             "attackSpeed": 1.3,
-            "moveSpeed": 16,
-            "goldReward": 1
+            "goldReward": 1,
+            "moveSpeed": 16
           },
           {
             "class": "swordsman",
@@ -231,8 +410,8 @@
             "health": 12,
             "attack": 3,
             "attackSpeed": 1.3,
-            "moveSpeed": 16,
-            "goldReward": 1
+            "goldReward": 1,
+            "moveSpeed": 16
           },
           {
             "class": "swordsman",
@@ -241,8 +420,8 @@
             "health": 12,
             "attack": 3,
             "attackSpeed": 1.3,
-            "moveSpeed": 16,
-            "goldReward": 1
+            "goldReward": 1,
+            "moveSpeed": 16
           }
         ]
       },
