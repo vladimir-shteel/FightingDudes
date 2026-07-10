@@ -6,8 +6,8 @@
   "passiveGoldPayoutIntervalSeconds": 4,
   "startingGold": 110,
   "startingOre": 0,
-  "unitBuyBaseCost": 16,
-  "unitBuyExponent": 1.22,
+  "unitBuyBaseCost": 14,
+  "unitBuyExponent": 1.15,
   "battle": {
     "fieldWidth": 100,
     "fieldHeight": 30,
@@ -50,6 +50,7 @@
   },
   "merge": {
     "maxLevel": 4,
-    "maxLevelAfterLocation1": 6
+    "maxLevelAfterLocation1": 6,
+    "maxLevelAfterLocation2": 8
   }
 }

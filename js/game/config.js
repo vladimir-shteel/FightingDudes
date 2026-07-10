@@ -101,11 +101,16 @@ export function getClassConfig(classId) {
 }
 
 // Merge cap rises with location progress (Д6): starts at 4, becomes 6 once
-// Location 1 is cleared so tier-2 classes (Щитоносец/Копейщик, minLevel 5) unlock.
+// Location 1 is cleared (tier-2 Щитоносец/Копейщик, minLevel 5), and 8 once
+// Location 2 is cleared (tier-3/4 Отравитель/Паладин/Берсерк/Маг, minLevel 7-8).
 export function getMergeMaxLevel(state) {
   const completed = state?.progress?.completedLocations ?? 0;
   const base = CONFIG.merge?.maxLevel ?? 1;
   const afterLocation1 = CONFIG.merge?.maxLevelAfterLocation1 ?? base;
+  const afterLocation2 = CONFIG.merge?.maxLevelAfterLocation2 ?? afterLocation1;
+  if (completed >= 2) {
+    return afterLocation2;
+  }
   return completed >= 1 ? afterLocation1 : base;
 }
 

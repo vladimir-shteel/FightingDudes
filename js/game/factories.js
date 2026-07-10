@@ -131,6 +131,11 @@ export function createEnemy(definition, formationRow = "front") {
     explosionRadius: definition.explosionRadius ?? 0,
     poisonDps: definition.poisonDps ?? 0,
     poisonDuration: definition.poisonDuration ?? 0,
+    // Location 3 enemy specials: self/ally healing (Жрец) and rage scaling (Берсерк).
+    healAmount: definition.healAmount ?? 0,
+    healInterval: definition.healInterval ?? 0,
+    healRadius: definition.healRadius ?? 0,
+    berserkerScaling: definition.berserkerScaling ?? false,
 
     goldReward: definition.goldReward ?? 0,
     isBoss: definition.isBoss ?? false,

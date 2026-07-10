@@ -52,16 +52,45 @@ function keepCurrentTarget(actor, targets) {
   return currentDistance <= leashDistance ? currentTarget : null;
 }
 
+// Ranged attackers (Лучник/Маг + вражеские стрелки/катапульты) prioritise the
+// threats they are meant to answer: flyers first, then divers, then other ranged
+// units (counter-battery), then everyone else. This stops a wall of archers from
+// ignoring enemy strelki and makes enemy strelki punish clustered player archers.
+function threatRank(target) {
+  const movement = target.movementType ?? "ground";
+  if (movement === "flying") return 0;
+  if (movement === "kamikaze") return 1;
+  if (target.attackType === "ranged" || target.attackType === "ranged_aoe") return 2;
+  return 3;
+}
+
 function chooseTarget(actor, targets) {
   // Non-flying-capable actors can't even see flyers as candidates.
   const valid = actor.canHitFlying
     ? targets
     : targets.filter((target) => (target.movementType ?? "ground") !== "flying");
 
-  // Kamikaze ignores the front line and makes for the backline directly.
-  if (actor.movementType === "kamikaze") {
+  if (valid.length === 0) {
+    return null;
+  }
+
+  // Divers (kamikaze / backline assassins) ignore the front line and make for
+  // the backline directly.
+  if (actor.movementType === "kamikaze" || actor.targetMode === "backline") {
     const backline = valid.filter((target) => target.formationRow === "back");
     return chooseClosestTarget(actor, backline.length > 0 ? backline : valid);
+  }
+
+  if (actor.attackType === "ranged" || actor.attackType === "ranged_aoe") {
+    let bestRank = Infinity;
+    for (const target of valid) {
+      const rank = threatRank(target);
+      if (rank < bestRank) {
+        bestRank = rank;
+      }
+    }
+    const priorityPool = valid.filter((target) => threatRank(target) === bestRank);
+    return keepCurrentTarget(actor, priorityPool) ?? chooseClosestTarget(actor, priorityPool);
   }
 
   return keepCurrentTarget(actor, valid) ?? chooseClosestTarget(actor, valid);

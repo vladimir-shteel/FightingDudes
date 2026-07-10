@@ -1,5 +1,5 @@
 {
-  "baseProductionPerSecond": 0.9,
+  "baseProductionPerSecond": 0.75,
   "goldPerSecondPerWorkerLevel": 0.55,
   "collectionIntervalSeconds": 1,
   "resourceTypes": [

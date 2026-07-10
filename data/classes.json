@@ -20,10 +20,10 @@
       "healthMult": 0.7,
       "attackMult": 0.85,
       "attackType": "ranged",
-      "attackRange": 12,
+      "attackRange": 10,
       "canHitFlying": true,
-      "costs": { "wood": 12, "crystal": 4 },
-      "description": "Стреляет издалека. Единственный способ бить летающих на базовом ярусе."
+      "costs": { "wood": 12, "crystal": 6 },
+      "description": "Стреляет издалека. Единственный способ бить летающих на базовом ярусе. Хрупок — гибнет, если враг прорвётся к тылу."
     },
     "knight": {
       "name": "Рыцарь",
@@ -34,7 +34,7 @@
       "attackMult": 1.6,
       "attackType": "melee",
       "canHitFlying": false,
-      "costs": { "ore": 12, "iron": 12 },
+      "costs": { "ore": 14, "wood": 10 },
       "description": "Соло-танк. Огромное HP, высокая атака, бьёт одного."
     },
     "brute": {
@@ -59,7 +59,7 @@
       "attackMult": 0.3,
       "attackType": "melee",
       "canHitFlying": false,
-      "costs": { "iron": 16, "ore": 8 },
+      "costs": { "iron": 12, "ore": 8 },
       "description": "Почти не бьёт, но крайне крепкий. Задерживает врагов."
     },
     "spearman": {
@@ -106,7 +106,7 @@
     "berserker": {
       "name": "Берсерк",
       "icon": "🔥",
-      "minLevel": 9,
+      "minLevel": 8,
       "tier": 4,
       "healthMult": 2.5,
       "attackMult": 0.8,
@@ -119,7 +119,7 @@
     "mage": {
       "name": "Маг",
       "icon": "🔮",
-      "minLevel": 9,
+      "minLevel": 8,
       "tier": 4,
       "healthMult": 1.6,
       "attackMult": 1.4,
