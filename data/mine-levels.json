@@ -38,16 +38,16 @@
           "gold": 12
         },
         {
-          "gold": 28
+          "gold": 20
         },
         {
-          "gold": 55
+          "gold": 38
         },
         {
-          "gold": 95
+          "gold": 65
         },
         {
-          "gold": 150
+          "gold": 100
         }
       ]
     },
@@ -77,16 +77,16 @@
           "gold": 14
         },
         {
-          "gold": 32
+          "gold": 22
         },
         {
-          "gold": 62
+          "gold": 42
         },
         {
-          "gold": 105
+          "gold": 70
         },
         {
-          "gold": 165
+          "gold": 110
         }
       ]
     },
@@ -98,7 +98,7 @@
       "unlockedByDefault": false,
       "unlockWave": 3,
       "buyCost": {
-        "gold": 22
+        "gold": 12
       },
       "slotUnlockWaves": [
         3,
@@ -112,16 +112,16 @@
           "gold": 0
         },
         {
-          "gold": 22
+          "gold": 16
         },
         {
-          "gold": 48
+          "gold": 32
         },
         {
-          "gold": 90
+          "gold": 60
         },
         {
-          "gold": 145
+          "gold": 95
         }
       ]
     },
@@ -133,7 +133,7 @@
       "unlockedByDefault": false,
       "unlockWave": 6,
       "buyCost": {
-        "gold": 30
+        "gold": 16
       },
       "slotUnlockWaves": [
         6,
@@ -147,16 +147,16 @@
           "gold": 0
         },
         {
-          "gold": 28
+          "gold": 20
         },
         {
-          "gold": 58
+          "gold": 40
         },
         {
-          "gold": 105
+          "gold": 70
         },
         {
-          "gold": 165
+          "gold": 110
         }
       ]
     }
