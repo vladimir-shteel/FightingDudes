@@ -3107,22 +3107,12 @@ h3 {
     gap: 5px;
   }
 
-  /* On a portrait phone the 8×5 landscape field is short, so during battle it used to leave a big
-     empty area below. Make the panel a flex column and let the field GROW to fill the visible height
-     (tiles become taller; actor positions map by %, so they stay aligned). */
+  /* On a portrait phone the 8×5 LANDSCAPE field is inherently short — filling the screen would need
+     stretched (tall) tiles, which looks wrong. So keep square tiles (base aspect-ratio) and just drop
+     the battle full-screen min-height here so the panel is content-height: the field sits right under
+     the message and the leftover is plain page background instead of a big empty panel. */
   .fortress-battle-active .fortress-panel {
-    display: flex;
-    flex-direction: column;
-    min-height: calc(100dvh - 175px);
-  }
-
-  .fortress-field.is-battle-active {
-    flex: 1 1 auto;
     min-height: 0;
-    height: auto;
-    max-height: none;
-    aspect-ratio: auto;
-    align-self: center;
   }
 
   .fortress-tile {
