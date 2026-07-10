@@ -38,6 +38,7 @@ import {
   FORTRESS_HEIGHT,
   FORTRESS_WIDTH,
   getFortressBuildingBuyCost,
+  getFortressBuildingDemolishGoldCost,
   getFortressBuildingRefund,
   getFortressRepairCost,
   getMergeCrystalCost,
@@ -1455,6 +1456,8 @@ export function mountUI(state, onStateChanged) {
         : `<span class="fortress-popover-note">Max level (Lv ${building.level})</span>`);
       const demolishRefund = building.type === "hq" ? {} : getFortressBuildingRefund(state, building);
       const hasRefund = Object.keys(demolishRefund).length > 0;
+      const demolishGold = building.type === "hq" ? 0 : getFortressBuildingDemolishGoldCost(state, building);
+      const canDemolish = (state.resources.gold ?? 0) >= demolishGold;
       const outOfBattleButtons = battleActive ? "" : `
         ${needsRepair ? `
           <button class="fortress-popover-action" type="button" data-popup-repair ${canRepair ? "" : "disabled"}>
@@ -1463,8 +1466,8 @@ export function mountUI(state, onStateChanged) {
         ` : ""}
         <button class="fortress-popover-action" type="button" data-popup-move ${building.type === "hq" ? "disabled" : ""}>Move / Merge</button>
         ${building.type === "hq" ? "" : `
-          <button class="fortress-popover-action is-danger" type="button" data-popup-demolish>
-            <span>Demolish</span>${hasRefund ? `<span class="fortress-popover-refund">+${renderFortressCost(demolishRefund)}</span>` : ""}
+          <button class="fortress-popover-action is-danger" type="button" data-popup-demolish ${canDemolish ? "" : "disabled"}>
+            <span>Demolish${demolishGold > 0 ? ` −${demolishGold}${CONFIG.goldIcon ?? "💰"}` : ""}</span>${hasRefund ? `<span class="fortress-popover-refund">+${renderFortressCost(demolishRefund)}</span>` : ""}
           </button>
         `}
       `;

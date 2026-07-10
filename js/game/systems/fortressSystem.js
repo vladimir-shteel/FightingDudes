@@ -551,6 +551,21 @@ export function getFortressBuildingRefund(state, building) {
   return refund;
 }
 
+// Demolishing charges GOLD (a sink for the one currency mining never produces) and hands back a
+// fraction of the spent resources. Cost scales with invested power (2^(level-1) copies) like the
+// refund, so churning a maxed building is a real gold decision, not free reorganising.
+export function getFortressBuildingDemolishGoldCost(state, building) {
+  if (!building || building.type === "hq") {
+    return 0;
+  }
+  const perCopy = CONFIG.demolish?.goldCostPerCopy ?? 0;
+  if (perCopy <= 0) {
+    return 0;
+  }
+  const copies = 2 ** ((building.level ?? 1) - 1);
+  return Math.max(1, Math.round(perCopy * copies));
+}
+
 export function demolishFortressBuilding(state, buildingId) {
   const building = state.fortress.buildings.find((item) => item.id === buildingId);
   if (!building) {
@@ -563,6 +578,11 @@ export function demolishFortressBuilding(state, buildingId) {
     return { ok: false, reason: "Cannot demolish during battle." };
   }
   const definition = CONFIG.fortressBuildings[building.type];
+  const goldCost = getFortressBuildingDemolishGoldCost(state, building);
+  if ((state.resources.gold ?? 0) < goldCost) {
+    return { ok: false, reason: `Need ${goldCost} gold to demolish.` };
+  }
+  state.resources.gold -= goldCost;
   const refund = getFortressBuildingRefund(state, building);
   clearBuilding(state, building);
   state.fortress.buildings = state.fortress.buildings.filter((item) => item.id !== building.id);
@@ -572,7 +592,8 @@ export function demolishFortressBuilding(state, buildingId) {
   const refundText = costEntries(refund).length
     ? ` Refunded ${costEntries(refund).map(([key, value]) => `${value} ${key}`).join(", ")}.`
     : "";
-  return { ok: true, reason: `${definition?.name ?? "Building"} demolished.${refundText}` };
+  const goldText = goldCost > 0 ? ` (−${goldCost} gold)` : "";
+  return { ok: true, reason: `${definition?.name ?? "Building"} demolished${goldText}.${refundText}` };
 }
 
 export function applyFortressBaseHealthBonus(state, bonusAmount) {

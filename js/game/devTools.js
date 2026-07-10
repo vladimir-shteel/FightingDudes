@@ -92,10 +92,11 @@ export function createDevTools(state, requestRender) {
   }
 
   function grantResources() {
+    // Mirrors the built-in "e" cheat panel: +1000 to every currency (gold included).
     for (const key of Object.keys(state.resources)) {
-      state.resources[key] += key === "gold" ? 200 : 500;
+      state.resources[key] += 1000;
     }
-    state.fortress.message = "DEV: resources granted.";
+    state.fortress.message = "DEV: +1000 to every resource.";
   }
 
   function winWave() {

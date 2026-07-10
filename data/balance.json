@@ -29,7 +29,8 @@
     "bigWall": 1.06
   },
   "demolish": {
-    "refundFraction": 0.4
+    "refundFraction": 0.4,
+    "goldCostPerCopy": 8
   },
   "abilityCostAccumulation": 1.6,
   "waveDemand": {
