@@ -963,31 +963,31 @@
             "class": "shieldbearer",
             "name": "Латник",
             "icon": "⚔️",
-            "health": 120,
-            "attack": 15,
+            "health": 80,
+            "attack": 12,
             "attackSpeed": 1.0,
             "moveSpeed": 9,
-            "goldReward": 6
+            "goldReward": 5
           },
           {
             "class": "shieldbearer",
             "name": "Латник",
             "icon": "⚔️",
-            "health": 120,
-            "attack": 15,
+            "health": 80,
+            "attack": 12,
             "attackSpeed": 1.0,
             "moveSpeed": 9,
-            "goldReward": 6
+            "goldReward": 5
           },
           {
             "class": "shieldbearer",
             "name": "Латник",
             "icon": "⚔️",
-            "health": 120,
-            "attack": 15,
+            "health": 80,
+            "attack": 12,
             "attackSpeed": 1.0,
             "moveSpeed": 9,
-            "goldReward": 6
+            "goldReward": 5
           }
         ]
       },
@@ -998,27 +998,27 @@
             "class": "brute",
             "name": "Катапульта",
             "icon": "🪨",
-            "health": 260,
-            "attack": 24,
+            "health": 140,
+            "attack": 16,
             "attackSpeed": 0.5,
             "attackType": "ranged_aoe",
             "attackRange": 13,
             "splashRadius": 1.8,
             "moveSpeed": 5,
-            "goldReward": 16
+            "goldReward": 14
           },
           {
             "class": "brute",
             "name": "Катапульта",
             "icon": "🪨",
-            "health": 260,
-            "attack": 24,
+            "health": 140,
+            "attack": 16,
             "attackSpeed": 0.5,
             "attackType": "ranged_aoe",
             "attackRange": 13,
             "splashRadius": 1.8,
             "moveSpeed": 5,
-            "goldReward": 16
+            "goldReward": 14
           }
         ]
       },
@@ -1029,23 +1029,23 @@
             "class": "archer",
             "name": "Стрелок",
             "icon": "🏹",
-            "health": 45,
-            "attack": 13,
+            "health": 40,
+            "attack": 11,
             "attackSpeed": 0.9,
             "moveSpeed": 8,
             "attackRange": 12,
-            "goldReward": 6
+            "goldReward": 5
           },
           {
             "class": "archer",
             "name": "Стрелок",
             "icon": "🏹",
-            "health": 45,
-            "attack": 13,
+            "health": 40,
+            "attack": 11,
             "attackSpeed": 0.9,
             "moveSpeed": 8,
             "attackRange": 12,
-            "goldReward": 6
+            "goldReward": 5
           }
         ]
       }
@@ -1062,31 +1062,31 @@
             "class": "shieldbearer",
             "name": "Латник",
             "icon": "⚔️",
-            "health": 120,
-            "attack": 15,
+            "health": 80,
+            "attack": 12,
             "attackSpeed": 1.0,
             "moveSpeed": 9,
-            "goldReward": 6
+            "goldReward": 5
           },
           {
             "class": "shieldbearer",
             "name": "Латник",
             "icon": "⚔️",
-            "health": 120,
-            "attack": 15,
+            "health": 80,
+            "attack": 12,
             "attackSpeed": 1.0,
             "moveSpeed": 9,
-            "goldReward": 6
+            "goldReward": 5
           },
           {
             "class": "knight",
             "name": "Стальной голем",
             "icon": "🗿",
-            "health": 1150,
-            "attack": 26,
+            "health": 650,
+            "attack": 22,
             "attackSpeed": 0.8,
             "moveSpeed": 6,
-            "goldReward": 40,
+            "goldReward": 36,
             "isBoss": true
           }
         ]
@@ -1098,14 +1098,14 @@
             "class": "paladin",
             "name": "Жрец",
             "icon": "🩹",
-            "health": 240,
-            "attack": 5,
+            "health": 130,
+            "attack": 4,
             "attackSpeed": 0.8,
             "moveSpeed": 7,
-            "healAmount": 46,
-            "healInterval": 2.0,
+            "healAmount": 26,
+            "healInterval": 2.5,
             "healRadius": 12,
-            "goldReward": 20
+            "goldReward": 16
           }
         ]
       }
@@ -1122,34 +1122,34 @@
             "class": "shieldbearer",
             "name": "Латник",
             "icon": "⚔️",
-            "health": 120,
-            "attack": 15,
+            "health": 80,
+            "attack": 12,
             "attackSpeed": 1.0,
             "moveSpeed": 9,
-            "goldReward": 6
+            "goldReward": 5
           },
           {
             "class": "shieldbearer",
             "name": "Латник",
             "icon": "⚔️",
-            "health": 120,
-            "attack": 15,
+            "health": 80,
+            "attack": 12,
             "attackSpeed": 1.0,
             "moveSpeed": 9,
-            "goldReward": 6
+            "goldReward": 5
           },
           {
             "class": "brute",
             "name": "Катапульта",
             "icon": "🪨",
-            "health": 220,
-            "attack": 24,
+            "health": 130,
+            "attack": 16,
             "attackSpeed": 0.5,
             "attackType": "ranged_aoe",
             "attackRange": 13,
             "splashRadius": 1.8,
             "moveSpeed": 5,
-            "goldReward": 16
+            "goldReward": 14
           }
         ]
       },
@@ -1160,67 +1160,67 @@
             "class": "flying",
             "name": "Ворон",
             "icon": "🐦‍⬛",
-            "health": 60,
-            "attack": 10,
+            "health": 40,
+            "attack": 9,
             "attackSpeed": 1.1,
             "moveSpeed": 17,
             "movementType": "flying",
-            "goldReward": 6
+            "goldReward": 5
           },
           {
             "class": "flying",
             "name": "Ворон",
             "icon": "🐦‍⬛",
-            "health": 60,
-            "attack": 10,
+            "health": 40,
+            "attack": 9,
             "attackSpeed": 1.1,
             "moveSpeed": 17,
             "movementType": "flying",
-            "goldReward": 6
+            "goldReward": 5
           },
           {
             "class": "flying",
             "name": "Ворон",
             "icon": "🐦‍⬛",
-            "health": 60,
-            "attack": 10,
+            "health": 40,
+            "attack": 9,
             "attackSpeed": 1.1,
             "moveSpeed": 17,
             "movementType": "flying",
-            "goldReward": 6
+            "goldReward": 5
           },
           {
             "class": "flying",
             "name": "Ворон",
             "icon": "🐦‍⬛",
-            "health": 60,
-            "attack": 10,
+            "health": 40,
+            "attack": 9,
             "attackSpeed": 1.1,
             "moveSpeed": 17,
             "movementType": "flying",
-            "goldReward": 6
+            "goldReward": 5
           },
           {
             "class": "flying",
             "name": "Ворон",
             "icon": "🐦‍⬛",
-            "health": 60,
-            "attack": 10,
+            "health": 40,
+            "attack": 9,
             "attackSpeed": 1.1,
             "moveSpeed": 17,
             "movementType": "flying",
-            "goldReward": 6
+            "goldReward": 5
           },
           {
             "class": "flying",
             "name": "Ворон",
             "icon": "🐦‍⬛",
-            "health": 60,
-            "attack": 10,
+            "health": 40,
+            "attack": 9,
             "attackSpeed": 1.1,
             "moveSpeed": 17,
             "movementType": "flying",
-            "goldReward": 6
+            "goldReward": 5
           }
         ]
       },
@@ -1231,34 +1231,23 @@
             "class": "flying",
             "name": "Стервятник",
             "icon": "🦅",
-            "health": 120,
-            "attack": 16,
+            "health": 70,
+            "attack": 13,
             "attackSpeed": 1.0,
             "moveSpeed": 19,
             "movementType": "flying",
-            "goldReward": 9
+            "goldReward": 8
           },
           {
             "class": "flying",
             "name": "Стервятник",
             "icon": "🦅",
-            "health": 120,
-            "attack": 16,
+            "health": 70,
+            "attack": 13,
             "attackSpeed": 1.0,
             "moveSpeed": 19,
             "movementType": "flying",
-            "goldReward": 9
-          },
-          {
-            "class": "flying",
-            "name": "Стервятник",
-            "icon": "🦅",
-            "health": 120,
-            "attack": 16,
-            "attackSpeed": 1.0,
-            "moveSpeed": 19,
-            "movementType": "flying",
-            "goldReward": 9
+            "goldReward": 8
           }
         ]
       }
@@ -1275,34 +1264,34 @@
             "class": "berserker",
             "name": "Берсерк",
             "icon": "🪓",
-            "health": 300,
-            "attack": 14,
+            "health": 175,
+            "attack": 12,
             "attackSpeed": 1.0,
             "moveSpeed": 12,
             "berserkerScaling": true,
-            "goldReward": 18
+            "goldReward": 16
           },
           {
             "class": "berserker",
             "name": "Берсерк",
             "icon": "🪓",
-            "health": 300,
-            "attack": 14,
+            "health": 175,
+            "attack": 12,
             "attackSpeed": 1.0,
             "moveSpeed": 12,
             "berserkerScaling": true,
-            "goldReward": 18
+            "goldReward": 16
           },
           {
             "class": "berserker",
             "name": "Берсерк",
             "icon": "🪓",
-            "health": 300,
-            "attack": 14,
+            "health": 175,
+            "attack": 12,
             "attackSpeed": 1.0,
             "moveSpeed": 12,
             "berserkerScaling": true,
-            "goldReward": 18
+            "goldReward": 16
           }
         ]
       },
@@ -1313,21 +1302,21 @@
             "class": "shieldbearer",
             "name": "Латник",
             "icon": "⚔️",
-            "health": 120,
-            "attack": 15,
+            "health": 80,
+            "attack": 12,
             "attackSpeed": 1.0,
             "moveSpeed": 9,
-            "goldReward": 6
+            "goldReward": 5
           },
           {
             "class": "shieldbearer",
             "name": "Латник",
             "icon": "⚔️",
-            "health": 120,
-            "attack": 15,
+            "health": 80,
+            "attack": 12,
             "attackSpeed": 1.0,
             "moveSpeed": 9,
-            "goldReward": 6
+            "goldReward": 5
           }
         ]
       },
@@ -1338,23 +1327,23 @@
             "class": "archer",
             "name": "Стрелок",
             "icon": "🏹",
-            "health": 55,
-            "attack": 13,
+            "health": 40,
+            "attack": 11,
             "attackSpeed": 0.9,
             "moveSpeed": 8,
             "attackRange": 12,
-            "goldReward": 6
+            "goldReward": 5
           },
           {
             "class": "archer",
             "name": "Стрелок",
             "icon": "🏹",
-            "health": 55,
-            "attack": 13,
+            "health": 40,
+            "attack": 11,
             "attackSpeed": 0.9,
             "moveSpeed": 8,
             "attackRange": 12,
-            "goldReward": 6
+            "goldReward": 5
           }
         ]
       }
@@ -1371,21 +1360,21 @@
             "class": "knight",
             "name": "Голем",
             "icon": "🗿",
-            "health": 650,
-            "attack": 26,
+            "health": 380,
+            "attack": 22,
             "attackSpeed": 0.8,
             "moveSpeed": 6,
-            "goldReward": 26
+            "goldReward": 24
           },
           {
             "class": "knight",
             "name": "Голем",
             "icon": "🗿",
-            "health": 650,
-            "attack": 26,
+            "health": 380,
+            "attack": 22,
             "attackSpeed": 0.8,
             "moveSpeed": 6,
-            "goldReward": 26
+            "goldReward": 24
           }
         ]
       },
@@ -1396,27 +1385,27 @@
             "class": "brute",
             "name": "Катапульта",
             "icon": "🪨",
-            "health": 220,
-            "attack": 24,
+            "health": 130,
+            "attack": 16,
             "attackSpeed": 0.5,
             "attackType": "ranged_aoe",
             "attackRange": 13,
             "splashRadius": 1.8,
             "moveSpeed": 5,
-            "goldReward": 16
+            "goldReward": 14
           },
           {
             "class": "brute",
             "name": "Катапульта",
             "icon": "🪨",
-            "health": 220,
-            "attack": 24,
+            "health": 130,
+            "attack": 16,
             "attackSpeed": 0.5,
             "attackType": "ranged_aoe",
             "attackRange": 13,
             "splashRadius": 1.8,
             "moveSpeed": 5,
-            "goldReward": 16
+            "goldReward": 14
           }
         ]
       },
@@ -1427,34 +1416,34 @@
             "class": "archer",
             "name": "Стрелок",
             "icon": "🏹",
-            "health": 55,
-            "attack": 13,
+            "health": 40,
+            "attack": 11,
             "attackSpeed": 0.9,
             "moveSpeed": 8,
             "attackRange": 12,
-            "goldReward": 6
+            "goldReward": 5
           },
           {
             "class": "archer",
             "name": "Стрелок",
             "icon": "🏹",
-            "health": 55,
-            "attack": 13,
+            "health": 40,
+            "attack": 11,
             "attackSpeed": 0.9,
             "moveSpeed": 8,
             "attackRange": 12,
-            "goldReward": 6
+            "goldReward": 5
           },
           {
             "class": "archer",
             "name": "Стрелок",
             "icon": "🏹",
-            "health": 55,
-            "attack": 13,
+            "health": 40,
+            "attack": 11,
             "attackSpeed": 0.9,
             "moveSpeed": 8,
             "attackRange": 12,
-            "goldReward": 6
+            "goldReward": 5
           }
         ]
       }
@@ -1471,31 +1460,31 @@
             "class": "knight",
             "name": "Голем",
             "icon": "🗿",
-            "health": 700,
-            "attack": 26,
+            "health": 400,
+            "attack": 22,
             "attackSpeed": 0.8,
             "moveSpeed": 6,
-            "goldReward": 26
+            "goldReward": 24
           },
           {
             "class": "knight",
             "name": "Голем",
             "icon": "🗿",
-            "health": 700,
-            "attack": 26,
+            "health": 400,
+            "attack": 22,
             "attackSpeed": 0.8,
             "moveSpeed": 6,
-            "goldReward": 26
+            "goldReward": 24
           },
           {
             "class": "spearman",
             "name": "Гвардеец",
             "icon": "🔱",
-            "health": 90,
-            "attack": 28,
+            "health": 65,
+            "attack": 24,
             "attackSpeed": 1.0,
             "moveSpeed": 11,
-            "goldReward": 8
+            "goldReward": 7
           }
         ]
       },
@@ -1506,27 +1495,27 @@
             "class": "paladin",
             "name": "Жрец",
             "icon": "🩹",
-            "health": 240,
-            "attack": 5,
+            "health": 130,
+            "attack": 4,
             "attackSpeed": 0.8,
             "moveSpeed": 7,
-            "healAmount": 44,
-            "healInterval": 2.0,
+            "healAmount": 26,
+            "healInterval": 2.5,
             "healRadius": 12,
-            "goldReward": 20
+            "goldReward": 16
           },
           {
             "class": "paladin",
             "name": "Жрец",
             "icon": "🩹",
-            "health": 240,
-            "attack": 5,
+            "health": 130,
+            "attack": 4,
             "attackSpeed": 0.8,
             "moveSpeed": 7,
-            "healAmount": 44,
-            "healInterval": 2.0,
+            "healAmount": 26,
+            "healInterval": 2.5,
             "healRadius": 12,
-            "goldReward": 20
+            "goldReward": 16
           }
         ]
       },
@@ -1537,45 +1526,45 @@
             "class": "flying",
             "name": "Ворон",
             "icon": "🐦‍⬛",
-            "health": 60,
-            "attack": 10,
+            "health": 40,
+            "attack": 9,
             "attackSpeed": 1.1,
             "moveSpeed": 17,
             "movementType": "flying",
-            "goldReward": 6
+            "goldReward": 5
           },
           {
             "class": "flying",
             "name": "Ворон",
             "icon": "🐦‍⬛",
-            "health": 60,
-            "attack": 10,
+            "health": 40,
+            "attack": 9,
             "attackSpeed": 1.1,
             "moveSpeed": 17,
             "movementType": "flying",
-            "goldReward": 6
+            "goldReward": 5
           },
           {
             "class": "flying",
             "name": "Ворон",
             "icon": "🐦‍⬛",
-            "health": 60,
-            "attack": 10,
+            "health": 40,
+            "attack": 9,
             "attackSpeed": 1.1,
             "moveSpeed": 17,
             "movementType": "flying",
-            "goldReward": 6
+            "goldReward": 5
           },
           {
             "class": "flying",
             "name": "Ворон",
             "icon": "🐦‍⬛",
-            "health": 60,
-            "attack": 10,
+            "health": 40,
+            "attack": 9,
             "attackSpeed": 1.1,
             "moveSpeed": 17,
             "movementType": "flying",
-            "goldReward": 6
+            "goldReward": 5
           }
         ]
       }
@@ -1592,47 +1581,47 @@
             "class": "knight",
             "name": "Голем",
             "icon": "🗿",
-            "health": 560,
-            "attack": 26,
+            "health": 360,
+            "attack": 22,
             "attackSpeed": 0.8,
             "moveSpeed": 6,
-            "goldReward": 26
+            "goldReward": 24
           },
           {
             "class": "knight",
             "name": "Голем",
             "icon": "🗿",
-            "health": 560,
-            "attack": 26,
+            "health": 360,
+            "attack": 22,
             "attackSpeed": 0.8,
             "moveSpeed": 6,
-            "goldReward": 26
+            "goldReward": 24
           },
           {
             "class": "brute",
             "name": "Катапульта",
             "icon": "🪨",
-            "health": 200,
-            "attack": 24,
+            "health": 130,
+            "attack": 16,
             "attackSpeed": 0.5,
             "attackType": "ranged_aoe",
             "attackRange": 13,
             "splashRadius": 1.8,
             "moveSpeed": 5,
-            "goldReward": 16
+            "goldReward": 14
           },
           {
             "class": "brute",
             "name": "Катапульта",
             "icon": "🪨",
-            "health": 200,
-            "attack": 24,
+            "health": 130,
+            "attack": 16,
             "attackSpeed": 0.5,
             "attackType": "ranged_aoe",
             "attackRange": 13,
             "splashRadius": 1.8,
             "moveSpeed": 5,
-            "goldReward": 16
+            "goldReward": 14
           }
         ]
       },
@@ -1643,25 +1632,25 @@
             "class": "knight",
             "name": "Владыка",
             "icon": "😈",
-            "health": 1150,
-            "attack": 34,
+            "health": 720,
+            "attack": 30,
             "attackSpeed": 0.9,
             "moveSpeed": 7,
-            "goldReward": 70,
+            "goldReward": 60,
             "isBoss": true
           },
           {
             "class": "paladin",
             "name": "Жрец",
             "icon": "🩹",
-            "health": 260,
-            "attack": 5,
+            "health": 140,
+            "attack": 4,
             "attackSpeed": 0.8,
             "moveSpeed": 7,
-            "healAmount": 36,
-            "healInterval": 2.0,
+            "healAmount": 30,
+            "healInterval": 2.5,
             "healRadius": 12,
-            "goldReward": 20
+            "goldReward": 16
           }
         ]
       },
@@ -1672,27 +1661,27 @@
             "class": "brute",
             "name": "Колесница",
             "icon": "🐗",
-            "health": 150,
+            "health": 100,
             "attack": 0,
             "attackSpeed": 1.0,
             "moveSpeed": 22,
             "movementType": "kamikaze",
-            "explosionDamage": 60,
+            "explosionDamage": 48,
             "explosionRadius": 2.5,
-            "goldReward": 14
+            "goldReward": 12
           },
           {
             "class": "brute",
             "name": "Колесница",
             "icon": "🐗",
-            "health": 150,
+            "health": 100,
             "attack": 0,
             "attackSpeed": 1.0,
             "moveSpeed": 22,
             "movementType": "kamikaze",
-            "explosionDamage": 60,
+            "explosionDamage": 48,
             "explosionRadius": 2.5,
-            "goldReward": 14
+            "goldReward": 12
           }
         ]
       },
@@ -1703,45 +1692,45 @@
             "class": "flying",
             "name": "Стервятник",
             "icon": "🦅",
-            "health": 120,
-            "attack": 16,
+            "health": 70,
+            "attack": 13,
             "attackSpeed": 1.0,
             "moveSpeed": 19,
             "movementType": "flying",
-            "goldReward": 9
+            "goldReward": 8
           },
           {
             "class": "flying",
             "name": "Стервятник",
             "icon": "🦅",
-            "health": 120,
-            "attack": 16,
+            "health": 70,
+            "attack": 13,
             "attackSpeed": 1.0,
             "moveSpeed": 19,
             "movementType": "flying",
-            "goldReward": 9
+            "goldReward": 8
           },
           {
             "class": "flying",
             "name": "Ворон",
             "icon": "🐦‍⬛",
-            "health": 60,
-            "attack": 10,
+            "health": 40,
+            "attack": 9,
             "attackSpeed": 1.1,
             "moveSpeed": 17,
             "movementType": "flying",
-            "goldReward": 6
+            "goldReward": 5
           },
           {
             "class": "flying",
             "name": "Ворон",
             "icon": "🐦‍⬛",
-            "health": 60,
-            "attack": 10,
+            "health": 40,
+            "attack": 9,
             "attackSpeed": 1.1,
             "moveSpeed": 17,
             "movementType": "flying",
-            "goldReward": 6
+            "goldReward": 5
           }
         ]
       }

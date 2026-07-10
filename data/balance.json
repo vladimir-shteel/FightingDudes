@@ -50,7 +50,7 @@
   },
   "merge": {
     "maxLevel": 4,
-    "maxLevelAfterLocation1": 6,
-    "maxLevelAfterLocation2": 8
+    "maxLevelAfterLocation1": 5,
+    "maxLevelAfterLocation2": 6
   }
 }
