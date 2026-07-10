@@ -25,6 +25,9 @@ const WAYPOINT_ARRIVAL_DISTANCE = 0.18;
 const UNIT_COLLISION_RADIUS = 0.18;
 const UNIT_PUSH_STRENGTH = 1.0;
 const HIT_FLASH_SECONDS = 0.09;
+// Softlock breaker: if neither an enemy kill nor a building loss happens for this many seconds, the
+// fight is stuck (pathfinding pile-up / mutual out-of-range standoff) — unleash the Reaper.
+const STALL_TIMEOUT_SECONDS = 22;
 
 function getNowSeconds() {
   return typeof performance !== "undefined" ? performance.now() / 1000 : Date.now() / 1000;
@@ -744,6 +747,31 @@ function awardEnemyKillGold(state, enemy) {
   });
 }
 
+function unleashReaper(state) {
+  const battle = state.fortress.battle;
+  // Spawn one fast, breach-heavy Reaper. createFortressEnemy already places it just off the right edge
+  // at a random height; nudge it to the vertical center so it b-lines straight into the deadlock and
+  // reaches a building within a few seconds via the normal enemy AI.
+  const reaper = createFortressEnemy(state, "reaper");
+  reaper.y = FORTRESS_HEIGHT / 2;
+  battle.enemies.push(reaper);
+
+  // Represent the Reaper "cutting through the stuck horde": immediately kill roughly half of the
+  // currently-alive non-boss enemies, picking the ones furthest from the base (largest x) so the front
+  // line facing the player's DPS is preserved. Setting hp = 0 lets the normal tick award kill gold and
+  // filter them out. The Reaper itself is tag "boss", so it is never culled.
+  const cullable = battle.enemies.filter(
+    (enemy) => enemy.hp > 0 && enemy.tag !== "boss" && enemy.id !== reaper.id
+  );
+  cullable.sort((a, b) => b.x - a.x);
+  const cullCount = Math.floor(cullable.length / 2);
+  for (let index = 0; index < cullCount; index += 1) {
+    cullable[index].hp = 0;
+  }
+
+  state.fortress.message = "A Reaper tears through the deadlock!";
+}
+
 function finishBattle(state, result) {
   const wave = CONFIG.fortressWaves[state.fortress.waveNumber - 1];
   state.fortress.battle.active = false;
@@ -881,6 +909,28 @@ export function tickFortressBattle(state, deltaSeconds) {
   battle.enemies = battle.enemies.filter((enemy) => enemy.hp > 0);
   battle.enemiesDefeated += enemiesBeforeCleanup - battle.enemies.length;
   battle.allies = battle.allies.filter((ally) => ally.hp > 0);
+
+  // Stall "Reaper": watch for genuine progress (an enemy died OR a building was destroyed). If neither
+  // changed for STALL_TIMEOUT_SECONDS the fight is softlocked — unleash the Reaper once to break it.
+  if (battle.progressTimer === undefined) battle.progressTimer = 0;
+  if (battle.reaperSpawned === undefined) battle.reaperSpawned = false;
+  const destroyedBuildingCount = state.fortress.buildings.filter((building) => building.hp <= 0).length;
+  if (battle.stallEnemiesDefeated === undefined) battle.stallEnemiesDefeated = battle.enemiesDefeated;
+  if (battle.stallDestroyedBuildings === undefined) battle.stallDestroyedBuildings = destroyedBuildingCount;
+  const madeProgress = battle.enemiesDefeated !== battle.stallEnemiesDefeated
+    || destroyedBuildingCount !== battle.stallDestroyedBuildings;
+  battle.stallEnemiesDefeated = battle.enemiesDefeated;
+  battle.stallDestroyedBuildings = destroyedBuildingCount;
+  if (madeProgress) {
+    battle.progressTimer = 0;
+  } else {
+    battle.progressTimer += deltaSeconds;
+  }
+  if (battle.progressTimer >= STALL_TIMEOUT_SECONDS && !battle.reaperSpawned) {
+    unleashReaper(state);
+    battle.reaperSpawned = true;
+    battle.progressTimer = 0;
+  }
 
   const hq = state.fortress.buildings.find((building) => building.type === "hq");
   if (!hq || hq.hp <= 0) {

@@ -89,5 +89,20 @@
       "kind": "breach",
       "damageMultVsBuildings": 3
     }
+  },
+  "reaper": {
+    "name": "Reaper",
+    "icon": "☠️",
+    "hp": 220,
+    "attack": 40,
+    "cooldownSeconds": 0.8,
+    "rangeTiles": 0.5,
+    "speedTilesPerSecond": 3.2,
+    "tag": "boss",
+    "armor": 6,
+    "mechanic": {
+      "kind": "breach",
+      "damageMultVsBuildings": 4
+    }
   }
 }
