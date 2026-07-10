@@ -27,7 +27,7 @@ import {
   returnMineUnitToReserve
 } from "./systems/mineSystem.js";
 import { giveUpFortressBattle, startFortressBattle } from "./systems/fortressBattleSystem.js";
-import { assignOperatorToBuilding, getOperatorBuff, returnOperatorToReserve } from "./systems/operatorSystem.js";
+import { assignOperatorToBuilding, getOperatorBuff, isBuildingOperable, returnOperatorToReserve } from "./systems/operatorSystem.js";
 import {
   buyFortressBuilding,
   canAffordResources,
@@ -758,6 +758,9 @@ export function mountUI(state, onStateChanged) {
 
     updateSelectionTether();
     renderWorkerActionPopover();
+    // Re-render the fortress field so building operator slots reflect the new selection (empty slots
+    // switch to green drop targets when a worker is picked).
+    renderFortressField();
   }
 
   function updateSelectionTether() {
@@ -1308,11 +1311,28 @@ export function mountUI(state, onStateChanged) {
           tileButton.append(indicator);
         }
 
-        if (building.operator) {
-          const opIndicator = document.createElement("span");
-          opIndicator.className = "fortress-operator-indicator";
-          opIndicator.innerHTML = `<span class="fortress-operator-icon">🧑‍🔧</span><i>${building.operator.level}</i>`;
-          tileButton.append(opIndicator);
+        if (isBuildingOperable(building.type)) {
+          if (building.operator) {
+            const opIndicator = document.createElement("span");
+            opIndicator.className = "fortress-operator-indicator";
+            opIndicator.innerHTML = `<span class="fortress-operator-icon">🧑‍🔧</span><i>${building.operator.level}</i>`;
+            tileButton.append(opIndicator);
+          } else {
+            // Empty operator slot — ALWAYS shown so it's obvious a worker goes here. Red normally;
+            // turns green + pulses into a drop target when a worker is selected (out of battle, not
+            // in the middle of moving a building).
+            const workerSelected = !state.fortress.battle.active
+              && !state.fortress.movingBuildingId
+              && Boolean(getSelectedUnitContext());
+            tileButton.classList.add(workerSelected ? "is-operator-target" : "is-operator-empty");
+            if (workerSelected) {
+              tileButton.classList.add("actionable-target");
+            }
+            const slotBadge = document.createElement("span");
+            slotBadge.className = `fortress-operator-slot${workerSelected ? " is-target" : ""}`;
+            slotBadge.innerHTML = `<span class="fortress-operator-icon">🧑‍🔧</span><i>${workerSelected ? "＋" : "·"}</i>`;
+            tileButton.append(slotBadge);
+          }
         }
 
         const movingBuildingId = state.fortress.movingBuildingId;
@@ -1337,15 +1357,6 @@ export function mountUI(state, onStateChanged) {
             tileButton.disabled = true;
           }
         } else {
-          // When a worker is selected, an un-manned building is a valid operator target. Make the
-          // affordance unmistakable: pulsing green target class + an explicit "add operator" badge.
-          if (!state.fortress.battle.active && !building.operator && getSelectedUnitContext()) {
-            tileButton.classList.add("actionable-target", "is-operator-target");
-            const addHint = document.createElement("span");
-            addHint.className = "fortress-operator-add-hint";
-            addHint.innerHTML = `<span class="fortress-operator-add-icon">🧑‍🔧</span><i>＋</i>`;
-            tileButton.append(addHint);
-          }
           tileButton.addEventListener("click", () => {
             if (state.fortress.movingBuildingId === building.id) {
               state.fortress.movingBuildingId = null;
@@ -1532,21 +1543,24 @@ export function mountUI(state, onStateChanged) {
       `;
       // Operator (FMFM vector B): one worker mans a building for buffs; a destroyed building costs it
       // a level. Assign the currently-selected reserve/mine worker; pull it back out of battle.
-      const operator = building.operator;
-      const selectedForOperator = battleActive ? null : getSelectedUnitContext();
+      const operable = isBuildingOperable(building.type);
+      const operator = operable ? building.operator : null;
+      const selectedForOperator = operable && !battleActive ? getSelectedUnitContext() : null;
       // During battle show the buff LOCKED IN at battle start; out of battle preview the live value.
       const operatorBuff = operator ? (battleActive ? building.operatorBuff : getOperatorBuff(building)) : null;
-      const operatorBlock = operator
-        ? `<div class="fortress-popover-operator">
-             <strong class="fortress-popover-operator-title">🧑‍🔧 ${operator.name} · Lv ${operator.level}</strong>
-             <span class="fortress-popover-operator-buff">${describeOperatorBuff(operatorBuff)}${operatorBuff?.rested ? " · ⚡ rested" : ""}</span>
-           </div>`
-        : (battleActive
-            ? ""
-            : `<span class="fortress-popover-note">${selectedForOperator
-                ? `Assign ${selectedForOperator.unit.name} as operator below.`
-                : "Select a worker, then tap this building to man it."}</span>`);
-      const operatorButtons = battleActive ? "" : (operator
+      const operatorBlock = !operable
+        ? ""
+        : (operator
+          ? `<div class="fortress-popover-operator">
+               <strong class="fortress-popover-operator-title">🧑‍🔧 ${operator.name} · Lv ${operator.level}</strong>
+               <span class="fortress-popover-operator-buff">${describeOperatorBuff(operatorBuff)}${operatorBuff?.rested ? " · ⚡ rested" : ""}</span>
+             </div>`
+          : (battleActive
+              ? ""
+              : `<span class="fortress-popover-note">${selectedForOperator
+                  ? `Assign ${selectedForOperator.unit.name} as operator below.`
+                  : "Select a worker, then tap this building to man it."}</span>`));
+      const operatorButtons = !operable || battleActive ? "" : (operator
         ? `<button class="fortress-popover-action" type="button" data-popup-operator-return>Recall operator</button>`
         : (selectedForOperator
             ? `<button class="fortress-popover-action primary-action" type="button" data-popup-operator-assign>Assign operator: ${selectedForOperator.unit.name} (Lv ${selectedForOperator.unit.level})</button>`
