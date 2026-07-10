@@ -27,6 +27,7 @@ import {
   returnMineUnitToReserve
 } from "./systems/mineSystem.js";
 import { giveUpFortressBattle, startFortressBattle } from "./systems/fortressBattleSystem.js";
+import { assignOperatorToBuilding, getOperatorBuff, returnOperatorToReserve } from "./systems/operatorSystem.js";
 import {
   buyFortressBuilding,
   canAffordResources,
@@ -198,6 +199,18 @@ function describeBuildingActive(active) {
     default:
       return "";
   }
+}
+
+function describeOperatorBuff(buff) {
+  if (!buff) return "no bonus";
+  const parts = [];
+  const hp = Math.round((buff.hpMult - 1) * 100);
+  const dmg = Math.round((buff.damageMult - 1) * 100);
+  const summon = Math.round((1 - buff.cooldownMult) * 100);
+  if (hp > 0) parts.push(`+${hp}% HP`);
+  if (dmg > 0) parts.push(`+${dmg}% dmg`);
+  if (summon > 0) parts.push(`+${summon}% summon`);
+  return parts.length ? parts.join(" · ") : "no bonus";
 }
 
 function createUnitCard(unit, options = {}) {
@@ -1295,6 +1308,13 @@ export function mountUI(state, onStateChanged) {
           tileButton.append(indicator);
         }
 
+        if (building.operator) {
+          const opIndicator = document.createElement("span");
+          opIndicator.className = "fortress-operator-indicator";
+          opIndicator.innerHTML = `<span class="fortress-operator-icon">🧑‍🔧</span><i>${building.operator.level}</i>`;
+          tileButton.append(opIndicator);
+        }
+
         const movingBuildingId = state.fortress.movingBuildingId;
         if (movingBuildingId && movingBuildingId !== building.id) {
           const movingBuilding = state.fortress.buildings.find((item) => item.id === movingBuildingId);
@@ -1317,6 +1337,11 @@ export function mountUI(state, onStateChanged) {
             tileButton.disabled = true;
           }
         } else {
+          // When a worker is selected, an un-manned building is a valid assign target — highlight it
+          // like an open mine slot so the operator affordance is discoverable.
+          if (!state.fortress.battle.active && !building.operator && getSelectedUnitContext()) {
+            tileButton.classList.add("actionable-target");
+          }
           tileButton.addEventListener("click", () => {
             if (state.fortress.movingBuildingId === building.id) {
               state.fortress.movingBuildingId = null;
@@ -1501,14 +1526,54 @@ export function mountUI(state, onStateChanged) {
           </button>
         `}
       `;
+      // Operator (FMFM vector B): one worker mans a building for buffs; a destroyed building costs it
+      // a level. Assign the currently-selected reserve/mine worker; pull it back out of battle.
+      const operator = building.operator;
+      const selectedForOperator = battleActive ? null : getSelectedUnitContext();
+      // During battle show the buff LOCKED IN at battle start; out of battle preview the live value.
+      const operatorBuff = operator ? (battleActive ? building.operatorBuff : getOperatorBuff(building)) : null;
+      const operatorBlock = operator
+        ? `<div class="fortress-popover-operator">
+             <strong class="fortress-popover-operator-title">🧑‍🔧 ${operator.name} · Lv ${operator.level}</strong>
+             <span class="fortress-popover-operator-buff">${describeOperatorBuff(operatorBuff)}${operatorBuff?.rested ? " · ⚡ rested" : ""}</span>
+           </div>`
+        : (battleActive
+            ? ""
+            : `<span class="fortress-popover-note">${selectedForOperator
+                ? `Assign ${selectedForOperator.unit.name} as operator below.`
+                : "Select a worker, then tap this building to man it."}</span>`);
+      const operatorButtons = battleActive ? "" : (operator
+        ? `<button class="fortress-popover-action" type="button" data-popup-operator-return>Recall operator</button>`
+        : (selectedForOperator
+            ? `<button class="fortress-popover-action primary-action" type="button" data-popup-operator-assign>Assign operator: ${selectedForOperator.unit.name} (Lv ${selectedForOperator.unit.level})</button>`
+            : ""));
       popup.innerHTML = `
         <strong>${definition.name} Lv ${building.level}</strong>
         ${upgradeNote}
+        ${operatorBlock}
         ${activeBlock}
         ${useButton}
+        ${operatorButtons}
         ${outOfBattleButtons}
         <button class="fortress-popover-action" type="button" data-popup-close>Close</button>
       `;
+
+      popup.querySelector("[data-popup-operator-assign]")?.addEventListener("click", () => {
+        const selected = getSelectedUnitContext();
+        if (!selected) {
+          onStateChanged();
+          return;
+        }
+        const result = assignOperatorToBuilding(state, building.id, selected.unit.id);
+        state.fortress.message = result.reason;
+        if (result.ok) clearSelectedUnit();
+        onStateChanged();
+      });
+      popup.querySelector("[data-popup-operator-return]")?.addEventListener("click", () => {
+        const result = returnOperatorToReserve(state, building.id);
+        state.fortress.message = result.reason;
+        onStateChanged();
+      });
 
       popup.querySelector("[data-popup-use]")?.addEventListener("click", () => {
         const result = triggerBuildingActive(state, building.id);
