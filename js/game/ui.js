@@ -26,7 +26,7 @@ import {
   moveMineUnitToMineSlot,
   returnMineUnitToReserve
 } from "./systems/mineSystem.js";
-import { giveUpFortressBattle, startFortressBattle } from "./systems/fortressBattleSystem.js";
+import { giveUpFortressBattle, startFortressBattle, STALL_TIMEOUT_SECONDS } from "./systems/fortressBattleSystem.js";
 import { assignOperatorToBuilding, getOperatorBuff, isBuildingOperable, returnOperatorToReserve } from "./systems/operatorSystem.js";
 import {
   buyFortressBuilding,
@@ -522,6 +522,7 @@ export function mountUI(state, onStateChanged) {
     fxLayer: document.querySelector("#fxLayer")
     ,
     fortressGiveUpButton: document.querySelector("#fortressGiveUpButton"),
+    fortressReaperTimer: document.querySelector("#fortressReaperTimer"),
     waveTelegraph: document.querySelector("#waveTelegraph"),
     fortressFightButton: document.querySelector("#fortressFightButton"),
     fortressMessage: document.querySelector("#fortressMessage"),
@@ -2054,11 +2055,26 @@ export function mountUI(state, onStateChanged) {
       : "Early-start bonus expired.";
   }
 
+  function updateReaperTimer() {
+    const timer = elements.fortressReaperTimer;
+    const battle = state.fortress.battle;
+    // Only meaningful while a battle is running and the one-per-battle Reaper hasn't been unleashed yet.
+    if (!battle.active || battle.reaperSpawned) {
+      timer.hidden = true;
+      return;
+    }
+    const remaining = Math.max(0, STALL_TIMEOUT_SECONDS - (battle.progressTimer || 0));
+    timer.hidden = false;
+    timer.textContent = `☠ ${Math.ceil(remaining)}s`;
+    timer.title = "Reaper unleashed if the fight stalls. Resets on every enemy kill or building loss.";
+  }
+
   function renderMeta() {
     document.body.classList.toggle("fortress-battle-active", state.fortress.battle.active);
     elements.fortressFightButton.disabled = state.fortress.battle.active || state.game.isOver || Boolean(state.fortress.pendingRewardDraft?.length);
     elements.fortressFightButton.hidden = state.fortress.battle.active;
     elements.fortressGiveUpButton.hidden = !state.fortress.battle.active;
+    updateReaperTimer();
     updateEarlyStartHint(elements.fortressFightButton, state);
     elements.fortressMessage.textContent = state.fortress.message;
     renderEconomyMeta();

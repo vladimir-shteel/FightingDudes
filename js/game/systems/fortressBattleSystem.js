@@ -27,7 +27,7 @@ const UNIT_PUSH_STRENGTH = 1.0;
 const HIT_FLASH_SECONDS = 0.09;
 // Softlock breaker: if neither an enemy kill nor a building loss happens for this many seconds, the
 // fight is stuck (pathfinding pile-up / mutual out-of-range standoff) — unleash the Reaper.
-const STALL_TIMEOUT_SECONDS = 22;
+export const STALL_TIMEOUT_SECONDS = 35;
 
 function getNowSeconds() {
   return typeof performance !== "undefined" ? performance.now() / 1000 : Date.now() / 1000;

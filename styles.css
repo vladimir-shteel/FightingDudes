@@ -2471,7 +2471,24 @@ h3 {
   display: flex;
 }
 
-.fortress-battle-active .fortress-actions > *:not(#fortressGiveUpButton) {
+.fortress-battle-active .fortress-actions > *:not(#fortressGiveUpButton):not(#fortressReaperTimer) {
+  display: none;
+}
+
+.reaper-timer {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 10px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: #f5d76e;
+  background: rgba(44, 20, 20, 0.85);
+  border: 1px solid rgba(192, 57, 43, 0.7);
+}
+
+.reaper-timer[hidden] {
   display: none;
 }
 
