@@ -3107,6 +3107,24 @@ h3 {
     gap: 5px;
   }
 
+  /* On a portrait phone the 8×5 landscape field is short, so during battle it used to leave a big
+     empty area below. Make the panel a flex column and let the field GROW to fill the visible height
+     (tiles become taller; actor positions map by %, so they stay aligned). */
+  .fortress-battle-active .fortress-panel {
+    display: flex;
+    flex-direction: column;
+    min-height: calc(100dvh - 175px);
+  }
+
+  .fortress-field.is-battle-active {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: auto;
+    max-height: none;
+    aspect-ratio: auto;
+    align-self: center;
+  }
+
   .fortress-tile {
     border-radius: 12px;
     padding: 3px;
