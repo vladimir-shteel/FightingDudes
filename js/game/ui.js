@@ -2114,6 +2114,7 @@ export function mountUI(state, onStateChanged) {
     renderBattleMeta();
     elements.fortressFightButton.disabled = state.fortress.battle.active || state.game.isOver || Boolean(state.fortress.pendingRewardDraft?.length);
     updateEarlyStartHint(elements.fortressFightButton, state);
+    updateReaperTimer();
     elements.fortressMessage.textContent = state.fortress.message;
     updateFortressShopAffordability();
     // Full fortress field rebuild is heavy — only do it while battle is animating.
