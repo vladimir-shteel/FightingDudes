@@ -17,20 +17,19 @@ import {
   rollUpgradeChoices
 } from "./upgradeSystem.js";
 
-const REPATH_INTERVAL_SECONDS = 0.4;
-const WAYPOINT_ARRIVAL_DISTANCE = 0.18;
 // Collision radius must be small enough that opposing melee units still overlap into each other's
-// attack range (warrior range 0.5, enemy range 0.42). 0.18 → minDistance 0.36, comfortably inside melee.
-const UNIT_COLLISION_RADIUS = 0.18;
-const UNIT_PUSH_STRENGTH = 1.0;
-const HIT_FLASH_SECONDS = 0.09;
+// attack range (warrior range 0.5, enemy range 0.42). Default 0.18 → minDistance 0.36, comfortably
+// inside melee. All tunable engine thresholds below live in balance.json → combatEngine.
+function getCombatEngineConfig() {
+  return CONFIG.combatEngine ?? {};
+}
 
 function getNowSeconds() {
   return typeof performance !== "undefined" ? performance.now() / 1000 : Date.now() / 1000;
 }
 
 function markHit(target) {
-  target.hitUntil = getNowSeconds() + HIT_FLASH_SECONDS;
+  target.hitUntil = getNowSeconds() + (getCombatEngineConfig().hitFlashSeconds ?? 0.09);
 }
 
 function getBuildingCenter(building) {
@@ -149,7 +148,7 @@ function ensureEnemyPath(state, enemy, deltaSeconds) {
   // Path returned includes the current tile at index 0; skip it so the first waypoint is one step ahead.
   enemy.path = tilePath.slice(1).map((tile) => ({ x: tile.x + 0.5, y: tile.y + 0.5 }));
   enemy.pathTargetId = enemy.currentTargetId;
-  enemy.pathTimer = REPATH_INTERVAL_SECONDS;
+  enemy.pathTimer = getCombatEngineConfig().repathIntervalSeconds ?? 0.4;
 }
 
 function ensureAllyPath(state, ally, target, deltaSeconds) {
@@ -179,7 +178,7 @@ function ensureAllyPath(state, ally, target, deltaSeconds) {
 
   ally.path = tilePath.slice(1).map((tile) => ({ x: tile.x + 0.5, y: tile.y + 0.5 }));
   ally.pathTargetId = target.id;
-  ally.pathTimer = REPATH_INTERVAL_SECONDS;
+  ally.pathTimer = getCombatEngineConfig().repathIntervalSeconds ?? 0.4;
 }
 
 function followPath(enemy, deltaSeconds) {
@@ -188,7 +187,8 @@ function followPath(enemy, deltaSeconds) {
   }
   const nextWaypoint = enemy.path[0];
   moveToward(enemy, nextWaypoint, deltaSeconds);
-  if (Math.hypot(enemy.x - nextWaypoint.x, enemy.y - nextWaypoint.y) <= WAYPOINT_ARRIVAL_DISTANCE) {
+  const arrivalDistance = getCombatEngineConfig().waypointArrivalDistance ?? 0.18;
+  if (Math.hypot(enemy.x - nextWaypoint.x, enemy.y - nextWaypoint.y) <= arrivalDistance) {
     enemy.path.shift();
   }
   return true;
@@ -203,7 +203,9 @@ function resolveUnitCollisions(state) {
   for (const ally of battle.allies) {
     if (ally.hp > 0) actors.push(ally);
   }
-  const minDistance = UNIT_COLLISION_RADIUS * 2;
+  const engineCfg = getCombatEngineConfig();
+  const minDistance = (engineCfg.unitCollisionRadius ?? 0.18) * 2;
+  const pushStrength = engineCfg.unitPushStrength ?? 1.0;
   for (let i = 0; i < actors.length; i += 1) {
     for (let j = i + 1; j < actors.length; j += 1) {
       const a = actors[i];
@@ -224,7 +226,7 @@ function resolveUnitCollisions(state) {
         continue;
       }
       const overlap = minDistance - distance;
-      const push = (overlap / 2) * UNIT_PUSH_STRENGTH;
+      const push = (overlap / 2) * pushStrength;
       const nx = dx / distance;
       const ny = dy / distance;
       a.x -= nx * push;
@@ -235,8 +237,9 @@ function resolveUnitCollisions(state) {
   }
   // Keep everyone inside the field vertically (the travel axis is now horizontal, so leave X free so
   // enemies can walk in from just off the right edge).
+  const margin = engineCfg.fieldVerticalMargin ?? {};
   for (const actor of actors) {
-    actor.y = clamp(actor.y, -0.4, FORTRESS_HEIGHT - 0.6);
+    actor.y = clamp(actor.y, -(margin.top ?? 0.4), FORTRESS_HEIGHT - (margin.bottom ?? 0.6));
   }
 }
 
@@ -285,8 +288,9 @@ function createFortressEnemy(state, archetypeKey) {
     auraTimer: 0,
     summonTimer: base.mechanic?.kind === "summon" ? base.mechanic.intervalSeconds : 0,
     // Enemies pour in from just off the RIGHT edge, spread across the field height.
-    x: FORTRESS_WIDTH + 0.45,
-    y: Math.random() * (FORTRESS_HEIGHT - 0.5) + 0.25
+    x: FORTRESS_WIDTH + (CONFIG.combatEngine?.enemySpawnOffset?.x ?? 0.45),
+    y: Math.random() * (FORTRESS_HEIGHT - (CONFIG.combatEngine?.enemySpawnOffset?.yMargin ?? 0.5))
+      + (CONFIG.combatEngine?.enemySpawnOffset?.yPadding ?? 0.25)
   };
 }
 
@@ -345,11 +349,14 @@ export function spawnAllyForBuilding(state, building, unitKey, count) {
     return;
   }
   const center = getBuildingCenter(building);
+  const engineCfg = getCombatEngineConfig();
+  const spawnDistance = engineCfg.spawnDistanceFromBuilding ?? 0.65;
+  const spacing = engineCfg.squadSpawnSpacing ?? 0.4;
   for (let index = 0; index < count; index += 1) {
-    const offset = (index - (count - 1) / 2) * 0.4;
+    const offset = (index - (count - 1) / 2) * spacing;
     battle.allies.push(createFortressAlly(
       unitKey,
-      { x: Math.min(FORTRESS_WIDTH, center.x + 0.65), y: center.y + offset },
+      { x: Math.min(FORTRESS_WIDTH, center.x + spawnDistance), y: center.y + offset },
       building.level
     ));
   }
@@ -377,7 +384,7 @@ function createProjectile(source, target, damage, type, splashRadius = 0) {
     splashRadius,
     x: source.x,
     y: source.y,
-    speed: 5.5
+    speed: getCombatEngineConfig().projectileSpeed ?? 5.5
   };
 }
 
@@ -472,7 +479,8 @@ function tickBuildingActions(state, deltaSeconds) {
     if (level.unit) {
       building.cooldownTimer -= deltaSeconds;
       if (building.cooldownTimer <= 0) {
-        battle.allies.push(createFortressAlly(level.unit, { x: Math.min(FORTRESS_WIDTH, center.x + 0.65), y: center.y }, building.level));
+        const spawnDistance = getCombatEngineConfig().spawnDistanceFromBuilding ?? 0.65;
+        battle.allies.push(createFortressAlly(level.unit, { x: Math.min(FORTRESS_WIDTH, center.x + spawnDistance), y: center.y }, building.level));
         building.cooldownTimer = level.cooldownSeconds;
       }
     }
@@ -481,7 +489,8 @@ function tickBuildingActions(state, deltaSeconds) {
       building.cooldownTimer -= deltaSeconds;
       if (building.cooldownTimer <= 0) {
         const target = chooseNearest(center, battle.enemies.filter((enemy) => enemy.hp > 0));
-        if (target && target.distance <= (level.range ?? 3.2)) {
+        const defaultRange = getCombatEngineConfig().turretDefaultRange ?? 3.2;
+        if (target && target.distance <= (level.range ?? defaultRange)) {
           const boostMultiplier = building.activeBoostRemaining > 0 ? (building.activeBoost?.multiplier ?? 1) : 1;
           battle.projectiles.push(createProjectile(center, target.item, level.damage * boostMultiplier, "turret"));
           building.cooldownTimer = level.cooldownSeconds;
@@ -522,7 +531,8 @@ function tickEnemies(state, deltaSeconds) {
     }
 
     const allyTarget = chooseNearest(enemy, battle.allies.filter((ally) => ally.hp > 0));
-    if (allyTarget && allyTarget.distance <= enemy.range + 0.12) {
+    const meleeEngageBuffer = getCombatEngineConfig().meleeEngageBuffer ?? 0.12;
+    if (allyTarget && allyTarget.distance <= enemy.range + meleeEngageBuffer) {
       enemy.attackTimer -= deltaSeconds;
       if (enemy.attackTimer <= 0) {
         allyTarget.item.hp = clamp(
@@ -541,7 +551,8 @@ function tickEnemies(state, deltaSeconds) {
         continue;
       }
       const level = CONFIG.fortressBuildings.mine.levels[building.level - 1];
-      if (distanceToBuildingEdge(enemy, building) <= 0.55) {
+      const trapTriggerRadius = getCombatEngineConfig().trapMineTriggerRadius ?? 0.55;
+      if (distanceToBuildingEdge(enemy, building) <= trapTriggerRadius) {
         applyDamageToEnemy(enemy, level.damage * damageMultiplier);
         markHit(enemy);
         building.hp = 0;
@@ -568,7 +579,8 @@ function tickEnemies(state, deltaSeconds) {
     enemy.currentTargetId = bestBuilding.id;
 
     // In attack range of building footprint? Stand and hit.
-    if (bestEdgeDistance <= 0.7) {
+    const buildingContactRadius = getCombatEngineConfig().buildingContactRadius ?? 0.7;
+    if (bestEdgeDistance <= buildingContactRadius) {
       enemy.path = null;
       enemy.attackTimer -= deltaSeconds;
       if (enemy.attackTimer <= 0) {
@@ -609,11 +621,12 @@ function tickBossMechanic(state, enemy, deltaSeconds) {
   const battle = state.fortress.battle;
 
   if (enemy.mechanic.kind === "aura") {
+    const tickSeconds = getCombatEngineConfig().bossAuraTickSeconds ?? 1;
     enemy.auraTimer = (enemy.auraTimer ?? 0) + deltaSeconds;
-    if (enemy.auraTimer < 1) {
+    if (enemy.auraTimer < tickSeconds) {
       return;
     }
-    enemy.auraTimer -= 1;
+    enemy.auraTimer -= tickSeconds;
     const damage = enemy.mechanic.damagePerSecond;
     for (const ally of battle.allies) {
       if (ally.hp <= 0) {
@@ -670,7 +683,8 @@ function tickAllies(state, deltaSeconds) {
     ally.path = null;
     ally.attackTimer -= deltaSeconds;
     if (ally.attackTimer <= 0) {
-      if (ally.range > 0.8) {
+      const rangedThreshold = getCombatEngineConfig().rangedAttackThreshold ?? 0.8;
+      if (ally.range > rangedThreshold) {
         battle.projectiles.push(createProjectile(ally, target.item, ally.attack, ally.type, ally.splashRadius ?? 0));
       } else {
         applyDamageToEnemy(target.item, ally.attack * getFortressDamageMultiplier(state));
@@ -690,7 +704,8 @@ function tickProjectiles(state, deltaSeconds) {
       projectile.done = true;
       continue;
     }
-    if (getDistance(projectile, target) <= 0.14) {
+    const hitRadius = getCombatEngineConfig().projectileHitRadius ?? 0.14;
+    if (getDistance(projectile, target) <= hitRadius) {
       const dmg = projectile.damage * damageMultiplier;
       const splash = projectile.splashRadius ?? 0;
       if (splash > 0) {

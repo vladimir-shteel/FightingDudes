@@ -3,6 +3,7 @@ import { mountUI } from "./game/ui.js";
 import { tickFortressBattle } from "./game/systems/fortressBattleSystem.js";
 import { tickMineProduction } from "./game/systems/mineSystem.js";
 import { createDevTools } from "./game/devTools.js";
+import { createConfigEditor } from "./game/configEditor.js";
 import { CONFIG, initConfig } from "./game/config.js";
 
 async function bootstrap() {
@@ -10,7 +11,8 @@ async function bootstrap() {
 
   const state = createInitialState();
   const ui = mountUI(state, () => ui.render());
-  const dev = createDevTools(state, () => ui.render());
+  const configEditor = createConfigEditor(() => ui.render());
+  const dev = createDevTools(state, () => ui.render(), { onOpenConfig: configEditor.toggle });
 
   let previousTimestamp = performance.now();
 
@@ -35,7 +37,7 @@ async function bootstrap() {
   ui.render();
   window.requestAnimationFrame(gameLoop);
 
-  window.__game = { state, ui, CONFIG, dev };
+  window.__game = { state, ui, CONFIG, dev, configEditor };
 }
 
 bootstrap().catch((error) => {

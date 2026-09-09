@@ -14,6 +14,10 @@ function normalizeFootprint(type) {
   return (CONFIG.fortressBuildings[type]?.footprint ?? [[0, 0]]).map(([x, y]) => ({ x, y }));
 }
 
+function getFortressLayoutConfig() {
+  return CONFIG.fortress ?? {};
+}
+
 export function getUnlockedFortressBuildingTypes(waveNumber = 1) {
   return Object.entries(CONFIG.fortressBuildings)
     .filter(([type, building]) => building.unlockedByDefault || waveNumber >= getFortressBuildingUnlockWave(type))
@@ -44,7 +48,8 @@ export function createFortressState() {
     const swapIndex = Math.floor(Math.random() * (index + 1));
     [candidates[index], candidates[swapIndex]] = [candidates[swapIndex], candidates[index]];
   }
-  for (const tile of candidates.slice(0, 10)) {
+  const obstacleCount = getFortressLayoutConfig().obstacleCount ?? 10;
+  for (const tile of candidates.slice(0, obstacleCount)) {
     tile.occupant = "obstacle";
   }
 
@@ -52,7 +57,7 @@ export function createFortressState() {
     screen: "bottom",
     field,
     buildings: [hq],
-    obstacleRemovalCost: 3,
+    obstacleRemovalCost: getFortressLayoutConfig().obstacleRemovalBaseCost ?? 3,
     movingBuildingId: null,
     waveNumber: 1,
     message: "Fortress field initialized. Production continues below.",
@@ -299,7 +304,7 @@ export function removeFortressObstacle(state, x, y) {
     return { ok: false, reason: "Not enough gold to clear this tile." };
   }
   state.resources.gold -= state.fortress.obstacleRemovalCost;
-  state.fortress.obstacleRemovalCost += 1;
+  state.fortress.obstacleRemovalCost += getFortressLayoutConfig().obstacleRemovalCostStep ?? 1;
   tile.occupant = null;
   return { ok: true, reason: "Obstacle cleared." };
 }
@@ -370,7 +375,8 @@ export function getFortressRepairCost(state, building) {
   // per-wave sink. Linear (not the merge 2^level) keeps late repair affordable (no death-spiral).
   const levelMult = building.level ?? 1;
   if (buyCost.length === 0) {
-    return { wood: Math.max(1, Math.ceil(missingFraction * 20 * levelMult)) };
+    const fallbackWoodPerLevel = getFortressLayoutConfig().repairFallbackWoodPerLevel ?? 20;
+    return { wood: Math.max(1, Math.ceil(missingFraction * fallbackWoodPerLevel * levelMult)) };
   }
   return Object.fromEntries(
     buyCost.map(([resourceKey, amount]) => [resourceKey, Math.max(1, Math.ceil(missingFraction * rate * amount * levelMult))])
@@ -403,11 +409,10 @@ export function repairFortressBuilding(state, buildingId) {
 
 // Crystal is the "late power" currency: merging a combat building into a high tier costs crystal
 // (top-tier merges only — walls/traps stay wood/iron). This is what makes crystal a NON-optional
-// sink; the cheapest maxed defense cannot route around it. Tuned via balance.merge.crystalCostByLevel.
-const CRYSTAL_MERGE_TYPES = new Set(["barracks", "archery", "turret", "stables", "mageTower"]);
-
+// sink; the cheapest maxed defense cannot route around it. Which buildings are gated is declared per
+// building via `crystalMergeGated` in fortress-buildings.json. Tuned via balance.merge.crystalCostByLevel.
 export function getMergeCrystalCost(type, targetLevel) {
-  if (!CRYSTAL_MERGE_TYPES.has(type)) {
+  if (!CONFIG.fortressBuildings[type]?.crystalMergeGated) {
     return 0;
   }
   const table = CONFIG.merge?.crystalCostByLevel ?? {};

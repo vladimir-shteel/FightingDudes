@@ -139,7 +139,8 @@ export function pickCapstoneCandidates(traits = {}) {
     .sort((left, right) => (normalized[right] ?? 0) - (normalized[left] ?? 0))[0];
   const secondValue = normalized[secondKey] ?? 0;
 
-  if (dominantValue > 0 && secondValue >= dominantValue * 0.6) {
+  const hybridThreshold = getTraitConfig().hybridThreshold ?? 0.6;
+  if (dominantValue > 0 && secondValue >= dominantValue * hybridThreshold) {
     const pairKey = [dominantKey, secondKey].sort().join("+");
     const hybridId = pairKey === "golden+yield" ? "foreman" : pairKey === "rush+yield" ? "warlord" : null;
     if (hybridId) {
@@ -173,7 +174,7 @@ export function getCapstoneYieldMultiplier(unit) {
     return capstone.effect.value ?? 1;
   }
   if (capstone.effect.kind === "foreman") {
-    return 1 + 0.4;
+    return capstone.effect.productionMultiplier ?? 1;
   }
   return 1;
 }
@@ -187,7 +188,7 @@ export function getCapstoneGoldenBonus(unit) {
     return capstone.effect.value ?? 0;
   }
   if (capstone.effect.kind === "foreman") {
-    return 0.08;
+    return capstone.effect.goldenConversionBonus ?? 0;
   }
   return 0;
 }
@@ -233,7 +234,7 @@ export function getCapstoneWarlordProductionMultiplier(state, unit) {
     return 1;
   }
   const active = Boolean(unit?.battleShiftCommitted && state?.fortress?.battle?.active);
-  return active ? 1 + 0.5 : 1;
+  return active ? capstone.effect.productionMultiplier ?? 1 : 1;
 }
 
 export function applyWorkerCapstone(state, unitId, capstoneId) {

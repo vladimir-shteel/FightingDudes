@@ -1,0 +1,1975 @@
+{
+  "version": 1,
+  "tickRateMs": 100,
+  "goldIcon": "🪙",
+  "passiveGoldPerSecond": 0,
+  "passiveGoldPerSecondPerUnlockedMine": 0,
+  "passiveGoldPayoutIntervalSeconds": 4,
+  "startingGold": 40,
+  "startingResources": {
+    "wood": 110,
+    "ore": 60
+  },
+  "startingOre": 0,
+  "unitBuyBaseCost": 5,
+  "unitBuyExponent": 1.09,
+  "productionMultipliers": {
+    "rest": 0.55
+  },
+  "combat": {
+    "hpScalePerWave": 0.14,
+    "attackScalePerWave": 0.06,
+    "armorScalePerWave": 0.1,
+    "armorMinFraction": 0.15,
+    "unitAttackPerLevel": 0.35,
+    "unitHpPerLevel": 0.2
+  },
+  "buildingCostEscalation": {
+    "default": 1.11,
+    "wall": 1.06,
+    "bigWall": 1.06
+  },
+  "demolish": {
+    "refundFraction": 0.4,
+    "goldCostPerCopy": 8
+  },
+  "abilityCostAccumulation": 1.6,
+  "waveDemand": {
+    "slotProductionMultiplier": 1.25
+  },
+  "fortress": {
+    "obstacleCount": 10,
+    "obstacleRemovalBaseCost": 3,
+    "obstacleRemovalCostStep": 1,
+    "repairFallbackWoodPerLevel": 20
+  },
+  "combatEngine": {
+    "repathIntervalSeconds": 0.4,
+    "waypointArrivalDistance": 0.18,
+    "unitCollisionRadius": 0.18,
+    "unitPushStrength": 1,
+    "hitFlashSeconds": 0.09,
+    "fieldVerticalMargin": {
+      "top": 0.4,
+      "bottom": 0.6
+    },
+    "enemySpawnOffset": {
+      "x": 0.45,
+      "yMargin": 0.5,
+      "yPadding": 0.25
+    },
+    "squadSpawnSpacing": 0.4,
+    "spawnDistanceFromBuilding": 0.65,
+    "projectileSpeed": 5.5,
+    "projectileHitRadius": 0.14,
+    "turretDefaultRange": 3.2,
+    "meleeEngageBuffer": 0.12,
+    "trapMineTriggerRadius": 0.55,
+    "buildingContactRadius": 0.7,
+    "bossAuraTickSeconds": 1,
+    "rangedAttackThreshold": 0.8
+  },
+  "workerTraits": {
+    "mergeBonusPoints": 1,
+    "hybridThreshold": 0.6,
+    "battleShift": {
+      "baseMultiplier": 2.2,
+      "maxCommitsPerMine": 2,
+      "restChargePerLevel": 2,
+      "restRechargePerWave": 2
+    },
+    "lines": {
+      "yield": {
+        "label": "Yield",
+        "icon": "Y",
+        "rollWeight": 1,
+        "resourceMultiplierPerPoint": 0.04
+      },
+      "golden": {
+        "label": "Golden",
+        "icon": "G",
+        "rollWeight": 1,
+        "goldPerResourcePerPoint": 0.006
+      },
+      "rush": {
+        "label": "Rush",
+        "icon": "R",
+        "rollWeight": 1,
+        "battleMultiplierPerPoint": 0.08
+      }
+    },
+    "capstones": {
+      "yield": [
+        {
+          "id": "yield-master",
+          "label": "Yield Master",
+          "description": "Slot production +60%.",
+          "effect": {
+            "kind": "yieldMul",
+            "value": 1.6
+          }
+        },
+        {
+          "id": "deep-vein",
+          "label": "Deep Vein",
+          "description": "Double demand bonus.",
+          "effect": {
+            "kind": "demandMul",
+            "value": 2
+          }
+        }
+      ],
+      "golden": [
+        {
+          "id": "midas",
+          "label": "Midas Touch",
+          "description": "Convert 25% of production to gold on top of existing.",
+          "effect": {
+            "kind": "goldenConversion",
+            "value": 0.25
+          }
+        },
+        {
+          "id": "trickle",
+          "label": "Golden Trickle",
+          "description": "+1 gold/sec passive.",
+          "effect": {
+            "kind": "passiveGold",
+            "value": 1
+          }
+        }
+      ],
+      "rush": [
+        {
+          "id": "warmind",
+          "label": "Warmind",
+          "description": "Battle shift multiplier +2.0.",
+          "effect": {
+            "kind": "rushBonus",
+            "value": 2
+          }
+        },
+        {
+          "id": "skirmish",
+          "label": "Skirmisher",
+          "description": "Committed workers grant temporary damage +20% during battle.",
+          "effect": {
+            "kind": "battleDamageBonus",
+            "value": 0.2
+          }
+        }
+      ],
+      "hybrid": [
+        {
+          "id": "foreman",
+          "label": "Foreman (Y+G)",
+          "description": "+40% production, +8% goldenConversion.",
+          "effect": {
+            "kind": "foreman",
+            "productionMultiplier": 1.4,
+            "goldenConversionBonus": 0.08
+          }
+        },
+        {
+          "id": "warlord",
+          "label": "Warlord (R+Y)",
+          "description": "+50% production during battle shift.",
+          "effect": {
+            "kind": "warlord",
+            "productionMultiplier": 1.5
+          }
+        }
+      ]
+    }
+  },
+  "merge": {
+    "maxLevel": 5,
+    "workerLevelUnlockWaves": [
+      1,
+      1,
+      1,
+      3,
+      5
+    ],
+    "crystalCostByLevel": {
+      "4": 30,
+      "5": 60
+    }
+  },
+  "attrition": {
+    "floorPerDefeat": 0.2,
+    "postDefeatHpFraction": 0.4,
+    "repairCostPerHpFractionOfBuyCost": 1
+  },
+  "rewardDraft": {
+    "cards": [
+      {
+        "id": "perm-gold",
+        "category": "permanent",
+        "title": "Gold Dividend",
+        "description": "All gold income is permanently increased.",
+        "weight": 1,
+        "effect": {
+          "kind": "goldMultiplier",
+          "value": 1.1
+        }
+      },
+      {
+        "id": "perm-resource",
+        "category": "permanent",
+        "title": "Supply Line",
+        "description": "Mine production is permanently increased.",
+        "weight": 1,
+        "effect": {
+          "kind": "productionMultiplier",
+          "value": 1.1
+        }
+      },
+      {
+        "id": "perm-health",
+        "category": "permanent",
+        "title": "Fortified Core",
+        "description": "Fortress buildings get a flat base health boost.",
+        "weight": 1,
+        "effect": {
+          "kind": "baseHealthBonus",
+          "value": 12
+        }
+      },
+      {
+        "id": "temp-production",
+        "category": "temporary",
+        "title": "Harvest Surge",
+        "description": "Resource production spikes for a few waves.",
+        "weight": 1,
+        "effect": {
+          "kind": "temporaryMultiplier",
+          "bonusKind": "production",
+          "value": 1.25,
+          "durationWaves": 2
+        }
+      },
+      {
+        "id": "temp-damage",
+        "category": "temporary",
+        "title": "War Drums",
+        "description": "Your fortress units hit harder for a few waves.",
+        "weight": 1,
+        "effect": {
+          "kind": "temporaryMultiplier",
+          "bonusKind": "damage",
+          "value": 1.2,
+          "durationWaves": 2
+        }
+      },
+      {
+        "id": "temp-defense",
+        "category": "temporary",
+        "title": "Shield Wall",
+        "description": "Incoming damage to the fortress is reduced for a few waves.",
+        "weight": 1,
+        "effect": {
+          "kind": "temporaryMultiplier",
+          "bonusKind": "defense",
+          "value": 1.15,
+          "durationWaves": 2
+        }
+      },
+      {
+        "id": "shot-worker",
+        "category": "oneShot",
+        "title": "Worker Promotion",
+        "description": "Promote one worker by a level if possible.",
+        "effectText": "Upgrade one worker now",
+        "weight": 1,
+        "effect": {
+          "kind": "promoteWorker"
+        }
+      },
+      {
+        "id": "shot-building",
+        "category": "oneShot",
+        "title": "Building Upgrade",
+        "description": "Upgrade one fortress building without paying its cost.",
+        "effectText": "Upgrade one building now",
+        "weight": 1,
+        "effect": {
+          "kind": "upgradeBuilding"
+        }
+      },
+      {
+        "id": "shot-mine",
+        "category": "oneShot",
+        "title": "Free Mine Slot",
+        "description": "Unlock a mine or add a free slot to one that is already open.",
+        "effectText": "Unlock or expand one mine",
+        "weight": 1,
+        "effect": {
+          "kind": "unlockMineSlot"
+        }
+      },
+      {
+        "id": "shot-drop",
+        "category": "oneShot",
+        "title": "Supply Drop",
+        "description": "Gain a burst of gold and materials right away.",
+        "effectText": "Gold + resources",
+        "weight": 1,
+        "effect": {
+          "kind": "supplyDrop",
+          "goldInjection": 180,
+          "resourceInjection": 70
+        }
+      },
+      {
+        "id": "shot-repair",
+        "category": "oneShot",
+        "title": "Mass Repair",
+        "description": "Restore every damaged fortress building to full health.",
+        "effectText": "Repair all buildings",
+        "weight": 1,
+        "effect": {
+          "kind": "massRepair"
+        }
+      }
+    ]
+  },
+  "fortressBuildings": {
+    "hq": {
+      "name": "HQ",
+      "icon": "🏰",
+      "description": "Your fortress core. If it falls, the wave is lost.",
+      "footprint": [
+        [
+          0,
+          0
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          2
+        ]
+      ],
+      "unlockedByDefault": true,
+      "buyCost": {},
+      "levels": [
+        {
+          "hp": 460
+        }
+      ]
+    },
+    "wall": {
+      "name": "Wall",
+      "icon": "🧱",
+      "description": "Cheap 1-tile blocker that soaks hits. Lv 5 shields nearby allies.",
+      "footprint": [
+        [
+          0,
+          0
+        ]
+      ],
+      "unlockedByDefault": true,
+      "buyCost": {
+        "wood": 60
+      },
+      "levels": [
+        {
+          "hp": 70,
+          "upgradeCost": {
+            "wood": 55
+          }
+        },
+        {
+          "hp": 150,
+          "upgradeCost": {
+            "wood": 90,
+            "ore": 40
+          }
+        },
+        {
+          "hp": 300,
+          "upgradeCost": {
+            "wood": 150,
+            "ore": 80
+          }
+        },
+        {
+          "hp": 560,
+          "upgradeCost": {
+            "wood": 240,
+            "ore": 150
+          }
+        },
+        {
+          "hp": 920,
+          "active": {
+            "id": "shieldNearby",
+            "label": "Shield",
+            "cooldownSeconds": 20,
+            "cost": {
+              "wood": 20
+            },
+            "effect": {
+              "kind": "shield",
+              "radius": 2,
+              "durationSeconds": 5,
+              "damageReduction": 0.5
+            }
+          }
+        }
+      ],
+      "unlockWave": 1
+    },
+    "bigWall": {
+      "name": "Big Wall",
+      "icon": "🧱",
+      "description": "Wide 3-tile barrier with heavy HP. Lv 4 shields a large area.",
+      "footprint": [
+        [
+          0,
+          0
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          2,
+          0
+        ]
+      ],
+      "unlockedByDefault": false,
+      "buyCost": {
+        "wood": 135,
+        "ore": 60
+      },
+      "levels": [
+        {
+          "hp": 150,
+          "upgradeCost": {
+            "wood": 130,
+            "ore": 60
+          }
+        },
+        {
+          "hp": 300,
+          "upgradeCost": {
+            "wood": 210,
+            "ore": 110
+          }
+        },
+        {
+          "hp": 560,
+          "upgradeCost": {
+            "wood": 330,
+            "ore": 180
+          }
+        },
+        {
+          "hp": 1400,
+          "active": {
+            "id": "shieldNearby",
+            "label": "Shield",
+            "cooldownSeconds": 20,
+            "cost": {
+              "wood": 40
+            },
+            "effect": {
+              "kind": "shield",
+              "radius": 2.8,
+              "durationSeconds": 6,
+              "damageReduction": 0.5
+            }
+          }
+        }
+      ],
+      "unlockWave": 12
+    },
+    "barracks": {
+      "name": "Barracks",
+      "icon": "⚔️",
+      "description": "Trains melee warriors on a timer. Lv 4 rallies a squad.",
+      "crystalMergeGated": true,
+      "footprint": [
+        [
+          0,
+          0
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          1
+        ]
+      ],
+      "unlockedByDefault": true,
+      "buyCost": {
+        "wood": 105,
+        "ore": 45
+      },
+      "levels": [
+        {
+          "hp": 70,
+          "cooldownSeconds": 6,
+          "unit": "warrior",
+          "upgradeCost": {
+            "wood": 70,
+            "ore": 30
+          }
+        },
+        {
+          "hp": 85,
+          "cooldownSeconds": 4.5,
+          "unit": "warrior",
+          "upgradeCost": {
+            "wood": 120,
+            "ore": 55
+          }
+        },
+        {
+          "hp": 100,
+          "cooldownSeconds": 3.3,
+          "unit": "warrior",
+          "upgradeCost": {
+            "wood": 190,
+            "ore": 95
+          }
+        },
+        {
+          "hp": 130,
+          "cooldownSeconds": 1.9,
+          "unit": "warrior",
+          "active": {
+            "id": "spawnSquad",
+            "label": "Rally Squad",
+            "cooldownSeconds": 20,
+            "cost": {
+              "wood": 40
+            },
+            "effect": {
+              "kind": "spawnSquad",
+              "unit": "warrior",
+              "count": 4
+            }
+          }
+        }
+      ],
+      "unlockWave": 1
+    },
+    "archery": {
+      "name": "Archery",
+      "icon": "🏹",
+      "description": "Trains archers that strike from range. Lv 4 fires a volley.",
+      "crystalMergeGated": true,
+      "footprint": [
+        [
+          0,
+          0
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          1,
+          1
+        ]
+      ],
+      "unlockedByDefault": false,
+      "unlockWave": 3,
+      "buyCost": {
+        "wood": 90,
+        "ore": 40
+      },
+      "levels": [
+        {
+          "hp": 55,
+          "cooldownSeconds": 8,
+          "unit": "archer",
+          "upgradeCost": {
+            "wood": 95,
+            "ore": 40
+          }
+        },
+        {
+          "hp": 68,
+          "cooldownSeconds": 6.3,
+          "unit": "archer",
+          "upgradeCost": {
+            "wood": 150,
+            "ore": 70
+          }
+        },
+        {
+          "hp": 82,
+          "cooldownSeconds": 4.8,
+          "unit": "archer",
+          "upgradeCost": {
+            "wood": 240,
+            "ore": 120,
+            "crystal": 40
+          }
+        },
+        {
+          "hp": 110,
+          "cooldownSeconds": 2.7,
+          "unit": "archer",
+          "active": {
+            "id": "volley",
+            "label": "Volley",
+            "cooldownSeconds": 18,
+            "cost": {
+              "crystal": 20
+            },
+            "effect": {
+              "kind": "volley",
+              "count": 3,
+              "damage": 34
+            }
+          }
+        }
+      ]
+    },
+    "turret": {
+      "name": "Turret",
+      "icon": "🎯",
+      "description": "Auto-fires at enemies in range. Lv 5 can overcharge its damage.",
+      "crystalMergeGated": true,
+      "footprint": [
+        [
+          0,
+          0
+        ]
+      ],
+      "unlockedByDefault": false,
+      "unlockWave": 5,
+      "buyCost": {
+        "ore": 105,
+        "iron": 33
+      },
+      "levels": [
+        {
+          "hp": 50,
+          "damage": 12,
+          "cooldownSeconds": 1.2,
+          "upgradeCost": {
+            "ore": 90,
+            "iron": 40
+          },
+          "range": 1.8
+        },
+        {
+          "hp": 60,
+          "damage": 22,
+          "cooldownSeconds": 1,
+          "upgradeCost": {
+            "ore": 150,
+            "iron": 70
+          },
+          "range": 2
+        },
+        {
+          "hp": 72,
+          "damage": 40,
+          "cooldownSeconds": 0.85,
+          "upgradeCost": {
+            "ore": 240,
+            "iron": 120
+          },
+          "range": 2.2
+        },
+        {
+          "hp": 86,
+          "damage": 72,
+          "cooldownSeconds": 0.75,
+          "upgradeCost": {
+            "ore": 380,
+            "iron": 200
+          },
+          "range": 2.4
+        },
+        {
+          "hp": 100,
+          "damage": 120,
+          "cooldownSeconds": 0.65,
+          "active": {
+            "id": "overcharge",
+            "label": "Overcharge",
+            "cooldownSeconds": 20,
+            "cost": {
+              "iron": 30
+            },
+            "effect": {
+              "kind": "buildingDamageBoost",
+              "durationSeconds": 6,
+              "multiplier": 2.5
+            }
+          },
+          "range": 2.6
+        }
+      ]
+    },
+    "stables": {
+      "name": "Stables",
+      "icon": "🐎",
+      "description": "Trains fast riders. Lv 4 charges in a mounted squad.",
+      "crystalMergeGated": true,
+      "footprint": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          2
+        ]
+      ],
+      "unlockedByDefault": false,
+      "unlockWave": 9,
+      "buyCost": {
+        "wood": 105,
+        "iron": 45
+      },
+      "levels": [
+        {
+          "hp": 80,
+          "cooldownSeconds": 8,
+          "unit": "rider",
+          "upgradeCost": {
+            "wood": 110,
+            "iron": 50
+          }
+        },
+        {
+          "hp": 95,
+          "cooldownSeconds": 6.3,
+          "unit": "rider",
+          "upgradeCost": {
+            "wood": 175,
+            "iron": 85
+          }
+        },
+        {
+          "hp": 110,
+          "cooldownSeconds": 4.8,
+          "unit": "rider",
+          "upgradeCost": {
+            "wood": 275,
+            "iron": 140,
+            "crystal": 50
+          }
+        },
+        {
+          "hp": 140,
+          "cooldownSeconds": 2.7,
+          "unit": "rider",
+          "active": {
+            "id": "charge",
+            "label": "Charge",
+            "cooldownSeconds": 24,
+            "cost": {
+              "iron": 30
+            },
+            "effect": {
+              "kind": "spawnSquad",
+              "unit": "rider",
+              "count": 3
+            }
+          }
+        }
+      ]
+    },
+    "mageTower": {
+      "name": "Mage Tower",
+      "icon": "🔮",
+      "description": "Trains mages with ranged magic. Lv 4 freezes attackers.",
+      "crystalMergeGated": true,
+      "footprint": [
+        [
+          0,
+          0
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          1
+        ]
+      ],
+      "unlockedByDefault": false,
+      "unlockWave": 8,
+      "buyCost": {
+        "ore": 105,
+        "crystal": 45
+      },
+      "levels": [
+        {
+          "hp": 55,
+          "cooldownSeconds": 9,
+          "unit": "mage",
+          "upgradeCost": {
+            "ore": 110,
+            "crystal": 50
+          }
+        },
+        {
+          "hp": 68,
+          "cooldownSeconds": 7,
+          "unit": "mage",
+          "upgradeCost": {
+            "ore": 175,
+            "crystal": 85
+          }
+        },
+        {
+          "hp": 82,
+          "cooldownSeconds": 5.3,
+          "unit": "mage",
+          "upgradeCost": {
+            "ore": 275,
+            "crystal": 140
+          }
+        },
+        {
+          "hp": 110,
+          "cooldownSeconds": 3,
+          "unit": "mage",
+          "active": {
+            "id": "frost",
+            "label": "Frost Nova",
+            "cooldownSeconds": 22,
+            "cost": {
+              "crystal": 25
+            },
+            "effect": {
+              "kind": "frost",
+              "durationSeconds": 4,
+              "slowMultiplier": 0.4
+            }
+          }
+        }
+      ]
+    },
+    "mine": {
+      "name": "Trap Mine",
+      "icon": "💣",
+      "description": "One-shot trap that explodes on contact. Rebuild after it triggers.",
+      "footprint": [
+        [
+          0,
+          0
+        ]
+      ],
+      "unlockedByDefault": false,
+      "unlockWave": 14,
+      "buyCost": {
+        "iron": 45
+      },
+      "levels": [
+        {
+          "hp": 1,
+          "damage": 40,
+          "upgradeCost": {
+            "iron": 50
+          }
+        },
+        {
+          "hp": 1,
+          "damage": 70,
+          "upgradeCost": {
+            "iron": 85,
+            "crystal": 30
+          }
+        },
+        {
+          "hp": 1,
+          "damage": 115,
+          "upgradeCost": {
+            "iron": 140,
+            "crystal": 55
+          }
+        },
+        {
+          "hp": 1,
+          "damage": 180,
+          "upgradeCost": {
+            "iron": 230,
+            "crystal": 90
+          }
+        },
+        {
+          "hp": 1,
+          "damage": 270
+        }
+      ]
+    }
+  },
+  "fortressUnits": {
+    "warrior": {
+      "name": "Warrior",
+      "icon": "🤺",
+      "hp": 42,
+      "attack": 8,
+      "cooldownSeconds": 0.75,
+      "rangeTiles": 0.5,
+      "speedTilesPerSecond": 1.45
+    },
+    "archer": {
+      "name": "Archer",
+      "icon": "🧝",
+      "hp": 24,
+      "attack": 7,
+      "cooldownSeconds": 1.2,
+      "rangeTiles": 2.6,
+      "speedTilesPerSecond": 1.2
+    },
+    "rider": {
+      "name": "Rider",
+      "icon": "🏇",
+      "hp": 58,
+      "attack": 12,
+      "cooldownSeconds": 1.1,
+      "rangeTiles": 0.45,
+      "speedTilesPerSecond": 1.9
+    },
+    "mage": {
+      "name": "Mage",
+      "icon": "🧙",
+      "hp": 18,
+      "attack": 10,
+      "cooldownSeconds": 1,
+      "rangeTiles": 2.4,
+      "speedTilesPerSecond": 1.15,
+      "splashRadius": 1
+    }
+  },
+  "fortressEnemies": {
+    "grunt": {
+      "name": "Grunt",
+      "icon": "👹",
+      "hp": 28,
+      "attack": 10,
+      "cooldownSeconds": 0.8,
+      "rangeTiles": 0.42,
+      "speedTilesPerSecond": 0.95,
+      "tag": "normal",
+      "armor": 0
+    },
+    "runner": {
+      "name": "Runner",
+      "icon": "🐺",
+      "hp": 18,
+      "attack": 6,
+      "cooldownSeconds": 0.7,
+      "rangeTiles": 0.42,
+      "speedTilesPerSecond": 1.55,
+      "tag": "fast",
+      "armor": 0
+    },
+    "armored": {
+      "name": "Ogre",
+      "icon": "👺",
+      "hp": 60,
+      "attack": 13,
+      "cooldownSeconds": 1.1,
+      "rangeTiles": 0.42,
+      "speedTilesPerSecond": 0.7,
+      "tag": "armored",
+      "armor": 12
+    },
+    "archerE": {
+      "name": "Sniper",
+      "icon": "🏹",
+      "hp": 22,
+      "attack": 9,
+      "cooldownSeconds": 1.4,
+      "rangeTiles": 2.4,
+      "speedTilesPerSecond": 0.9,
+      "tag": "ranged",
+      "armor": 0
+    },
+    "orcKing": {
+      "name": "Orc King",
+      "icon": "🐗",
+      "hp": 240,
+      "attack": 18,
+      "cooldownSeconds": 1.1,
+      "rangeTiles": 0.5,
+      "speedTilesPerSecond": 0.65,
+      "tag": "boss",
+      "armor": 10,
+      "mechanic": {
+        "kind": "aura",
+        "radius": 2.2,
+        "damagePerSecond": 6
+      }
+    },
+    "necromancer": {
+      "name": "Necromancer",
+      "icon": "💀",
+      "hp": 190,
+      "attack": 12,
+      "cooldownSeconds": 1.4,
+      "rangeTiles": 2,
+      "speedTilesPerSecond": 0.7,
+      "tag": "boss",
+      "armor": 6,
+      "mechanic": {
+        "kind": "summon",
+        "archetype": "grunt",
+        "intervalSeconds": 6
+      }
+    },
+    "breacher": {
+      "name": "Breacher",
+      "icon": "🐉",
+      "hp": 270,
+      "attack": 26,
+      "cooldownSeconds": 1.3,
+      "rangeTiles": 0.45,
+      "speedTilesPerSecond": 0.55,
+      "tag": "boss",
+      "armor": 10,
+      "mechanic": {
+        "kind": "breach",
+        "damageMultVsBuildings": 3
+      }
+    }
+  },
+  "fortressWaves": [
+    {
+      "enemyCount": 2,
+      "spawnIntervalSeconds": 1.6,
+      "killGold": 1,
+      "victoryGold": 18,
+      "demandResource": "wood",
+      "composition": [
+        {
+          "archetype": "grunt",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "enemyCount": 3,
+      "spawnIntervalSeconds": 1.6,
+      "killGold": 1,
+      "victoryGold": 22,
+      "startBonusGold": 11,
+      "startBonusWindowSeconds": 20,
+      "demandResource": "ore",
+      "composition": [
+        {
+          "archetype": "grunt",
+          "count": 2
+        },
+        {
+          "archetype": "runner",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "enemyCount": 6,
+      "spawnIntervalSeconds": 1.2,
+      "killGold": 1,
+      "victoryGold": 26,
+      "startBonusGold": 13,
+      "startBonusWindowSeconds": 20,
+      "demandResource": "wood",
+      "composition": [
+        {
+          "archetype": "grunt",
+          "count": 5
+        },
+        {
+          "archetype": "runner",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "enemyCount": 8,
+      "spawnIntervalSeconds": 1,
+      "killGold": 1,
+      "victoryGold": 30,
+      "startBonusGold": 15,
+      "startBonusWindowSeconds": 20,
+      "demandResource": "iron",
+      "composition": [
+        {
+          "archetype": "grunt",
+          "count": 5
+        },
+        {
+          "archetype": "runner",
+          "count": 2
+        },
+        {
+          "archetype": "armored",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "type": "boss",
+      "isBoss": true,
+      "enemyCount": 10,
+      "spawnIntervalSeconds": 0.96,
+      "killGold": 1,
+      "victoryGold": 34,
+      "startBonusGold": 17,
+      "startBonusWindowSeconds": 20,
+      "demandResource": "ore",
+      "composition": [
+        {
+          "archetype": "orcKing",
+          "count": 1
+        },
+        {
+          "archetype": "grunt",
+          "count": 9
+        }
+      ]
+    },
+    {
+      "enemyCount": 11,
+      "spawnIntervalSeconds": 0.93,
+      "killGold": 1,
+      "victoryGold": 38,
+      "startBonusGold": 19,
+      "startBonusWindowSeconds": 20,
+      "demandResource": "iron",
+      "composition": [
+        {
+          "archetype": "grunt",
+          "count": 7
+        },
+        {
+          "archetype": "runner",
+          "count": 2
+        },
+        {
+          "archetype": "armored",
+          "count": 1
+        },
+        {
+          "archetype": "archerE",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "enemyCount": 12,
+      "spawnIntervalSeconds": 0.9,
+      "killGold": 1,
+      "victoryGold": 42,
+      "startBonusGold": 21,
+      "startBonusWindowSeconds": 20,
+      "demandResource": "wood",
+      "composition": [
+        {
+          "archetype": "grunt",
+          "count": 8
+        },
+        {
+          "archetype": "runner",
+          "count": 2
+        },
+        {
+          "archetype": "armored",
+          "count": 1
+        },
+        {
+          "archetype": "archerE",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "enemyCount": 14,
+      "spawnIntervalSeconds": 0.87,
+      "killGold": 1,
+      "victoryGold": 46,
+      "startBonusGold": 23,
+      "startBonusWindowSeconds": 20,
+      "demandResource": "crystal",
+      "composition": [
+        {
+          "archetype": "grunt",
+          "count": 7
+        },
+        {
+          "archetype": "runner",
+          "count": 3
+        },
+        {
+          "archetype": "armored",
+          "count": 2
+        },
+        {
+          "archetype": "archerE",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "enemyCount": 15,
+      "spawnIntervalSeconds": 0.84,
+      "killGold": 1,
+      "victoryGold": 50,
+      "startBonusGold": 25,
+      "startBonusWindowSeconds": 20,
+      "demandResource": "iron",
+      "composition": [
+        {
+          "archetype": "grunt",
+          "count": 8
+        },
+        {
+          "archetype": "runner",
+          "count": 3
+        },
+        {
+          "archetype": "armored",
+          "count": 2
+        },
+        {
+          "archetype": "archerE",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "type": "boss",
+      "isBoss": true,
+      "enemyCount": 17,
+      "spawnIntervalSeconds": 0.8,
+      "killGold": 1,
+      "victoryGold": 54,
+      "startBonusGold": 27,
+      "startBonusWindowSeconds": 20,
+      "demandResource": "crystal",
+      "composition": [
+        {
+          "archetype": "necromancer",
+          "count": 1
+        },
+        {
+          "archetype": "grunt",
+          "count": 10
+        },
+        {
+          "archetype": "runner",
+          "count": 6
+        }
+      ]
+    },
+    {
+      "enemyCount": 18,
+      "spawnIntervalSeconds": 0.78,
+      "killGold": 1,
+      "victoryGold": 58,
+      "startBonusGold": 29,
+      "startBonusWindowSeconds": 20,
+      "demandResource": "wood",
+      "composition": [
+        {
+          "archetype": "grunt",
+          "count": 10
+        },
+        {
+          "archetype": "runner",
+          "count": 4
+        },
+        {
+          "archetype": "armored",
+          "count": 2
+        },
+        {
+          "archetype": "archerE",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "enemyCount": 20,
+      "spawnIntervalSeconds": 0.75,
+      "killGold": 1,
+      "victoryGold": 62,
+      "startBonusGold": 31,
+      "startBonusWindowSeconds": 20,
+      "demandResource": "ore",
+      "composition": [
+        {
+          "archetype": "grunt",
+          "count": 12
+        },
+        {
+          "archetype": "runner",
+          "count": 4
+        },
+        {
+          "archetype": "armored",
+          "count": 2
+        },
+        {
+          "archetype": "archerE",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "enemyCount": 21,
+      "spawnIntervalSeconds": 0.72,
+      "killGold": 1,
+      "victoryGold": 66,
+      "startBonusGold": 33,
+      "startBonusWindowSeconds": 20,
+      "demandResource": "iron",
+      "composition": [
+        {
+          "archetype": "grunt",
+          "count": 11
+        },
+        {
+          "archetype": "runner",
+          "count": 4
+        },
+        {
+          "archetype": "armored",
+          "count": 3
+        },
+        {
+          "archetype": "archerE",
+          "count": 3
+        }
+      ]
+    },
+    {
+      "enemyCount": 23,
+      "spawnIntervalSeconds": 0.7,
+      "killGold": 2,
+      "victoryGold": 70,
+      "startBonusGold": 35,
+      "startBonusWindowSeconds": 20,
+      "demandResource": "crystal",
+      "composition": [
+        {
+          "archetype": "grunt",
+          "count": 12
+        },
+        {
+          "archetype": "runner",
+          "count": 5
+        },
+        {
+          "archetype": "armored",
+          "count": 3
+        },
+        {
+          "archetype": "archerE",
+          "count": 3
+        }
+      ]
+    },
+    {
+      "type": "boss",
+      "isBoss": true,
+      "enemyCount": 25,
+      "spawnIntervalSeconds": 0.67,
+      "killGold": 2,
+      "victoryGold": 74,
+      "startBonusGold": 37,
+      "startBonusWindowSeconds": 20,
+      "demandResource": "iron",
+      "composition": [
+        {
+          "archetype": "orcKing",
+          "count": 1
+        },
+        {
+          "archetype": "grunt",
+          "count": 13
+        },
+        {
+          "archetype": "runner",
+          "count": 6
+        },
+        {
+          "archetype": "armored",
+          "count": 5
+        }
+      ]
+    },
+    {
+      "enemyCount": 26,
+      "spawnIntervalSeconds": 0.65,
+      "killGold": 2,
+      "victoryGold": 78,
+      "startBonusGold": 39,
+      "startBonusWindowSeconds": 20,
+      "demandResource": "wood",
+      "composition": [
+        {
+          "archetype": "grunt",
+          "count": 15
+        },
+        {
+          "archetype": "runner",
+          "count": 5
+        },
+        {
+          "archetype": "armored",
+          "count": 3
+        },
+        {
+          "archetype": "archerE",
+          "count": 3
+        }
+      ]
+    },
+    {
+      "enemyCount": 28,
+      "spawnIntervalSeconds": 0.63,
+      "killGold": 2,
+      "victoryGold": 82,
+      "startBonusGold": 41,
+      "startBonusWindowSeconds": 20,
+      "demandResource": "crystal",
+      "composition": [
+        {
+          "archetype": "grunt",
+          "count": 16
+        },
+        {
+          "archetype": "runner",
+          "count": 6
+        },
+        {
+          "archetype": "armored",
+          "count": 3
+        },
+        {
+          "archetype": "archerE",
+          "count": 3
+        }
+      ]
+    },
+    {
+      "enemyCount": 30,
+      "spawnIntervalSeconds": 0.61,
+      "killGold": 2,
+      "victoryGold": 86,
+      "startBonusGold": 43,
+      "startBonusWindowSeconds": 20,
+      "demandResource": "ore",
+      "composition": [
+        {
+          "archetype": "grunt",
+          "count": 16
+        },
+        {
+          "archetype": "runner",
+          "count": 6
+        },
+        {
+          "archetype": "armored",
+          "count": 4
+        },
+        {
+          "archetype": "archerE",
+          "count": 4
+        }
+      ]
+    },
+    {
+      "enemyCount": 32,
+      "spawnIntervalSeconds": 0.59,
+      "killGold": 2,
+      "victoryGold": 90,
+      "startBonusGold": 45,
+      "startBonusWindowSeconds": 20,
+      "demandResource": "iron",
+      "composition": [
+        {
+          "archetype": "grunt",
+          "count": 18
+        },
+        {
+          "archetype": "runner",
+          "count": 6
+        },
+        {
+          "archetype": "armored",
+          "count": 4
+        },
+        {
+          "archetype": "archerE",
+          "count": 4
+        }
+      ]
+    },
+    {
+      "type": "boss",
+      "isBoss": true,
+      "enemyCount": 34,
+      "spawnIntervalSeconds": 0.57,
+      "killGold": 2,
+      "victoryGold": 94,
+      "startBonusGold": 47,
+      "startBonusWindowSeconds": 20,
+      "demandResource": "crystal",
+      "composition": [
+        {
+          "archetype": "breacher",
+          "count": 1
+        },
+        {
+          "archetype": "grunt",
+          "count": 15
+        },
+        {
+          "archetype": "runner",
+          "count": 8
+        },
+        {
+          "archetype": "armored",
+          "count": 5
+        },
+        {
+          "archetype": "archerE",
+          "count": 5
+        }
+      ]
+    },
+    {
+      "enemyCount": 36,
+      "spawnIntervalSeconds": 0.55,
+      "killGold": 2,
+      "victoryGold": 98,
+      "startBonusGold": 49,
+      "startBonusWindowSeconds": 20,
+      "demandResource": "wood",
+      "composition": [
+        {
+          "archetype": "grunt",
+          "count": 21
+        },
+        {
+          "archetype": "runner",
+          "count": 7
+        },
+        {
+          "archetype": "armored",
+          "count": 4
+        },
+        {
+          "archetype": "archerE",
+          "count": 4
+        }
+      ]
+    },
+    {
+      "enemyCount": 38,
+      "spawnIntervalSeconds": 0.53,
+      "killGold": 2,
+      "victoryGold": 102,
+      "startBonusGold": 51,
+      "startBonusWindowSeconds": 20,
+      "demandResource": "ore",
+      "composition": [
+        {
+          "archetype": "grunt",
+          "count": 20
+        },
+        {
+          "archetype": "runner",
+          "count": 8
+        },
+        {
+          "archetype": "armored",
+          "count": 5
+        },
+        {
+          "archetype": "archerE",
+          "count": 5
+        }
+      ]
+    },
+    {
+      "enemyCount": 41,
+      "spawnIntervalSeconds": 0.51,
+      "killGold": 2,
+      "victoryGold": 106,
+      "startBonusGold": 53,
+      "startBonusWindowSeconds": 20,
+      "demandResource": "iron",
+      "composition": [
+        {
+          "archetype": "grunt",
+          "count": 23
+        },
+        {
+          "archetype": "runner",
+          "count": 8
+        },
+        {
+          "archetype": "armored",
+          "count": 5
+        },
+        {
+          "archetype": "archerE",
+          "count": 5
+        }
+      ]
+    },
+    {
+      "enemyCount": 44,
+      "spawnIntervalSeconds": 0.5,
+      "killGold": 2,
+      "victoryGold": 110,
+      "startBonusGold": 55,
+      "startBonusWindowSeconds": 20,
+      "demandResource": "crystal",
+      "composition": [
+        {
+          "archetype": "grunt",
+          "count": 25
+        },
+        {
+          "archetype": "runner",
+          "count": 9
+        },
+        {
+          "archetype": "armored",
+          "count": 5
+        },
+        {
+          "archetype": "archerE",
+          "count": 5
+        }
+      ]
+    }
+  ],
+  "unitLevels": [
+    {
+      "level": 1,
+      "name": "Dude",
+      "icon": "🙂",
+      "baseHealth": 32,
+      "baseAttack": 7,
+      "baseAttackSpeed": 1
+    },
+    {
+      "level": 2,
+      "name": "Dude",
+      "icon": "😐",
+      "baseHealth": 52,
+      "baseAttack": 13,
+      "baseAttackSpeed": 1
+    },
+    {
+      "level": 3,
+      "name": "Dude",
+      "icon": "😎",
+      "baseHealth": 74,
+      "baseAttack": 20,
+      "baseAttackSpeed": 1.05
+    },
+    {
+      "level": 4,
+      "name": "Dude",
+      "icon": "🧔",
+      "baseHealth": 98,
+      "baseAttack": 28,
+      "baseAttackSpeed": 1.1
+    },
+    {
+      "level": 5,
+      "name": "Dude",
+      "icon": "🧙",
+      "baseHealth": 124,
+      "baseAttack": 37,
+      "baseAttackSpeed": 1.15
+    },
+    {
+      "level": 6,
+      "name": "Dude",
+      "icon": "🦸",
+      "baseHealth": 154,
+      "baseAttack": 48,
+      "baseAttackSpeed": 1.2
+    },
+    {
+      "level": 7,
+      "name": "Dude",
+      "icon": "🧝",
+      "baseHealth": 190,
+      "baseAttack": 62,
+      "baseAttackSpeed": 1.25
+    }
+  ],
+  "mine": {
+    "baseProductionPerSecond": 0,
+    "goldPerSecondPerWorkerLevel": 0,
+    "collectionIntervalSeconds": 4,
+    "workerProductionByLevel": {
+      "1": 4,
+      "2": 8,
+      "3": 16,
+      "4": 34,
+      "5": 75,
+      "6": 166,
+      "7": 364
+    },
+    "resourceTypes": [
+      {
+        "key": "wood",
+        "label": "Wood",
+        "icon": "🪵",
+        "mineName": "Lumber Camp",
+        "unlockedByDefault": true,
+        "unlockWave": 1,
+        "buyCost": {
+          "gold": 0
+        },
+        "slotUnlockWaves": [
+          1,
+          2,
+          4,
+          7,
+          11,
+          15
+        ],
+        "slotBuyCosts": [
+          {
+            "gold": 0
+          },
+          {
+            "gold": 12
+          },
+          {
+            "gold": 28
+          },
+          {
+            "gold": 55
+          },
+          {
+            "gold": 95
+          },
+          {
+            "gold": 150
+          }
+        ]
+      },
+      {
+        "key": "ore",
+        "label": "Stone",
+        "icon": "🪨",
+        "mineName": "Stone Quarry",
+        "unlockedByDefault": true,
+        "unlockWave": 1,
+        "buyCost": {
+          "gold": 0
+        },
+        "slotUnlockWaves": [
+          1,
+          3,
+          5,
+          8,
+          12,
+          16
+        ],
+        "slotBuyCosts": [
+          {
+            "gold": 0
+          },
+          {
+            "gold": 14
+          },
+          {
+            "gold": 32
+          },
+          {
+            "gold": 62
+          },
+          {
+            "gold": 105
+          },
+          {
+            "gold": 165
+          }
+        ]
+      },
+      {
+        "key": "iron",
+        "label": "Iron",
+        "icon": "🔩",
+        "mineName": "Iron Forge",
+        "unlockedByDefault": false,
+        "unlockWave": 3,
+        "buyCost": {
+          "gold": 22
+        },
+        "slotUnlockWaves": [
+          3,
+          6,
+          9,
+          13,
+          17
+        ],
+        "slotBuyCosts": [
+          {
+            "gold": 0
+          },
+          {
+            "gold": 22
+          },
+          {
+            "gold": 48
+          },
+          {
+            "gold": 90
+          },
+          {
+            "gold": 145
+          }
+        ]
+      },
+      {
+        "key": "crystal",
+        "label": "Crystal",
+        "icon": "💎",
+        "mineName": "Crystal Pit",
+        "unlockedByDefault": false,
+        "unlockWave": 6,
+        "buyCost": {
+          "gold": 30
+        },
+        "slotUnlockWaves": [
+          6,
+          9,
+          13,
+          17,
+          20
+        ],
+        "slotBuyCosts": [
+          {
+            "gold": 0
+          },
+          {
+            "gold": 28
+          },
+          {
+            "gold": 58
+          },
+          {
+            "gold": 105
+          },
+          {
+            "gold": 165
+          }
+        ]
+      }
+    ],
+    "levels": [
+      {
+        "level": 1,
+        "slots": 1,
+        "slotProductionMultipliers": [
+          1
+        ]
+      },
+      {
+        "level": 2,
+        "slots": 2,
+        "slotProductionMultipliers": [
+          1,
+          1.1
+        ]
+      },
+      {
+        "level": 3,
+        "slots": 3,
+        "slotProductionMultipliers": [
+          1,
+          1.1,
+          1.2
+        ]
+      },
+      {
+        "level": 4,
+        "slots": 4,
+        "slotProductionMultipliers": [
+          1,
+          1.1,
+          1.2,
+          1.3
+        ]
+      },
+      {
+        "level": 5,
+        "slots": 5,
+        "slotProductionMultipliers": [
+          1,
+          1.1,
+          1.2,
+          1.3,
+          1.4
+        ]
+      },
+      {
+        "level": 6,
+        "slots": 6,
+        "slotProductionMultipliers": [
+          1,
+          1.1,
+          1.2,
+          1.3,
+          1.4,
+          1.5
+        ]
+      }
+    ]
+  }
+}

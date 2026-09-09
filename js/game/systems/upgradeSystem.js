@@ -12,20 +12,6 @@ function shuffle(items) {
   return copy;
 }
 
-function randomItem(items) {
-  return items[Math.floor(Math.random() * items.length)] ?? null;
-}
-
-function findMine(state, resourceKey) {
-  return state.mines.find((mine) => mine.resourceKey === resourceKey) ?? null;
-}
-
-function getLockedBuildingTypes(state) {
-  return Object.entries(CONFIG.fortressBuildings)
-    .filter(([type]) => type !== "hq" && !state.fortress.unlockedBuildingTypes.includes(type))
-    .map(([type]) => type);
-}
-
 function raiseUnitToLevel(unit, targetLevel) {
   if (!unit || unit.level >= targetLevel) {
     return false;
@@ -45,32 +31,35 @@ function raiseUnitToLevel(unit, targetLevel) {
   return true;
 }
 
-function raiseExistingWorkersToLevel(state, targetLevel) {
-  let raisedCount = 0;
-
-  for (const unit of state.reserveUnits) {
-    if (raiseUnitToLevel(unit, targetLevel)) {
-      raisedCount += 1;
-    }
-  }
-
-  for (const mine of state.mines) {
-    for (const unit of mine.workerIds) {
-      if (raiseUnitToLevel(unit, targetLevel)) {
-        raisedCount += 1;
-      }
-    }
-  }
-
-  return raisedCount;
-}
-
 function getRewardDraftConfig() {
   return CONFIG.rewardDraft ?? {};
 }
 
-function formatPercent(multiplier) {
-  return `${Math.round((multiplier - 1) * 100)}%`;
+function getRewardCards() {
+  return getRewardDraftConfig().cards ?? [];
+}
+
+function getRewardCardsByCategory(category) {
+  return getRewardCards().filter((card) => card.category === category);
+}
+
+// Same weighted-pick shape as workerTraitSystem.rollWorkerTraitVector: cards with no `weight` (or a
+// non-positive one) default to 1. A category whose cards all roll to zero total weight can't be drawn
+// from — rollUpgradeChoices below treats that as "this category has nothing to offer this time".
+function weightedRandomCard(cards) {
+  const weights = cards.map((card) => Math.max(0, card.weight ?? 1));
+  const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
+  if (totalWeight <= 0) {
+    return null;
+  }
+  let roll = Math.random() * totalWeight;
+  for (let index = 0; index < cards.length; index += 1) {
+    roll -= weights[index];
+    if (roll <= 0) {
+      return cards[index];
+    }
+  }
+  return cards[cards.length - 1] ?? null;
 }
 
 function createCard({
@@ -93,105 +82,37 @@ function createCard({
   };
 }
 
-function getRewardCategoryLabel(category) {
-  if (category === "oneShot") return "One Shot";
-  return category.charAt(0).toUpperCase() + category.slice(1);
+const TEMP_BONUS_LABELS = { production: "Production", damage: "Damage", defense: "Defense" };
+
+// Numeric effects derive their card text from `effect.value` itself, so a designer retuning a number
+// in the config editor can never leave the displayed text quoting a stale figure — a hardcoded
+// duplicate of a config number is exactly the kind of drift this system used to have before the JSON
+// consolidation. Effects with no single meaningful "value" (the one-shot actions) instead read a
+// hand-authored `effectText` straight off the card definition.
+function getCardEffectText(cardDef, effect) {
+  switch (effect.kind) {
+    case "goldMultiplier":
+      return `Gold gain x${effect.value ?? 1}`;
+    case "productionMultiplier":
+      return `Resource gain x${effect.value ?? 1}`;
+    case "baseHealthBonus":
+      return `+${effect.value ?? 0} base HP`;
+    case "temporaryMultiplier":
+      return `${TEMP_BONUS_LABELS[effect.bonusKind] ?? "Effect"} x${effect.value ?? 1}`;
+    default:
+      return cardDef.effectText ?? "";
+  }
 }
 
-function buildPermanentCards() {
-  const config = getRewardDraftConfig().permanent ?? {};
-  return [
-    createCard({
-      id: "perm-gold",
-      category: "permanent",
-      title: "Gold Dividend",
-      description: "All gold income is permanently increased.",
-      effectText: `Gold gain x${config.goldGainMultiplier ?? 1.15}`,
-      durationText: "Permanent",
-      apply(state) {
-        state.economy.goldMultiplier = (state.economy.goldMultiplier ?? 1) * (config.goldGainMultiplier ?? 1.15);
-      }
-    }),
-    createCard({
-      id: "perm-resource",
-      category: "permanent",
-      title: "Supply Line",
-      description: "Mine production is permanently increased.",
-      effectText: `Resource gain x${config.resourceGainMultiplier ?? 1.15}`,
-      durationText: "Permanent",
-      apply(state) {
-        state.economy.productionMultiplier = (state.economy.productionMultiplier ?? 1) * (config.resourceGainMultiplier ?? 1.15);
-      }
-    }),
-    createCard({
-      id: "perm-health",
-      category: "permanent",
-      title: "Fortified Core",
-      description: "Fortress buildings get a flat base health boost.",
-      effectText: `+${config.baseHealthBonus ?? 12} base HP`,
-      durationText: "Permanent",
-      apply(state) {
-        const bonus = config.baseHealthBonus ?? 12;
-        state.economy.baseHealthBonus = (state.economy.baseHealthBonus ?? 0) + bonus;
-        applyFortressBaseHealthBonus(state, bonus);
-      }
-    })
-  ];
-}
-
-function buildTemporaryCards() {
-  const config = getRewardDraftConfig().temporary ?? {};
-  const duration = Math.max(1, config.durationWaves ?? 2);
-  return [
-    createCard({
-      id: "temp-production",
-      category: "temporary",
-      title: "Harvest Surge",
-      description: "Resource production spikes for a few waves.",
-      effectText: `Production x${config.productionMultiplier ?? 1.25}`,
-      durationText: `${duration} wave${duration === 1 ? "" : "s"}`,
-      apply(state) {
-        state.economy.queuedTemporaryBonuses.push({
-          id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-          kind: "production",
-          multiplier: config.productionMultiplier ?? 1.25,
-          remainingWaves: duration
-        });
-      }
-    }),
-    createCard({
-      id: "temp-damage",
-      category: "temporary",
-      title: "War Drums",
-      description: "Your fortress units hit harder for a few waves.",
-      effectText: `Damage x${config.damageMultiplier ?? 1.2}`,
-      durationText: `${duration} wave${duration === 1 ? "" : "s"}`,
-      apply(state) {
-        state.economy.queuedTemporaryBonuses.push({
-          id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-          kind: "damage",
-          multiplier: config.damageMultiplier ?? 1.2,
-          remainingWaves: duration
-        });
-      }
-    }),
-    createCard({
-      id: "temp-defense",
-      category: "temporary",
-      title: "Shield Wall",
-      description: "Incoming damage to the fortress is reduced for a few waves.",
-      effectText: `Defense x${config.defenseMultiplier ?? 1.15}`,
-      durationText: `${duration} wave${duration === 1 ? "" : "s"}`,
-      apply(state) {
-        state.economy.queuedTemporaryBonuses.push({
-          id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-          kind: "defense",
-          multiplier: config.defenseMultiplier ?? 1.15,
-          remainingWaves: duration
-        });
-      }
-    })
-  ];
+function getCardDurationText(cardDef) {
+  if (cardDef.category === "permanent") {
+    return "Permanent";
+  }
+  if (cardDef.category !== "temporary") {
+    return "Instant";
+  }
+  const duration = Math.max(1, cardDef.effect?.durationWaves ?? 2);
+  return `${duration} wave${duration === 1 ? "" : "s"}`;
 }
 
 function upgradeFirstWorker(state) {
@@ -292,10 +213,9 @@ function repairFortress(state) {
   return { ok: true, reason: `Mass repair restored ${repairedCount} building(s).` };
 }
 
-function injectResources(state) {
-  const config = getRewardDraftConfig().oneShot ?? {};
-  const gold = Math.max(0, config.goldInjection ?? 180);
-  const resource = Math.max(0, config.resourceInjection ?? 70);
+function injectResources(state, effect) {
+  const gold = Math.max(0, effect.goldInjection ?? 180);
+  const resource = Math.max(0, effect.resourceInjection ?? 70);
 
   state.resources.gold += gold;
   for (const mineType of CONFIG.mine.resourceTypes) {
@@ -305,64 +225,64 @@ function injectResources(state) {
   return { ok: true, reason: `Supply drop delivered +${gold} gold and +${resource} of each resource.` };
 }
 
-function buildOneShotCards() {
-  return [
-    createCard({
-      id: "shot-worker",
-      category: "oneShot",
-      title: "Worker Promotion",
-      description: "Promote one worker by a level if possible.",
-      effectText: "Upgrade one worker now",
-      durationText: "Instant",
-      apply(state) {
-        return upgradeFirstWorker(state);
+// Effect dispatch table — the same `effect.kind` pattern workerTraitSystem uses for capstones. Adding
+// a brand-new reward card that reuses one of these kinds needs zero code changes (data/config.json
+// only); a genuinely new kind of effect needs one new handler here.
+const EFFECT_APPLIERS = {
+  goldMultiplier(state, effect) {
+    state.economy.goldMultiplier = (state.economy.goldMultiplier ?? 1) * (effect.value ?? 1);
+  },
+  productionMultiplier(state, effect) {
+    state.economy.productionMultiplier = (state.economy.productionMultiplier ?? 1) * (effect.value ?? 1);
+  },
+  baseHealthBonus(state, effect) {
+    const bonus = effect.value ?? 0;
+    state.economy.baseHealthBonus = (state.economy.baseHealthBonus ?? 0) + bonus;
+    applyFortressBaseHealthBonus(state, bonus);
+  },
+  temporaryMultiplier(state, effect) {
+    const duration = Math.max(1, effect.durationWaves ?? 2);
+    state.economy.queuedTemporaryBonuses.push({
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      kind: effect.bonusKind,
+      multiplier: effect.value ?? 1,
+      remainingWaves: duration
+    });
+  },
+  promoteWorker(state) {
+    return upgradeFirstWorker(state);
+  },
+  upgradeBuilding(state) {
+    return upgradeFirstBuilding(state);
+  },
+  unlockMineSlot(state) {
+    return unlockOrExpandMine(state);
+  },
+  supplyDrop(state, effect) {
+    return injectResources(state, effect);
+  },
+  massRepair(state) {
+    return repairFortress(state);
+  }
+};
+
+function buildRuntimeCard(cardDef) {
+  const effect = cardDef.effect ?? {};
+  const applier = EFFECT_APPLIERS[effect.kind];
+  return createCard({
+    id: cardDef.id,
+    category: cardDef.category,
+    title: cardDef.title,
+    description: cardDef.description,
+    effectText: getCardEffectText(cardDef, effect),
+    durationText: getCardDurationText(cardDef),
+    apply(state) {
+      if (!applier) {
+        return { ok: false, reason: `Reward card "${cardDef.id}" has an unrecognized effect kind.` };
       }
-    }),
-    createCard({
-      id: "shot-building",
-      category: "oneShot",
-      title: "Building Upgrade",
-      description: "Upgrade one fortress building without paying its cost.",
-      effectText: "Upgrade one building now",
-      durationText: "Instant",
-      apply(state) {
-        return upgradeFirstBuilding(state);
-      }
-    }),
-    createCard({
-      id: "shot-mine",
-      category: "oneShot",
-      title: "Free Mine Slot",
-      description: "Unlock a mine or add a free slot to one that is already open.",
-      effectText: "Unlock or expand one mine",
-      durationText: "Instant",
-      apply(state) {
-        return unlockOrExpandMine(state);
-      }
-    }),
-    createCard({
-      id: "shot-drop",
-      category: "oneShot",
-      title: "Supply Drop",
-      description: "Gain a burst of gold and materials right away.",
-      effectText: "Gold + resources",
-      durationText: "Instant",
-      apply(state) {
-        return injectResources(state);
-      }
-    }),
-    createCard({
-      id: "shot-repair",
-      category: "oneShot",
-      title: "Mass Repair",
-      description: "Restore every damaged fortress building to full health.",
-      effectText: "Repair all buildings",
-      durationText: "Instant",
-      apply(state) {
-        return repairFortress(state);
-      }
-    })
-  ];
+      return applier(state, effect);
+    }
+  });
 }
 
 function refreshTemporaryMultiplierState(state) {
@@ -382,12 +302,16 @@ function refreshTemporaryMultiplierState(state) {
     .reduce((product, bonus) => product * bonus.multiplier, 1);
 }
 
+// One card per category (permanent / temporary / oneShot), weighted-random within that category. A
+// category with no cards (or all-zero weights) simply contributes nothing — the draft can come back
+// with fewer than 3 cards rather than crashing, so a designer emptying a category out is safe.
 export function rollUpgradeChoices(state) {
-  const draft = shuffle([
-    randomItem(buildPermanentCards()),
-    randomItem(buildTemporaryCards()),
-    randomItem(buildOneShotCards())
-  ].filter(Boolean));
+  const draft = shuffle(
+    ["permanent", "temporary", "oneShot"]
+      .map((category) => weightedRandomCard(getRewardCardsByCategory(category)))
+      .filter(Boolean)
+      .map(buildRuntimeCard)
+  );
 
   state.fortress.pendingRewardDraft = draft;
   return draft;

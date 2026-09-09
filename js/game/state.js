@@ -31,7 +31,7 @@ export function createInitialState() {
       isCheatsOpen: false
     },
     reserveUnits: [],
-    mines: Array.from({ length: 4 }, (_, index) => createMine(index)),
+    mines: Array.from({ length: CONFIG.mine.resourceTypes.length }, (_, index) => createMine(index)),
     resourceBursts: [],
     economy: {
       unitsPurchased: 0,

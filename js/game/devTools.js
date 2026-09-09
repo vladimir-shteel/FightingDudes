@@ -5,7 +5,7 @@ import { syncFortressBuildingUnlocks } from "./systems/fortressSystem.js";
 
 const SPEEDS = [1, 2, 4, 8];
 
-export function createDevTools(state, requestRender) {
+export function createDevTools(state, requestRender, { onOpenConfig } = {}) {
   const dev = { speed: 1, open: true };
 
   const panel = document.createElement("div");
@@ -39,6 +39,9 @@ export function createDevTools(state, requestRender) {
     button("+Wave", jumpWave),
     button("Repair all", repairAll)
   );
+  if (onOpenConfig) {
+    actionRow.append(button("⚙ Config", () => onOpenConfig()));
+  }
 
   const header = document.createElement("div");
   header.style.cssText = rowStyle + ";justify-content:space-between";
