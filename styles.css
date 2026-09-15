@@ -3019,6 +3019,7 @@ h3 {
   transform: translate(-50%, -50%);
   pointer-events: none;
   z-index: 5;
+  transition: left 100ms linear, top 100ms linear;
 }
 
 .fortress-actor {
@@ -3083,6 +3084,7 @@ h3 {
   opacity: calc(1 - var(--progress));
   pointer-events: none;
   z-index: 4;
+  transition: transform 100ms linear, opacity 100ms linear;
 }
 
 @media (max-width: 900px) {

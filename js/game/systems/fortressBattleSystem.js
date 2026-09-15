@@ -566,7 +566,7 @@ function tickEnemies(state, deltaSeconds) {
             markHit(other);
           }
         }
-        battle.bursts.push({ x: mineCenter.x, y: mineCenter.y, radius: splashRadius, remaining: 0.35, duration: 0.35 });
+        battle.bursts.push({ id: generateId("burst"), x: mineCenter.x, y: mineCenter.y, radius: splashRadius, remaining: 0.35, duration: 0.35 });
         building.hp = 0;
         markHit(building);
         break;
@@ -729,7 +729,7 @@ function tickProjectiles(state, deltaSeconds) {
             markHit(enemy);
           }
         }
-        battle.bursts.push({ x: target.x, y: target.y, radius: splash, remaining: 0.35, duration: 0.35 });
+        battle.bursts.push({ id: generateId("burst"), x: target.x, y: target.y, radius: splash, remaining: 0.35, duration: 0.35 });
       } else {
         applyDamageToEnemy(target, dmg);
         markHit(target);

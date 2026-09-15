@@ -1218,8 +1218,158 @@ export function mountUI(state, onStateChanged) {
     }).join("");
   }
 
+  const battleSpriteRegistry = {
+    enemies: new Map(),
+    allies: new Map(),
+    projectiles: new Map(),
+    bursts: new Map(),
+  };
+
+  function clearBattleSpriteRegistry() {
+    // The tile-pass wipes elements.fortressField.innerHTML, which destroys these elements too —
+    // just forget the now-dead references so the next renderFortressBattleSprites() rebuilds clean.
+    for (const map of Object.values(battleSpriteRegistry)) {
+      map.clear();
+    }
+  }
+
+  function updateFortressBuildingTile(building) {
+    const tileEl = elements.fortressField.querySelector(`[data-building-id="${building.id}"]`);
+    if (!tileEl) {
+      return;
+    }
+    tileEl.classList.toggle("is-hit", isHitFlashing(building));
+    tileEl.classList.toggle("is-damaged", building.hp > 0 && building.hp < building.maxHp);
+    tileEl.classList.toggle("is-destroyed", building.hp <= 0);
+    const hpLine = tileEl.querySelector("small");
+    if (hpLine) {
+      hpLine.textContent = `Lv ${building.level} · HP ${Math.round(building.hp)}/${building.maxHp}`;
+    }
+    const indicator = tileEl.querySelector(".fortress-active-indicator");
+    if (indicator) {
+      const activeDefinition = getBuildingActiveDefinition(building);
+      if (activeDefinition && building.hp > 0) {
+        const onCooldown = (building.activeCooldown ?? 0) > 0;
+        indicator.innerHTML = onCooldown
+          ? `<span class="fortress-active-cooldown">${Math.ceil(building.activeCooldown)}s</span>`
+          : `<span class="fortress-active-icon">⚡</span>`;
+        indicator.hidden = false;
+      } else {
+        indicator.hidden = true;
+      }
+    }
+  }
+
+  function renderFortressBattleSprites() {
+    renderBossHpBar();
+
+    if (state.fortress.battle.active) {
+      for (const building of state.fortress.buildings) {
+        updateFortressBuildingTile(building);
+      }
+    }
+
+    const seenEnemies = new Set();
+    for (const enemy of state.fortress.battle.enemies) {
+      seenEnemies.add(enemy.id);
+      let token = battleSpriteRegistry.enemies.get(enemy.id);
+      if (!token) {
+        token = document.createElement("div");
+        token.className = "fortress-actor fortress-enemy";
+        token.innerHTML = "<span></span><i></i>";
+        token._icon = token.querySelector("span");
+        token._hpBar = token.querySelector("i");
+        elements.fortressField.append(token);
+        battleSpriteRegistry.enemies.set(enemy.id, token);
+      }
+      token.classList.toggle("is-hit", isHitFlashing(enemy));
+      token.style.setProperty("--x", enemy.x);
+      token.style.setProperty("--y", enemy.y);
+      token._icon.textContent = enemy.icon;
+      token._hpBar.style.width = `${Math.max(0, enemy.hp / enemy.maxHp) * 100}%`;
+    }
+    for (const [id, el] of battleSpriteRegistry.enemies) {
+      if (!seenEnemies.has(id)) {
+        el.remove();
+        battleSpriteRegistry.enemies.delete(id);
+      }
+    }
+
+    const seenAllies = new Set();
+    for (const ally of state.fortress.battle.allies) {
+      seenAllies.add(ally.id);
+      let token = battleSpriteRegistry.allies.get(ally.id);
+      if (!token) {
+        token = document.createElement("div");
+        token.className = "fortress-actor fortress-ally";
+        token.innerHTML = "<span></span><i></i>";
+        token._icon = token.querySelector("span");
+        token._hpBar = token.querySelector("i");
+        elements.fortressField.append(token);
+        battleSpriteRegistry.allies.set(ally.id, token);
+      }
+      token.classList.toggle("is-hit", isHitFlashing(ally));
+      token.style.setProperty("--x", ally.x);
+      token.style.setProperty("--y", ally.y);
+      token._icon.textContent = ally.icon;
+      token._hpBar.style.width = `${Math.max(0, ally.hp / ally.maxHp) * 100}%`;
+    }
+    for (const [id, el] of battleSpriteRegistry.allies) {
+      if (!seenAllies.has(id)) {
+        el.remove();
+        battleSpriteRegistry.allies.delete(id);
+      }
+    }
+
+    const seenProjectiles = new Set();
+    for (const projectile of state.fortress.battle.projectiles) {
+      seenProjectiles.add(projectile.id);
+      let shot = battleSpriteRegistry.projectiles.get(projectile.id);
+      if (!shot) {
+        shot = document.createElement("div");
+        shot.className = `fortress-projectile projectile-${projectile.type}`;
+        elements.fortressField.append(shot);
+        battleSpriteRegistry.projectiles.set(projectile.id, shot);
+      }
+      shot.style.setProperty("--x", projectile.x);
+      shot.style.setProperty("--y", projectile.y);
+    }
+    for (const [id, el] of battleSpriteRegistry.projectiles) {
+      if (!seenProjectiles.has(id)) {
+        el.remove();
+        battleSpriteRegistry.projectiles.delete(id);
+      }
+    }
+
+    const seenBursts = new Set();
+    for (const burst of state.fortress.battle.bursts ?? []) {
+      if (!(burst.duration > 0)) {
+        continue;
+      }
+      seenBursts.add(burst.id);
+      let burstEl = battleSpriteRegistry.bursts.get(burst.id);
+      if (!burstEl) {
+        burstEl = document.createElement("div");
+        burstEl.className = "fortress-burst";
+        elements.fortressField.append(burstEl);
+        battleSpriteRegistry.bursts.set(burst.id, burstEl);
+      }
+      burstEl.style.setProperty("--x", burst.x);
+      burstEl.style.setProperty("--y", burst.y);
+      burstEl.style.setProperty("--radius", burst.radius);
+      burstEl.style.setProperty("--progress", 1 - burst.remaining / burst.duration);
+    }
+    for (const [id, el] of battleSpriteRegistry.bursts) {
+      if (!seenBursts.has(id)) {
+        el.remove();
+        battleSpriteRegistry.bursts.delete(id);
+      }
+    }
+  }
+
   function renderFortressField() {
     elements.fortressField.innerHTML = "";
+    clearBattleSpriteRegistry();
     // Drive the grid + actor/popover positioning off the real field size so the CSS never drifts.
     elements.fortressField.style.setProperty("--fortress-cols", String(FORTRESS_WIDTH));
     elements.fortressField.style.setProperty("--fortress-rows", String(FORTRESS_HEIGHT));
@@ -1259,6 +1409,7 @@ export function mountUI(state, onStateChanged) {
         });
       } else if (building && isBuildingOrigin) {
         const definition = CONFIG.fortressBuildings[building.type];
+        tileButton.dataset.buildingId = building.id;
         tileButton.classList.add("is-building", `building-${building.type}`);
         if (!isSolidBuilding) {
           tileButton.classList.add("is-shaped-building");
@@ -1339,46 +1490,9 @@ export function mountUI(state, onStateChanged) {
 
     renderFortressPopup();
 
-    for (const enemy of state.fortress.battle.enemies) {
-      const token = document.createElement("div");
-      token.className = "fortress-actor fortress-enemy";
-      token.classList.toggle("is-hit", isHitFlashing(enemy));
-      token.style.setProperty("--x", enemy.x);
-      token.style.setProperty("--y", enemy.y);
-      token.innerHTML = `<span>${enemy.icon}</span><i style="width:${Math.max(0, enemy.hp / enemy.maxHp) * 100}%"></i>`;
-      elements.fortressField.append(token);
-    }
-
-    for (const ally of state.fortress.battle.allies) {
-      const token = document.createElement("div");
-      token.className = "fortress-actor fortress-ally";
-      token.classList.toggle("is-hit", isHitFlashing(ally));
-      token.style.setProperty("--x", ally.x);
-      token.style.setProperty("--y", ally.y);
-      token.innerHTML = `<span>${ally.icon}</span><i style="width:${Math.max(0, ally.hp / ally.maxHp) * 100}%"></i>`;
-      elements.fortressField.append(token);
-    }
-
-    for (const projectile of state.fortress.battle.projectiles) {
-      const shot = document.createElement("div");
-      shot.className = `fortress-projectile projectile-${projectile.type}`;
-      shot.style.setProperty("--x", projectile.x);
-      shot.style.setProperty("--y", projectile.y);
-      elements.fortressField.append(shot);
-    }
-
-    for (const burst of state.fortress.battle.bursts ?? []) {
-      if (!(burst.duration > 0)) {
-        continue;
-      }
-      const burstEl = document.createElement("div");
-      burstEl.className = "fortress-burst";
-      burstEl.style.setProperty("--x", burst.x);
-      burstEl.style.setProperty("--y", burst.y);
-      burstEl.style.setProperty("--radius", burst.radius);
-      burstEl.style.setProperty("--progress", 1 - burst.remaining / burst.duration);
-      elements.fortressField.append(burstEl);
-    }
+    // Rebuild the persistent actor/projectile/burst DOM on top of the freshly-rebuilt tiles,
+    // since the innerHTML wipe above destroyed the previous sprite elements too.
+    renderFortressBattleSprites();
   }
 
   function closeFortressPopup() {
@@ -1949,12 +2063,13 @@ export function mountUI(state, onStateChanged) {
     updateEarlyStartHint(elements.fortressFightButton, state);
     elements.fortressMessage.textContent = state.fortress.message;
     updateFortressShopAffordability();
-    // Full fortress field rebuild is heavy — only do it while battle is animating.
-    // Outside battle, `render()` on state change is authoritative and instant.
+    // During battle only update the persistent actor/projectile/burst DOM (CSS tweens
+    // their positions between ticks) — never rebuild the tile grid, so the transition
+    // isn't reset every 100ms. Outside battle, `render()` on state change is authoritative.
     // Also do a one-shot rebuild the tick a battle ends, so stale enemy/ally sprites clear.
     const battleActive = state.fortress.battle.active;
     if (battleActive) {
-      renderFortressField();
+      renderFortressBattleSprites();
     } else if (lastBattleActive) {
       // Battle just ended this tick — do a full render so the field DOM,
       // reward draft overlay, and capstone overlay all catch up in one shot.
