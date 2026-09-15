@@ -53,11 +53,9 @@ import { applyUpgradeChoice } from "./systems/upgradeSystem.js";
 import {
   applyWorkerCapstone,
   getDominantTraitKey,
-  getMaxRestCharges,
   getTraitIcon,
   getTraitLabel,
   getWorkerCapstoneEffect,
-  getWorkerRushMultiplier,
   getWorkerYieldMultiplier,
   WORKER_TRAIT_KEYS
 } from "./systems/workerTraitSystem.js";
@@ -65,38 +63,13 @@ import {
 function buildTraitInfoMarkup() {
   const traits = CONFIG.workerTraits ?? {};
   const lines = traits.lines ?? {};
-  const shift = traits.battleShift ?? {};
   const yieldPer = lines.yield?.resourceMultiplierPerPoint ?? 0;
-  const rushPer = lines.rush?.battleMultiplierPerPoint ?? 0;
-  const shiftBase = shift.baseMultiplier ?? 1;
   const rows = [
     {
       key: "yield",
       label: lines.yield?.label ?? "Yield",
       icon: lines.yield?.icon ?? "Y",
       text: `Each point adds +${(yieldPer * 100).toFixed(0)}% to that worker's mine output. Pill number = points.`
-    },
-    {
-      key: "rush",
-      label: lines.rush?.label ?? "Rush",
-      icon: lines.rush?.icon ?? "R",
-      text: `Boosts the battle Shift multiplier. Base ${shiftBase}×; each point adds +${(rushPer * 100).toFixed(0)}%. Applies only to committed workers during battle.`
-    }
-  ];
-  const restMult = CONFIG.productionMultipliers?.rest ?? 1;
-  const shiftCap = shift.maxCommitsPerMine ?? 2;
-  const mechanics = [
-    {
-      key: "shift",
-      icon: "👷",
-      label: "Battle Shift",
-      text: `Every worker WANTS a particular mine (shown on its badge). Stand it on that mine with Rest ⚡ and it auto-Shifts when battle starts (×${shiftBase} base + Rush) — the mine pumps faster, up to ${shiftCap} per mine. Spends one Rest per Shift.`
-    },
-    {
-      key: "rested",
-      icon: "⚡",
-      label: "Mood & Rest",
-      text: `Rest ⚡ builds (+1/wave, up to ceil(level/2)) whenever a worker is NOT on its wanted mine — sitting on a different mine (still mining at ×${restMult}) or resting in reserve. When Rest hits 0 its craving shifts to another mine — move it there to Shift again. That's the loop: chase each worker's mood.`
     }
   ];
   const renderRow = (row) => `
@@ -109,12 +82,9 @@ function buildTraitInfoMarkup() {
     </div>
   `;
   const rowsHtml = rows.map(renderRow).join("");
-  const mechanicsHtml = mechanics.map(renderRow).join("");
   return `
     <p class="trait-info-hint">Traits roll when a worker is bought and stack on merge (dominant line gets a bonus point). At max level a worker picks a capstone (★).</p>
     ${rowsHtml}
-    <p class="trait-info-hint">Shifts &amp; rest — the mining-during-battle loop:</p>
-    ${mechanicsHtml}
   `;
 }
 
@@ -217,7 +187,6 @@ function createUnitCard(unit, options = {}) {
       const lineCfg = CONFIG.workerTraits?.lines?.[key] ?? {};
       let tip;
       if (key === "yield") tip = `Yield ${points} · +${Math.round((lineCfg.resourceMultiplierPerPoint ?? 0) * points * 100)}% mine output`;
-      else if (key === "rush") tip = `Rush ${points} · +${Math.round((lineCfg.battleMultiplierPerPoint ?? 0) * points * 100)}% Shift multiplier`;
       else tip = `${getTraitLabel(key)} ${points}`;
       return `<span class="unit-trait unit-trait-${key}" title="${tip}"><span class="unit-trait-icon">${getTraitIcon(key)}</span><span class="unit-trait-num">${points}</span></span>`;
     })
@@ -226,39 +195,20 @@ function createUnitCard(unit, options = {}) {
   card.dataset.gear = "worker";
   card.dataset.level = String(level);
   card.dataset.trait = dominantTrait;
-  card.classList.toggle("is-shifted", Boolean(unit.battleShiftCommitted));
-  card.classList.toggle("is-rested", (unit.restCharges ?? 0) > 0);
   card.classList.toggle("is-hit", isHitFlashing(unit));
   card.classList.toggle("has-pending-capstone", Boolean(unit.pendingCapstone?.length));
   card.dataset.hit = isHitFlashing(unit) ? "true" : "false";
 
-  // Capstone no longer prints its (long) label on the card — that deformed the layout. Instead a ★
-  // sits on the level badge; the full name + effect live in the worker popover.
+  // Capstone: a ★ sits on the level badge; the full name + effect live in the worker popover.
   const capstoneEffect = getWorkerCapstoneEffect(unit);
   const capstoneStar = capstoneEffect
     ? `<span class="unit-capstone-star" title="${capstoneEffect.label}">★</span>`
     : "";
 
-  // The status badge now shows the mine this worker WANTS (place it there to Shift). Its colour is
-  // the Rest state: bright = charged & ready to Shift, gold = currently Shifting, dim = building desire.
-  const restCharges = unit.restCharges ?? 0;
-  const maxRest = getMaxRestCharges(level);
-  const desireIcon = unit.desiredMine ? (getResourceIcon(unit.desiredMine) ?? "•") : "•";
-  const desireLabel = unit.desiredMine ? getResourceLabel(unit.desiredMine) : "a mine";
-  const countSuffix = restCharges > 1 ? `×${restCharges}` : "";
-  let statusBadge;
-  if (unit.battleShiftCommitted) {
-    statusBadge = `<span class="unit-status-badge is-shift" title="On Shift at the ${desireLabel} mine">${desireIcon}</span>`;
-  } else if (restCharges > 0) {
-    statusBadge = `<span class="unit-status-badge is-rested" title="Wants the ${desireLabel} mine — ${restCharges}/${maxRest} Shift charge${restCharges > 1 ? "s" : ""}. Place it there to Shift.">${desireIcon}${countSuffix}</span>`;
-  } else {
-    statusBadge = `<span class="unit-status-badge is-depleted" title="Building desire for the ${desireLabel} mine — works at base rate meanwhile.">${desireIcon}</span>`;
-  }
   card.innerHTML = `
     <div class="unit-badges">
       <div class="unit-badges-row">
         <span class="unit-level-badge">${level}${capstoneStar}</span>
-        ${statusBadge}
       </div>
       ${!compact && traitBadges ? `<div class="unit-traits">${traitBadges}</div>` : ""}
     </div>
@@ -603,38 +553,16 @@ export function mountUI(state, onStateChanged) {
     popover.className = "worker-action-popover";
 
     const yieldPct = Math.round((getWorkerYieldMultiplier(unit) - 1) * 100);
-    const rushMult = Math.round(getWorkerRushMultiplier(unit) * 100) / 100;
     const capstoneEffect = getWorkerCapstoneEffect(unit);
 
     const inMine = context.source === "mine";
-    const charges = unit.restCharges ?? 0;
-    const maxCharges = getMaxRestCharges(unit.level);
-    const desiredLabel = unit.desiredMine ? getResourceLabel(unit.desiredMine) : "a mine";
-    const desiredIcon = unit.desiredMine ? (getResourceIcon(unit.desiredMine) ?? "") : "";
-    const currentMine = inMine ? state.mines.find((mine) => mine.id === context.mineId) : null;
-    const onDesired = Boolean(currentMine && currentMine.resourceKey === unit.desiredMine);
-    // A worker Shifts (battle production spike) only while standing on the mine it currently WANTS and
-    // holding Rest ⚡. Off its mine (wrong mine or reserve) it builds Rest toward it at base rate.
-    let shiftNote;
-    if (unit.battleShiftCommitted) {
-      shiftNote = `<div class="worker-popover-shift is-shifted">👷 On Shift at ${desiredIcon} ${desiredLabel} — mining ×${rushMult}</div>`;
-    } else if (onDesired && charges > 0) {
-      shiftNote = `<div class="worker-popover-shift is-rested">${desiredIcon} On its wanted mine — Shifts next battle (×${rushMult}) · ${charges}/${maxCharges} ⚡</div>`;
-    } else if (charges > 0) {
-      shiftNote = `<div class="worker-popover-shift is-rested">Wants ${desiredIcon} ${desiredLabel} · ${charges}/${maxCharges} ⚡ — move it there to Shift</div>`;
-    } else {
-      shiftNote = `<div class="worker-popover-shift">💤 Building desire for ${desiredIcon} ${desiredLabel} — works at base rate</div>`;
-    }
-    const headerStatus = unit.battleShiftCommitted ? ` 👷${desiredIcon}` : ` ${desiredIcon}`;
     popover.innerHTML = `
-      <strong>${unit.name} · Lv${unit.level}${headerStatus}</strong>
+      <strong>${unit.name} · Lv${unit.level}</strong>
       <div class="worker-popover-traits">
         <span class="unit-trait unit-trait-yield" title="Yield">Y +${yieldPct}%</span>
-        <span class="unit-trait unit-trait-rush" title="Rush">R ${rushMult}× Shift</span>
       </div>
       ${capstoneEffect ? `<div class="worker-popover-capstone"><strong>★ ${capstoneEffect.label}</strong>${capstoneEffect.description ? `<span>${capstoneEffect.description}</span>` : ""}</div>` : ""}
       <button class="fortress-popover-action primary-action" type="button" data-popover-move>Move / Merge</button>
-      ${shiftNote}
       ${unit.pendingCapstone?.length ? `<button class="fortress-popover-action" type="button" data-popover-capstone>Choose Capstone</button>` : ""}
       ${inMine ? `<button class="fortress-popover-action" type="button" data-popover-return>Return to Reserve</button>` : ""}
       <button class="fortress-popover-action" type="button" data-popover-close>Close</button>
@@ -1070,8 +998,6 @@ export function mountUI(state, onStateChanged) {
           const slotShell = document.createElement("div");
           slotShell.className = "slot slot-filled is-open";
           slotShell.dataset.mineSlot = `${mine.id}:${index}`;
-          // Golden highlight on the slot while its worker is pulling a battle Shift.
-          slotShell.classList.toggle("slot-shifting", Boolean(worker.battleShiftCommitted && state.fortress.battle.active));
           if (slotBadge) {
             slotShell.insertAdjacentHTML("afterbegin", slotBadge);
           }
@@ -1120,8 +1046,6 @@ export function mountUI(state, onStateChanged) {
             "beforeend",
             createMineProgressMarkup(mine.resourceKey, mine.id, index, progress)
           );
-          // Shift toggle now lives in the worker action popover — kept out of the slot cell
-          // to declutter the mines grid. `worker.battleShiftCommitted` still styles the card.
           if (selected?.unit.id === worker.id) {
             slotShell.classList.add("selection-source");
           } else if (

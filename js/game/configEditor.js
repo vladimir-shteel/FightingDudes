@@ -30,7 +30,7 @@ const CATEGORIES = [
     keys: [
       "version", "tickRateMs", "goldIcon",
       "startingGold", "startingResources", "startingOre",
-      "unitBuyBaseCost", "unitBuyExponent", "productionMultipliers",
+      "unitBuyBaseCost", "unitBuyExponent",
       "passiveGoldPerSecond", "passiveGoldPerSecondPerUnlockedMine", "passiveGoldPayoutIntervalSeconds"
     ]
   },
@@ -86,7 +86,6 @@ const HINTS = {
   startingOre: "A floor applied to starting ore specifically, on top of (not instead of) startingResources.ore.",
   unitBuyBaseCost: "Base gold cost of the very first reserve worker, before the exponential scaling below.",
   unitBuyExponent: "Growth rate of reserve-worker buy cost: cost = unitBuyBaseCost × unitBuyExponent^(total worker power owned).",
-  productionMultipliers: "Baseline mine production multiplier while a worker is resting (not on a battle shift).",
 
   combat: "Wave-scaling formulas for enemy HP/attack/armor growth and per-level ally stat bonuses. Coefficients only.",
   "combat.hpScalePerWave": "Enemy HP growth per wave past the first — multiplicative, so archetype identity (swarm vs tank) survives instead of everything converging to one flat HP late-game.",
@@ -145,11 +144,6 @@ const HINTS = {
   workerTraits: "The two worker trait lines (Yield/Rush), the battle-shift rest mechanic, and the merge-cap capstone bonuses.",
   "workerTraits.mergeBonusPoints": "Extra trait points added to the dominant trait line whenever two workers merge, on top of simply summing their trait vectors.",
   "workerTraits.hybridThreshold": "How close the second-highest trait must be to the dominant one (as a fraction) for the hybrid capstone (Warlord) to be offered.",
-  "workerTraits.battleShift": "Tuning for the battle-shift mechanic: base Rush strength, how many workers per mine can shift at once, and how rest charges are gained/spent.",
-  "workerTraits.battleShift.baseMultiplier": "Rush multiplier a worker gets from shifting with zero Rush trait points — the floor, before any Rush-line bonus.",
-  "workerTraits.battleShift.maxCommitsPerMine": "Maximum workers that can be on a battle shift at the same mine simultaneously.",
-  "workerTraits.battleShift.restChargePerLevel": "Rest-charge pool size scales with worker level × this — higher-level workers can shift more battles before recharging.",
-  "workerTraits.battleShift.restRechargePerWave": "Rest charges regained per wave for a worker NOT currently shifting on its desired mine.",
   "workerTraits.lines": "The two trait lines' display label/icon, their relative odds of being rolled on a new worker (rollWeight), and their per-point bonus strength.",
   "workerTraits.capstones": "The two capstone choices per trait line at max merge level, plus the hybrid capstone (Warlord).",
 

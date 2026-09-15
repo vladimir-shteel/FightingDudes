@@ -16,11 +16,8 @@ import {
   getCapstoneDemandMultiplierBonus,
   getCapstoneWarlordProductionMultiplier,
   getCapstoneYieldMultiplier,
-  getMaxRestCharges,
   getMaxWorkerLevel,
-  getWorkerRushMultiplier,
   getWorkerYieldMultiplier,
-  isWorkerBattleShiftLocked,
   mergeWorkerTraitVectors,
   pickCapstoneCandidates
 } from "./workerTraitSystem.js";
@@ -238,9 +235,6 @@ export function returnMineUnitToReserve(state, mineId, slotIndex) {
   if (!unit) {
     return { ok: false, reason: "That slot is already empty." };
   }
-  if (isWorkerBattleShiftLocked(state, unit)) {
-    return { ok: false, reason: "This worker is committed until the battle ends." };
-  }
 
   mine.workerIds[slotIndex] = null;
   mine.workerProgress[slotIndex] = 0;
@@ -274,14 +268,8 @@ export function moveMineUnitToMineSlot(state, fromMineId, fromSlotIndex, toMineI
   if (!unit) {
     return { ok: false, reason: "No mine unit in that slot." };
   }
-  if (isWorkerBattleShiftLocked(state, unit)) {
-    return { ok: false, reason: "This worker is committed until the battle ends." };
-  }
 
   const targetUnit = toMine.workerIds[toSlotIndex];
-  if (isWorkerBattleShiftLocked(state, targetUnit)) {
-    return { ok: false, reason: "That worker is committed until the battle ends." };
-  }
   if (!targetUnit) {
     fromMine.workerIds[fromSlotIndex] = null;
     fromMine.workerProgress[fromSlotIndex] = 0;
@@ -297,8 +285,6 @@ export function moveMineUnitToMineSlot(state, fromMineId, fromSlotIndex, toMineI
     fromMine.workerProgress[fromSlotIndex] = 0;
     toMine.workerIds[toSlotIndex] = createReserveUnit(mergedLevel, {
       traits: mergedTraits,
-      restCharges: Math.max(unit.restCharges ?? 0, targetUnit.restCharges ?? 0),
-      desiredMine: unit.desiredMine ?? targetUnit.desiredMine ?? null,
       pendingCapstone: mergedLevel === CONFIG.merge.maxLevel ? pickCapstoneCandidates(mergedTraits) : null
     });
     toMine.workerProgress[toSlotIndex] = 0;
@@ -356,16 +342,10 @@ export function mergeReserveUnitIntoMineUnit(state, reserveUnitId, mineId, slotI
   if (!mineUnit) {
     return { ok: false, reason: "No mine unit in that slot." };
   }
-  if (isWorkerBattleShiftLocked(state, mineUnit)) {
-    return { ok: false, reason: "This worker is committed until the battle ends." };
-  }
 
   const reserveUnit = state.reserveUnits.find((unit) => unit.id === reserveUnitId);
   if (!reserveUnit) {
     return { ok: false, reason: "Reserve unit not found." };
-  }
-  if (isWorkerBattleShiftLocked(state, reserveUnit)) {
-    return { ok: false, reason: "Committed workers are locked until the battle ends." };
   }
 
   if (reserveUnit.level !== mineUnit.level) {
@@ -387,91 +367,10 @@ export function mergeReserveUnitIntoMineUnit(state, reserveUnitId, mineId, slotI
   const mergedTraits = mergeWorkerTraitVectors(mineUnit.traits, reserveUnit.traits);
   mine.workerIds[slotIndex] = createReserveUnit(mergedLevel, {
     traits: mergedTraits,
-    restCharges: Math.max(mineUnit.restCharges ?? 0, reserveUnit.restCharges ?? 0),
-    desiredMine: mineUnit.desiredMine ?? reserveUnit.desiredMine ?? null,
     pendingCapstone: mergedLevel === CONFIG.merge.maxLevel ? pickCapstoneCandidates(mergedTraits) : null
   });
   mine.workerProgress[slotIndex] = 0;
   return { ok: true, reason: `Merged into level ${mergedLevel} worker.` };
-}
-
-export function getShiftMaxPerMine() {
-  return CONFIG.workerTraits?.battleShift?.maxCommitsPerMine ?? Number.POSITIVE_INFINITY;
-}
-
-// Pick a random UNLOCKED mine's resource key, preferring one different from `excludeKey`. Used to
-// (re)roll a worker's desired mine — never targets a locked mine (no forced-bad placements).
-export function pickDesiredMine(state, excludeKey = null) {
-  const open = (state.mines ?? []).filter((m) => m.isUnlocked).map((m) => m.resourceKey);
-  const choices = open.filter((k) => k !== excludeKey);
-  const pool = choices.length ? choices : open;
-  if (!pool.length) return excludeKey ?? null;
-  return pool[Math.floor(Math.random() * pool.length)];
-}
-
-// A worker staffing its DESIRED mine with Rest ⚡ automatically takes the battle shift when combat
-// starts (spends one charge). Only workers standing on the mine they currently want can spike — that
-// is what makes placement matter. Highest-level first, up to getShiftMaxPerMine() per mine.
-export function autoCommitBattleShifts(state) {
-  const cap = getShiftMaxPerMine();
-  for (const mine of state.mines) {
-    const eligible = (mine.workerIds ?? [])
-      .map((worker, index) => ({ worker, index }))
-      .filter(({ worker }) => worker && (worker.restCharges ?? 0) > 0 && worker.desiredMine === mine.resourceKey)
-      .sort((a, b) => (b.worker.level ?? 0) - (a.worker.level ?? 0));
-    let committed = 0;
-    for (const { worker } of eligible) {
-      if (committed >= cap) break;
-      worker.battleShiftCommitted = true;
-      committed += 1;
-    }
-  }
-}
-
-export function accrueWorkerRest(state) {
-  // Rest builds toward a worker's DESIRED mine whenever it is NOT working that mine — parked in
-  // reserve, or staffing a DIFFERENT mine (where it still mines at base rate). +1 per wave, capped.
-  // Being ON the desired mine drains Rest instead (via the shift). No idle-in-reserve requirement:
-  // a "recharging" worker is still productive, which is the whole point of the mood rework.
-  const rechargePerWave = CONFIG.workerTraits?.battleShift?.restRechargePerWave ?? 1;
-  const accrue = (unit) => {
-    if (!unit) return;
-    if (!unit.desiredMine) unit.desiredMine = pickDesiredMine(state, null);   // self-heal legacy units
-    unit.restCharges = Math.min(getMaxRestCharges(unit.level), (unit.restCharges ?? 0) + rechargePerWave);
-  };
-  for (const unit of state.reserveUnits) accrue(unit);
-  for (const mine of state.mines) {
-    for (const worker of mine.workerIds) {
-      if (worker && worker.desiredMine !== mine.resourceKey) accrue(worker);
-    }
-  }
-}
-
-export function consumeShiftRestFlags(state) {
-  for (const mine of state.mines) {
-    for (const worker of mine.workerIds) {
-      if (!worker?.battleShiftCommitted) continue;
-      worker.restCharges = Math.max(0, (worker.restCharges ?? 0) - 1);
-      if (worker.restCharges === 0) {
-        // Satisfied: preference drifts to a different open mine. The worker keeps mining its current
-        // mine at base rate (rebuilding Rest) until you move it to the new one to shift again.
-        worker.desiredMine = pickDesiredMine(state, worker.desiredMine);
-      }
-    }
-  }
-}
-
-export function clearWorkerBattleShifts(state) {
-  for (const unit of state.reserveUnits) {
-    unit.battleShiftCommitted = false;
-  }
-  for (const mine of state.mines) {
-    for (const worker of mine.workerIds) {
-      if (worker) {
-        worker.battleShiftCommitted = false;
-      }
-    }
-  }
 }
 
 export function tickMineProduction(state, deltaSeconds) {
@@ -499,16 +398,9 @@ export function tickMineProduction(state, deltaSeconds) {
       }
 
       mine.workerProgress[index] += deltaSeconds;
-      // Shift/rest is delivered as FREQUENCY, not magnitude: a committed shift worker's payout fires
-      // MORE often (the mine visibly "pumps" faster), a resting worker fires slower. The per-payout
-      // lump is unchanged, so total output equals the equivalent multiplier — but it's legible (you
-      // SEE the faster drips) instead of an invisible bigger number. (productionTable path only; the
-      // legacy per-second fallback below is frequency-neutral.)
-      const isShifting = Boolean(worker.battleShiftCommitted && state.fortress.battle.active);
-      const rateFactor = isShifting
-        ? getWorkerRushMultiplier(worker)
-        : (CONFIG.productionMultipliers?.rest ?? 1);
-      const collectionInterval = (CONFIG.mine.collectionIntervalSeconds ?? 1) / Math.max(0.05, rateFactor);
+      // Single production tempo: every worker mines at the base rate from CONFIG.mine.collectionIntervalSeconds.
+      // The old battle-shift/rest frequency modulation is gone with the shift system.
+      const collectionInterval = CONFIG.mine.collectionIntervalSeconds ?? 1;
       if (mine.workerProgress[index] < collectionInterval) {
         continue;
       }
@@ -535,7 +427,7 @@ export function tickMineProduction(state, deltaSeconds) {
         id: `${mine.id}-${index}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
         mineId: mine.id,
         slotIndex: index,
-        shift: isShifting,
+        shift: false,
         payouts: [
           { resourceKey: mine.resourceKey, amount: resourceAmount }
         ].filter((payout) => payout.amount > 0)

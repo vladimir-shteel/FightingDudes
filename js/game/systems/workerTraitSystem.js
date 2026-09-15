@@ -2,18 +2,8 @@ import { CONFIG } from "../config.js";
 
 export const WORKER_TRAIT_KEYS = ["yield", "rush"];
 
-// Worker merge level is gated by wave: starts at workerLevelCapBase and rises one tier every
-// workerLevelCapWavesPerStep waves up to merge.maxLevel. Keeps the early roster WIDE (surplus
-// bodies must sit in reserve where they rest → the Shift loop stays alive) and paces capstones
-// (they only fire at the true maxLevel). Set wavesPerStep to 0 to disable the gate.
-// Rest is a POOL, not a flag: a worker banks up to ceil(level / restChargeDivisor) rest charges.
-// Each battle Shift spends one; a wave spent in reserve regains one. Higher-level workers hold more
-// charges (longer shift-endurance before they must rotate out to recharge).
-export function getMaxRestCharges(level) {
-  const perLevel = CONFIG.workerTraits?.battleShift?.restChargePerLevel ?? 2;
-  return Math.max(1, Math.floor((level ?? 1) * perLevel));
-}
-
+// Worker merge level is gated by wave: rises one tier per unlock wave up to merge.maxLevel. Keeps the
+// early roster wide and paces capstones (they only fire at the true maxLevel).
 export function getMaxWorkerLevel(state) {
   const merge = CONFIG.merge ?? {};
   const hardMax = merge.maxLevel ?? 5;
@@ -100,18 +90,6 @@ export function getWorkerYieldMultiplier(unit) {
   const traits = ensureWorkerTraits(unit);
   const perPoint = getLineConfig("yield").resourceMultiplierPerPoint ?? 0;
   return 1 + traits.yield * perPoint;
-}
-
-export function getWorkerRushMultiplier(unit) {
-  const traits = ensureWorkerTraits(unit);
-  const shift = getTraitConfig().battleShift ?? {};
-  const base = shift.baseMultiplier ?? 1;
-  const perPoint = getLineConfig("rush").battleMultiplierPerPoint ?? 0;
-  return base + traits.rush * perPoint + getCapstoneRushBonus(unit);
-}
-
-export function isWorkerBattleShiftLocked(state, unit) {
-  return Boolean(state.fortress.battle.active && unit?.battleShiftCommitted);
 }
 
 function getCapstoneConfig() {

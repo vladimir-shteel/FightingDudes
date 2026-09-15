@@ -39,7 +39,7 @@ export function createInitialState() {
       workerStartLevel: 1,
       workerBuyDiscount: 1,
       goldMultiplier: 1,
-      productionMultiplier: CONFIG.productionMultipliers?.rest ?? 1,
+      productionMultiplier: 1,
       temporaryProductionMultiplier: 1,
       damageMultiplier: 1,
       defenseMultiplier: 1,

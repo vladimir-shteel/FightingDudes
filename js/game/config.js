@@ -7,9 +7,6 @@ export const CONFIG = {
   startingOre: 0,
   unitBuyBaseCost: 0,
   unitBuyExponent: 1,
-  productionMultipliers: {
-    rest: 1
-  },
   merge: {
     maxLevel: 1
   },

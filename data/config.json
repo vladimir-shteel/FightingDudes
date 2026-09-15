@@ -14,9 +14,6 @@
   "startingOre": 0,
   "unitBuyBaseCost": 4,
   "unitBuyExponent": 1.04,
-  "productionMultipliers": {
-    "rest": 0.55
-  },
   "combat": {
     "hpScalePerWave": 0.14,
     "attackScalePerWave": 0.06,
@@ -80,12 +77,6 @@
   "workerTraits": {
     "mergeBonusPoints": 1,
     "hybridThreshold": 0.6,
-    "battleShift": {
-      "baseMultiplier": 2.2,
-      "maxCommitsPerMine": 2,
-      "restChargePerLevel": 2,
-      "restRechargePerWave": 2
-    },
     "lines": {
       "yield": {
         "label": "Yield",

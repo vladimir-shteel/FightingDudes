@@ -6,7 +6,7 @@ import {
   FORTRESS_WIDTH,
   syncFortressBuildingUnlocks
 } from "./fortressSystem.js";
-import { accrueWorkerRest, autoCommitBattleShifts, clearWorkerBattleShifts, consumeShiftRestFlags, syncMineUnlocks } from "./mineSystem.js";
+import { syncMineUnlocks } from "./mineSystem.js";
 import { findTilePath } from "./pathfinding.js";
 import {
   beginFortressWave,
@@ -431,10 +431,6 @@ export function startFortressBattle(state) {
     building.cooldownTimer = 0.5;
   }
   beginFortressWave(state);
-  // Rested workers staffing a mine automatically take the battle shift (up to the per-mine cap).
-  autoCommitBattleShifts(state);
-  // Committed workers spend their rest to power the Shift.
-  consumeShiftRestFlags(state);
   return { ok: true, reason: "Match started. Waves incoming!" };
 }
 
@@ -853,9 +849,6 @@ function finishBattle(state, result) {
     state.fortress.message = `HQ destroyed. Kept ${earnedGold} gold from kills.`;
   }
 
-  clearWorkerBattleShifts(state);
-  // Every worker NOT on its desired mine (reserve or a wrong mine) builds Rest toward that mine.
-  accrueWorkerRest(state);
 }
 
 export function giveUpFortressBattle(state) {
