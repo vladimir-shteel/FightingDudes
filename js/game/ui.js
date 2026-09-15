@@ -1223,6 +1223,7 @@ export function mountUI(state, onStateChanged) {
     allies: new Map(),
     projectiles: new Map(),
     bursts: new Map(),
+    auras: new Map(),
   };
 
   function clearBattleSpriteRegistry() {
@@ -1266,6 +1267,30 @@ export function mountUI(state, onStateChanged) {
     if (state.fortress.battle.active) {
       for (const building of state.fortress.buildings) {
         updateFortressBuildingTile(building);
+      }
+    }
+
+    const seenAuras = new Set();
+    for (const enemy of state.fortress.battle.enemies) {
+      if (enemy.hp <= 0 || enemy.mechanic?.kind !== "aura") {
+        continue;
+      }
+      seenAuras.add(enemy.id);
+      let auraEl = battleSpriteRegistry.auras.get(enemy.id);
+      if (!auraEl) {
+        auraEl = document.createElement("div");
+        auraEl.className = "fortress-aura";
+        elements.fortressField.append(auraEl);
+        battleSpriteRegistry.auras.set(enemy.id, auraEl);
+      }
+      auraEl.style.setProperty("--x", enemy.x);
+      auraEl.style.setProperty("--y", enemy.y);
+      auraEl.style.setProperty("--radius", enemy.mechanic.radius);
+    }
+    for (const [id, el] of battleSpriteRegistry.auras) {
+      if (!seenAuras.has(id)) {
+        el.remove();
+        battleSpriteRegistry.auras.delete(id);
       }
     }
 

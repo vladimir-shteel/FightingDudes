@@ -3087,6 +3087,27 @@ h3 {
   transition: transform 100ms linear, opacity 100ms linear;
 }
 
+.fortress-aura {
+  position: absolute;
+  left: calc((var(--x) / var(--fortress-cols)) * 100%);
+  top: calc((var(--y) / var(--fortress-rows)) * 100%);
+  width: calc(var(--radius) * 2 * (100% / var(--fortress-cols)));
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(150, 90, 210, 0.28), rgba(150, 90, 210, 0.10) 55%, rgba(150, 90, 210, 0) 75%);
+  border: 1px solid rgba(150, 90, 210, 0.35);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 3;
+  animation: fortress-aura-pulse 1.6s ease-in-out infinite;
+  transition: left 100ms linear, top 100ms linear;
+}
+
+@keyframes fortress-aura-pulse {
+  0%, 100% { opacity: 0.65; transform: translate(-50%, -50%) scale(0.96); }
+  50%      { opacity: 1;    transform: translate(-50%, -50%) scale(1.04); }
+}
+
 @media (max-width: 900px) {
   .fortress-layout {
     grid-template-columns: 1fr;
