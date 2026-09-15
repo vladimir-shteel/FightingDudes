@@ -2,6 +2,7 @@
 // game offline we speed it up and poke it live. Backtick (`) toggles the panel. Nothing here runs
 // unless a button is pressed, so it is safe to ship on the prototype.
 import { syncFortressBuildingUnlocks } from "./systems/fortressSystem.js";
+import { syncMineUnlocks } from "./systems/mineSystem.js";
 
 const SPEEDS = [1, 2, 4, 8];
 
@@ -123,6 +124,7 @@ export function createDevTools(state, requestRender, { onOpenConfig } = {}) {
     state.fortress.waveNumber = Math.min(max, (state.fortress.waveNumber ?? 1) + 1);
     state.fortress.pendingRewardDraft = null;
     syncFortressBuildingUnlocks(state);
+    syncMineUnlocks(state);
     state.fortress.message = `DEV: jumped to wave ${state.fortress.waveNumber}.`;
   }
 

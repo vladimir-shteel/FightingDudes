@@ -1,6 +1,6 @@
 import { CONFIG } from "../config.js";
 
-export const WORKER_TRAIT_KEYS = ["yield", "golden", "rush"];
+export const WORKER_TRAIT_KEYS = ["yield", "rush"];
 
 // Worker merge level is gated by wave: starts at workerLevelCapBase and rises one tier every
 // workerLevelCapWavesPerStep waves up to merge.maxLevel. Keeps the early roster WIDE (surplus
@@ -102,12 +102,6 @@ export function getWorkerYieldMultiplier(unit) {
   return 1 + traits.yield * perPoint;
 }
 
-export function getWorkerGoldenConversion(unit) {
-  const traits = ensureWorkerTraits(unit);
-  const perPoint = getLineConfig("golden").goldPerResourcePerPoint ?? 0;
-  return traits.golden * perPoint;
-}
-
 export function getWorkerRushMultiplier(unit) {
   const traits = ensureWorkerTraits(unit);
   const shift = getTraitConfig().battleShift ?? {};
@@ -124,7 +118,7 @@ function getCapstoneConfig() {
   return getTraitConfig().capstones ?? {};
 }
 
-const HYBRID_ORDER = ["foreman", "warlord"];
+const HYBRID_ORDER = ["warlord"];
 
 export function pickCapstoneCandidates(traits = {}) {
   const normalized = normalizeTraitVector(traits);
@@ -142,7 +136,7 @@ export function pickCapstoneCandidates(traits = {}) {
   const hybridThreshold = getTraitConfig().hybridThreshold ?? 0.6;
   if (dominantValue > 0 && secondValue >= dominantValue * hybridThreshold) {
     const pairKey = [dominantKey, secondKey].sort().join("+");
-    const hybridId = pairKey === "golden+yield" ? "foreman" : pairKey === "rush+yield" ? "warlord" : null;
+    const hybridId = pairKey === "rush+yield" ? "warlord" : null;
     if (hybridId) {
       candidates.push(hybridId);
     }
@@ -173,32 +167,7 @@ export function getCapstoneYieldMultiplier(unit) {
   if (capstone.effect.kind === "yieldMul") {
     return capstone.effect.value ?? 1;
   }
-  if (capstone.effect.kind === "foreman") {
-    return capstone.effect.productionMultiplier ?? 1;
-  }
   return 1;
-}
-
-export function getCapstoneGoldenBonus(unit) {
-  const capstone = getWorkerCapstoneEffect(unit);
-  if (!capstone) {
-    return 0;
-  }
-  if (capstone.effect.kind === "goldenConversion") {
-    return capstone.effect.value ?? 0;
-  }
-  if (capstone.effect.kind === "foreman") {
-    return capstone.effect.goldenConversionBonus ?? 0;
-  }
-  return 0;
-}
-
-export function getCapstonePassiveGoldPerSecond(unit) {
-  const capstone = getWorkerCapstoneEffect(unit);
-  if (!capstone || capstone.effect.kind !== "passiveGold") {
-    return 0;
-  }
-  return capstone.effect.value ?? 0;
 }
 
 export function getCapstoneRushBonus(unit) {

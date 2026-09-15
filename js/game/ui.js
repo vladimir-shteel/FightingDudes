@@ -57,7 +57,6 @@ import {
   getTraitIcon,
   getTraitLabel,
   getWorkerCapstoneEffect,
-  getWorkerGoldenConversion,
   getWorkerRushMultiplier,
   getWorkerYieldMultiplier,
   WORKER_TRAIT_KEYS
@@ -68,7 +67,6 @@ function buildTraitInfoMarkup() {
   const lines = traits.lines ?? {};
   const shift = traits.battleShift ?? {};
   const yieldPer = lines.yield?.resourceMultiplierPerPoint ?? 0;
-  const goldenPer = lines.golden?.goldPerResourcePerPoint ?? 0;
   const rushPer = lines.rush?.battleMultiplierPerPoint ?? 0;
   const shiftBase = shift.baseMultiplier ?? 1;
   const rows = [
@@ -77,12 +75,6 @@ function buildTraitInfoMarkup() {
       label: lines.yield?.label ?? "Yield",
       icon: lines.yield?.icon ?? "Y",
       text: `Each point adds +${(yieldPer * 100).toFixed(0)}% to that worker's mine output. Pill number = points.`
-    },
-    {
-      key: "golden",
-      label: lines.golden?.label ?? "Golden",
-      icon: lines.golden?.icon ?? "G",
-      text: `Each point converts +${(goldenPer * 100).toFixed(1)}% of that worker's production into gold on top of the resource.`
     },
     {
       key: "rush",
@@ -225,7 +217,6 @@ function createUnitCard(unit, options = {}) {
       const lineCfg = CONFIG.workerTraits?.lines?.[key] ?? {};
       let tip;
       if (key === "yield") tip = `Yield ${points} · +${Math.round((lineCfg.resourceMultiplierPerPoint ?? 0) * points * 100)}% mine output`;
-      else if (key === "golden") tip = `Golden ${points} · +${((lineCfg.goldPerResourcePerPoint ?? 0) * points * 100).toFixed(1)}% of production paid as gold`;
       else if (key === "rush") tip = `Rush ${points} · +${Math.round((lineCfg.battleMultiplierPerPoint ?? 0) * points * 100)}% Shift multiplier`;
       else tip = `${getTraitLabel(key)} ${points}`;
       return `<span class="unit-trait unit-trait-${key}" title="${tip}"><span class="unit-trait-icon">${getTraitIcon(key)}</span><span class="unit-trait-num">${points}</span></span>`;
@@ -612,7 +603,6 @@ export function mountUI(state, onStateChanged) {
     popover.className = "worker-action-popover";
 
     const yieldPct = Math.round((getWorkerYieldMultiplier(unit) - 1) * 100);
-    const goldenPct = Math.round(getWorkerGoldenConversion(unit) * 1000) / 10;
     const rushMult = Math.round(getWorkerRushMultiplier(unit) * 100) / 100;
     const capstoneEffect = getWorkerCapstoneEffect(unit);
 
@@ -640,7 +630,6 @@ export function mountUI(state, onStateChanged) {
       <strong>${unit.name} · Lv${unit.level}${headerStatus}</strong>
       <div class="worker-popover-traits">
         <span class="unit-trait unit-trait-yield" title="Yield">Y +${yieldPct}%</span>
-        <span class="unit-trait unit-trait-golden" title="Golden">G ${goldenPct}%</span>
         <span class="unit-trait unit-trait-rush" title="Rush">R ${rushMult}× Shift</span>
       </div>
       ${capstoneEffect ? `<div class="worker-popover-capstone"><strong>★ ${capstoneEffect.label}</strong>${capstoneEffect.description ? `<span>${capstoneEffect.description}</span>` : ""}</div>` : ""}

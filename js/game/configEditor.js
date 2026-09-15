@@ -142,16 +142,16 @@ const HINTS = {
   "merge.maxLevel": "Hard cap on worker merge level, regardless of wave.",
   "merge.workerLevelUnlockWaves": "Wave-gated cap ramp — index i is the wave at which merge level i+1 becomes reachable. Keeps the early roster wide instead of racing to max level.",
   "merge.crystalCostByLevel": "Crystal cost to merge a crystalMergeGated building (see fortressBuildings) up to the given target level.",
-  workerTraits: "The three worker trait lines (Yield/Golden/Rush), the battle-shift rest mechanic, and the merge-cap capstone bonuses.",
+  workerTraits: "The two worker trait lines (Yield/Rush), the battle-shift rest mechanic, and the merge-cap capstone bonuses.",
   "workerTraits.mergeBonusPoints": "Extra trait points added to the dominant trait line whenever two workers merge, on top of simply summing their trait vectors.",
-  "workerTraits.hybridThreshold": "How close the second-highest trait must be to the dominant one (as a fraction) for a hybrid capstone (Foreman/Warlord) to be offered.",
+  "workerTraits.hybridThreshold": "How close the second-highest trait must be to the dominant one (as a fraction) for the hybrid capstone (Warlord) to be offered.",
   "workerTraits.battleShift": "Tuning for the battle-shift mechanic: base Rush strength, how many workers per mine can shift at once, and how rest charges are gained/spent.",
   "workerTraits.battleShift.baseMultiplier": "Rush multiplier a worker gets from shifting with zero Rush trait points — the floor, before any Rush-line bonus.",
   "workerTraits.battleShift.maxCommitsPerMine": "Maximum workers that can be on a battle shift at the same mine simultaneously.",
   "workerTraits.battleShift.restChargePerLevel": "Rest-charge pool size scales with worker level × this — higher-level workers can shift more battles before recharging.",
   "workerTraits.battleShift.restRechargePerWave": "Rest charges regained per wave for a worker NOT currently shifting on its desired mine.",
-  "workerTraits.lines": "The three trait lines' display label/icon, their relative odds of being rolled on a new worker (rollWeight), and their per-point bonus strength.",
-  "workerTraits.capstones": "The two capstone choices per trait line at max merge level, plus the two hybrid capstones (Foreman, Warlord).",
+  "workerTraits.lines": "The two trait lines' display label/icon, their relative odds of being rolled on a new worker (rollWeight), and their per-point bonus strength.",
+  "workerTraits.capstones": "The two capstone choices per trait line at max merge level, plus the hybrid capstone (Warlord).",
 
   mine: "Mine resource types (unlock waves, buy/slot costs) and per-level slot counts/production multipliers.",
   "mine.collectionIntervalSeconds": "Base seconds between production payouts for an occupied slot, before the worker's rest/shift rate factor is applied.",
@@ -172,7 +172,7 @@ const HINTS = {
 // makes a wrong value structurally impossible to enter — same idea as Dice Lords Eredan's ability
 // editor constraining effect kinds to its known list rather than a free text field.
 const CAPSTONE_EFFECT_KINDS = [
-  "yieldMul", "demandMul", "goldenConversion", "passiveGold", "rushBonus", "battleDamageBonus", "foreman", "warlord"
+  "yieldMul", "demandMul", "rushBonus", "battleDamageBonus", "warlord"
 ];
 const REWARD_EFFECT_KINDS = [
   "goldMultiplier", "productionMultiplier", "baseHealthBonus", "temporaryMultiplier",

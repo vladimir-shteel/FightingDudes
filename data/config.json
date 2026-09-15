@@ -34,6 +34,13 @@
     "goldCostPerCopy": 8
   },
   "abilityCostAccumulation": 1.6,
+  "rewardDraftEnabled": false,
+  "resourceCaps": {
+    "wood": 500,
+    "ore": 400,
+    "iron": 300,
+    "crystal": 200
+  },
   "waveDemand": {
     "slotProductionMultiplier": 1.25
   },
@@ -85,12 +92,6 @@
         "rollWeight": 1,
         "resourceMultiplierPerPoint": 0.04
       },
-      "golden": {
-        "label": "Golden",
-        "icon": "G",
-        "rollWeight": 1,
-        "goldPerResourcePerPoint": 0.006
-      },
       "rush": {
         "label": "Rush",
         "icon": "R",
@@ -119,26 +120,6 @@
           }
         }
       ],
-      "golden": [
-        {
-          "id": "midas",
-          "label": "Midas Touch",
-          "description": "Convert 25% of production to gold on top of existing.",
-          "effect": {
-            "kind": "goldenConversion",
-            "value": 0.25
-          }
-        },
-        {
-          "id": "trickle",
-          "label": "Golden Trickle",
-          "description": "+1 gold/sec passive.",
-          "effect": {
-            "kind": "passiveGold",
-            "value": 1
-          }
-        }
-      ],
       "rush": [
         {
           "id": "warmind",
@@ -160,16 +141,6 @@
         }
       ],
       "hybrid": [
-        {
-          "id": "foreman",
-          "label": "Foreman (Y+G)",
-          "description": "+40% production, +8% goldenConversion.",
-          "effect": {
-            "kind": "foreman",
-            "productionMultiplier": 1.4,
-            "goldenConversionBonus": 0.08
-          }
-        },
         {
           "id": "warlord",
           "label": "Warlord (R+Y)",
@@ -385,34 +356,31 @@
       ],
       "unlockedByDefault": true,
       "buyCost": {
-        "wood": 60
+        "ore": 60
       },
       "levels": [
         {
           "hp": 70,
           "upgradeCost": {
-            "wood": 55
+            "ore": 55
           }
         },
         {
           "hp": 150,
           "upgradeCost": {
-            "wood": 90,
-            "ore": 40
+            "ore": 100
           }
         },
         {
           "hp": 300,
           "upgradeCost": {
-            "wood": 150,
-            "ore": 80
+            "ore": 170
           }
         },
         {
           "hp": 560,
           "upgradeCost": {
-            "wood": 240,
-            "ore": 150
+            "ore": 280
           }
         },
         {
@@ -455,29 +423,25 @@
       ],
       "unlockedByDefault": false,
       "buyCost": {
-        "wood": 135,
-        "ore": 60
+        "ore": 135
       },
       "levels": [
         {
           "hp": 150,
           "upgradeCost": {
-            "wood": 130,
-            "ore": 60
+            "ore": 130
           }
         },
         {
           "hp": 300,
           "upgradeCost": {
-            "wood": 210,
-            "ore": 110
+            "ore": 210
           }
         },
         {
           "hp": 560,
           "upgradeCost": {
-            "wood": 330,
-            "ore": 180
+            "ore": 330
           }
         },
         {
@@ -525,8 +489,7 @@
       ],
       "unlockedByDefault": true,
       "buyCost": {
-        "wood": 105,
-        "ore": 45
+        "wood": 105
       },
       "levels": [
         {
@@ -534,8 +497,7 @@
           "cooldownSeconds": 6,
           "unit": "warrior",
           "upgradeCost": {
-            "wood": 70,
-            "ore": 30
+            "wood": 100
           }
         },
         {
@@ -543,8 +505,7 @@
           "cooldownSeconds": 4.5,
           "unit": "warrior",
           "upgradeCost": {
-            "wood": 120,
-            "ore": 55
+            "wood": 170
           }
         },
         {
@@ -552,8 +513,7 @@
           "cooldownSeconds": 3.3,
           "unit": "warrior",
           "upgradeCost": {
-            "wood": 190,
-            "ore": 95
+            "wood": 280
           }
         },
         {
@@ -603,8 +563,8 @@
       "unlockedByDefault": false,
       "unlockWave": 3,
       "buyCost": {
-        "wood": 90,
-        "ore": 40
+        "wood": 70,
+        "ore": 35
       },
       "levels": [
         {
@@ -631,8 +591,7 @@
           "unit": "archer",
           "upgradeCost": {
             "wood": 240,
-            "ore": 120,
-            "crystal": 40
+            "ore": 120
           }
         },
         {
@@ -669,8 +628,8 @@
       "unlockedByDefault": false,
       "unlockWave": 5,
       "buyCost": {
-        "ore": 105,
-        "iron": 33
+        "wood": 80,
+        "ore": 50
       },
       "levels": [
         {
@@ -678,8 +637,8 @@
           "damage": 12,
           "cooldownSeconds": 1.2,
           "upgradeCost": {
-            "ore": 90,
-            "iron": 40
+            "wood": 70,
+            "ore": 90
           },
           "range": 1.8
         },
@@ -688,8 +647,8 @@
           "damage": 22,
           "cooldownSeconds": 1,
           "upgradeCost": {
-            "ore": 150,
-            "iron": 70
+            "wood": 110,
+            "ore": 150
           },
           "range": 2
         },
@@ -698,8 +657,8 @@
           "damage": 40,
           "cooldownSeconds": 0.85,
           "upgradeCost": {
-            "ore": 240,
-            "iron": 120
+            "wood": 180,
+            "ore": 240
           },
           "range": 2.2
         },
@@ -708,8 +667,8 @@
           "damage": 72,
           "cooldownSeconds": 0.75,
           "upgradeCost": {
-            "ore": 380,
-            "iron": 200
+            "wood": 280,
+            "ore": 380
           },
           "range": 2.4
         },
@@ -760,8 +719,8 @@
       "unlockedByDefault": false,
       "unlockWave": 9,
       "buyCost": {
-        "wood": 105,
-        "iron": 45
+        "iron": 60,
+        "wood": 80
       },
       "levels": [
         {
@@ -769,7 +728,7 @@
           "cooldownSeconds": 8,
           "unit": "rider",
           "upgradeCost": {
-            "wood": 110,
+            "wood": 80,
             "iron": 50
           }
         },
@@ -778,7 +737,7 @@
           "cooldownSeconds": 6.3,
           "unit": "rider",
           "upgradeCost": {
-            "wood": 175,
+            "wood": 130,
             "iron": 85
           }
         },
@@ -787,9 +746,8 @@
           "cooldownSeconds": 4.8,
           "unit": "rider",
           "upgradeCost": {
-            "wood": 275,
-            "iron": 140,
-            "crystal": 50
+            "wood": 210,
+            "iron": 140
           }
         },
         {
@@ -836,9 +794,9 @@
         ]
       ],
       "unlockedByDefault": false,
-      "unlockWave": 8,
+      "unlockWave": 11,
       "buyCost": {
-        "ore": 105,
+        "ore": 85,
         "crystal": 45
       },
       "levels": [
@@ -900,7 +858,7 @@
         ]
       ],
       "unlockedByDefault": false,
-      "unlockWave": 14,
+      "unlockWave": 7,
       "buyCost": {
         "iron": 45
       },
@@ -916,24 +874,21 @@
           "hp": 1,
           "damage": 70,
           "upgradeCost": {
-            "iron": 85,
-            "crystal": 30
+            "iron": 85
           }
         },
         {
           "hp": 1,
           "damage": 115,
           "upgradeCost": {
-            "iron": 140,
-            "crystal": 55
+            "iron": 140
           }
         },
         {
           "hp": 1,
           "damage": 180,
           "upgradeCost": {
-            "iron": 230,
-            "crystal": 90
+            "iron": 230
           }
         },
         {
@@ -1770,36 +1725,18 @@
         "mineName": "Lumber Camp",
         "unlockedByDefault": true,
         "unlockWave": 1,
-        "buyCost": {
-          "gold": 0
-        },
+        "buyCost": {},
         "slotUnlockWaves": [
           1,
-          2,
           4,
-          7,
-          11,
-          15
+          12,
+          18
         ],
         "slotBuyCosts": [
-          {
-            "gold": 0
-          },
-          {
-            "gold": 12
-          },
-          {
-            "gold": 28
-          },
-          {
-            "gold": 55
-          },
-          {
-            "gold": 95
-          },
-          {
-            "gold": 150
-          }
+          {},
+          {},
+          {},
+          {}
         ]
       },
       {
@@ -1807,38 +1744,20 @@
         "label": "Stone",
         "icon": "🪨",
         "mineName": "Stone Quarry",
-        "unlockedByDefault": true,
-        "unlockWave": 1,
-        "buyCost": {
-          "gold": 0
-        },
+        "unlockedByDefault": false,
+        "unlockWave": 2,
+        "buyCost": {},
         "slotUnlockWaves": [
-          1,
-          3,
-          5,
+          2,
           8,
-          12,
-          16
+          15,
+          20
         ],
         "slotBuyCosts": [
-          {
-            "gold": 0
-          },
-          {
-            "gold": 14
-          },
-          {
-            "gold": 32
-          },
-          {
-            "gold": 62
-          },
-          {
-            "gold": 105
-          },
-          {
-            "gold": 165
-          }
+          {},
+          {},
+          {},
+          {}
         ]
       },
       {
@@ -1847,33 +1766,17 @@
         "icon": "🔩",
         "mineName": "Iron Forge",
         "unlockedByDefault": false,
-        "unlockWave": 3,
-        "buyCost": {
-          "gold": 22
-        },
+        "unlockWave": 6,
+        "buyCost": {},
         "slotUnlockWaves": [
-          3,
           6,
-          9,
           13,
-          17
+          19
         ],
         "slotBuyCosts": [
-          {
-            "gold": 0
-          },
-          {
-            "gold": 22
-          },
-          {
-            "gold": 48
-          },
-          {
-            "gold": 90
-          },
-          {
-            "gold": 145
-          }
+          {},
+          {},
+          {}
         ]
       },
       {
@@ -1882,33 +1785,15 @@
         "icon": "💎",
         "mineName": "Crystal Pit",
         "unlockedByDefault": false,
-        "unlockWave": 6,
-        "buyCost": {
-          "gold": 30
-        },
+        "unlockWave": 10,
+        "buyCost": {},
         "slotUnlockWaves": [
-          6,
-          9,
-          13,
-          17,
-          20
+          10,
+          17
         ],
         "slotBuyCosts": [
-          {
-            "gold": 0
-          },
-          {
-            "gold": 28
-          },
-          {
-            "gold": 58
-          },
-          {
-            "gold": 105
-          },
-          {
-            "gold": 165
-          }
+          {},
+          {}
         ]
       }
     ],

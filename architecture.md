@@ -163,21 +163,20 @@ survives a fixed sequence of enemy waves. It replaces an earlier, structurally d
   `mergeReserveUnitIntoMineUnit`, `returnMineUnitToReserve`…) all respect
   `isWorkerBattleShiftLocked` — a committed worker can't be pulled or merged mid-battle.
 
-### `workerTraitSystem.js` — Yield/Golden/Rush traits and merge capstones
-- Every new worker rolls a trait vector across three lines — **Yield** (production multiplier),
-  **Golden** (converts a fraction of production to bonus gold), **Rush** (battle-shift multiplier) —
-  weighted by `workerTraits.lines[key].rollWeight`.
+### `workerTraitSystem.js` — Yield/Rush traits and merge capstones
+- Every new worker rolls a trait vector across two lines — **Yield** (production multiplier),
+  **Rush** (battle-shift multiplier) — weighted by `workerTraits.lines[key].rollWeight`.
 - Merging sums both workers' trait vectors and adds `workerTraits.mergeBonusPoints` to whichever trait
   is now dominant (`mergeWorkerTraitVectors`).
 - The worker level cap is wave-gated (`getMaxWorkerLevel`): `merge.workerLevelUnlockWaves[i]` is the
   wave at which level `i+1` becomes reachable, capped at `merge.maxLevel`. This keeps the early roster
   *wide* (surplus bodies sit in reserve, feeding the Shift loop) and paces when capstones unlock.
 - At `merge.maxLevel`, a merge offers **capstone** choices (`pickCapstoneCandidates`): the dominant
-  trait's own capstones, plus a hybrid capstone if the second-highest trait is within
-  `workerTraits.hybridThreshold` of the dominant one (`foreman` = Yield+Golden, `warlord` = Rush+Yield).
-  All eight capstones (2 per line + 2 hybrid) are fully data-driven — every capstone's numeric payoff
-  lives in `config.json → workerTraits.capstones`, read via `effect.value` (or, for the two hybrid
-  capstones, their own named fields — see **Data Files**).
+  trait's own capstones, plus the hybrid capstone if the second-highest trait is within
+  `workerTraits.hybridThreshold` of the dominant one (`warlord` = Rush+Yield).
+  All five capstones (2 per line + 1 hybrid) are fully data-driven — every capstone's numeric payoff
+  lives in `config.json → workerTraits.capstones`, read via `effect.value` (or, for the hybrid
+  capstone, its own named field — see **Data Files**).
 
 ### `upgradeSystem.js` — victory reward drafts and multiplier accessors
 - The reward pool itself is fully data-driven: `config.json → rewardDraft.cards` is a flat array, each
@@ -327,10 +326,9 @@ Top-level keys in `data/config.json`:
   Added so these no longer live as bare magic numbers inside `fortressBattleSystem.js`.
 - `fortress` — field setup: obstacle count and its removal-cost curve, the repair-cost fallback rate.
 - `buildingCostEscalation`, `demolish`, `waveDemand` — see `fortressSystem.js`/`mineSystem.js` above.
-- `workerTraits` — the three trait lines, `battleShift` tuning, `hybridThreshold`, and all eight
+- `workerTraits` — the two trait lines, `battleShift` tuning, `hybridThreshold`, and all five
   `capstones` (each `effect` carries the numbers its `kind` needs — e.g. `{"kind":"yieldMul","value":1.6}`;
-  the two hybrid capstones instead use their own named fields, `productionMultiplier` and, for `foreman`
-  only, `goldenConversionBonus`, since they grant two different kinds of bonus at once).
+  the hybrid capstone instead uses its own named field, `productionMultiplier`).
 - `merge` — worker merge cap, `workerLevelUnlockWaves`, and `crystalCostByLevel` for gated buildings.
 - `attrition` — see `fortressBattleSystem.js` above.
 - `rewardDraft.cards` — the whole victory-reward pool as a flat array (see `upgradeSystem.js` above for

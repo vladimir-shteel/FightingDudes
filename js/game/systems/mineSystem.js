@@ -8,21 +8,16 @@ import {
 import { clamp } from "../utils.js";
 import { createReserveUnit } from "../factories.js";
 import { removeUnitFromReserve, returnUnitToReserve } from "./reserveSystem.js";
-import { spendResources } from "./fortressSystem.js";
 import {
-  getFortressGoldMultiplier,
   getFortressResourceMultiplier,
   getTemporaryProductionMultiplier
 } from "./upgradeSystem.js";
 import {
   getCapstoneDemandMultiplierBonus,
-  getCapstoneGoldenBonus,
-  getCapstonePassiveGoldPerSecond,
   getCapstoneWarlordProductionMultiplier,
   getCapstoneYieldMultiplier,
   getMaxRestCharges,
   getMaxWorkerLevel,
-  getWorkerGoldenConversion,
   getWorkerRushMultiplier,
   getWorkerYieldMultiplier,
   isWorkerBattleShiftLocked,
@@ -95,6 +90,29 @@ export function getMineSlotState(state, mine, slotIndex) {
   return { kind: "available-to-buy", unlockWave, buyCost };
 }
 
+// Primary unlock mechanism: mines and their slots are free and open automatically once the
+// current wave reaches their configured unlock wave. Called at game init and after every wave
+// victory so the player never needs to "buy" anything here.
+export function syncMineUnlocks(state) {
+  for (const mine of state.mines) {
+    const purchaseState = getMinePurchaseState(state, mine);
+    if (purchaseState.kind === "available-to-buy") {
+      mine.isUnlocked = true;
+      setSlotPurchased(mine, 0);
+    }
+
+    if (!mine.isUnlocked) {
+      continue;
+    }
+
+    for (let index = 0; index < mine.workerIds.length; index += 1) {
+      if (getMineSlotState(state, mine, index).kind === "available-to-buy") {
+        setSlotPurchased(mine, index);
+      }
+    }
+  }
+}
+
 export function buyMine(state, mineId) {
   const mine = state.mines.find((item) => item.id === mineId);
   if (!mine) {
@@ -107,9 +125,6 @@ export function buyMine(state, mineId) {
   }
   if (purchaseState.kind !== "available-to-buy") {
     return { ok: false, reason: `Mine unlocks at wave ${purchaseState.unlockWave}.` };
-  }
-  if (!spendResources(state.resources, purchaseState.buyCost)) {
-    return { ok: false, reason: "Not enough gold for this mine." };
   }
 
   mine.isUnlocked = true;
@@ -132,9 +147,6 @@ export function buyMineSlot(state, mineId, slotIndex) {
   }
   if (slotState.kind !== "available-to-buy") {
     return { ok: false, reason: `Mine slot unlocks at wave ${slotState.unlockWave}.` };
-  }
-  if (!spendResources(state.resources, slotState.buyCost)) {
-    return { ok: false, reason: "Not enough gold for this mine slot." };
   }
 
   setSlotPurchased(mine, slotIndex);
@@ -463,34 +475,10 @@ export function clearWorkerBattleShifts(state) {
 }
 
 export function tickMineProduction(state, deltaSeconds) {
-  const passivePerMine = CONFIG.passiveGoldPerSecondPerUnlockedMine ?? 0;
-  const passiveInterval = Math.max(0.001, CONFIG.passiveGoldPayoutIntervalSeconds ?? 1);
-  const goldMultiplier = getFortressGoldMultiplier(state);
-
   for (const mine of state.mines) {
     if (!mine.isUnlocked) {
       mine.passiveProgress = 0;
       continue;
-    }
-
-    if (passivePerMine > 0) {
-      mine.passiveProgress = (mine.passiveProgress ?? 0) + deltaSeconds;
-      if (mine.passiveProgress >= passiveInterval) {
-        const payoutSeconds = mine.passiveProgress;
-        mine.passiveProgress = 0;
-        const goldAmount = passivePerMine * payoutSeconds * goldMultiplier;
-        state.resources.gold = clamp(
-          state.resources.gold + goldAmount,
-          0,
-          Number.MAX_SAFE_INTEGER
-        );
-        state.resourceBursts.push({
-          id: `${mine.id}-passive-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-          mineId: mine.id,
-          slotIndex: -1,
-          payouts: [{ resourceKey: "gold", amount: goldAmount }].filter((payout) => payout.amount > 0)
-        });
-      }
     }
 
     const mineLevelData = getMineLevelData(mine.level);
@@ -536,22 +524,12 @@ export function tickMineProduction(state, deltaSeconds) {
       const resourceAmount = productionTable
         ? (productionTable[String(worker.level)] ?? 1) * slotMultiplier * productionMultiplier * totalWorkerMultiplier
         : CONFIG.mine.baseProductionPerSecond * worker.level * slotMultiplier * payoutSeconds * productionMultiplier * totalWorkerMultiplier;
-      const traitGoldAmount = resourceAmount * (getWorkerGoldenConversion(worker) + getCapstoneGoldenBonus(worker)) * getFortressGoldMultiplier(state);
-      const capstonePassiveGoldAmount = getCapstonePassiveGoldPerSecond(worker) * payoutSeconds * goldMultiplier;
-      const goldAmount = (productionTable
-        ? traitGoldAmount
-        : ((CONFIG.mine.goldPerSecondPerWorkerLevel ?? 0) * worker.level * slotMultiplier * payoutSeconds * goldMultiplier) + traitGoldAmount)
-        + capstonePassiveGoldAmount;
 
+      const resourceCap = CONFIG.resourceCaps?.[mine.resourceKey] ?? Number.MAX_SAFE_INTEGER;
       state.resources[mine.resourceKey] = clamp(
         state.resources[mine.resourceKey] + resourceAmount,
         0,
-        Number.MAX_SAFE_INTEGER
-      );
-      state.resources.gold = clamp(
-        state.resources.gold + goldAmount,
-        0,
-        Number.MAX_SAFE_INTEGER
+        resourceCap
       );
       state.resourceBursts.push({
         id: `${mine.id}-${index}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
@@ -559,8 +537,7 @@ export function tickMineProduction(state, deltaSeconds) {
         slotIndex: index,
         shift: isShifting,
         payouts: [
-          { resourceKey: mine.resourceKey, amount: resourceAmount },
-          { resourceKey: "gold", amount: goldAmount }
+          { resourceKey: mine.resourceKey, amount: resourceAmount }
         ].filter((payout) => payout.amount > 0)
       });
     }

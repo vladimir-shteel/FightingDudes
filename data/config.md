@@ -248,29 +248,28 @@ Per-level `attack`/`hp` bonuses come from `combat.unitAttackPerLevel`/`unitHpPer
 | Path | Type | Description |
 |---|---|---|
 | `workerTraits.mergeBonusPoints` | number | Extra trait points added to the dominant trait line whenever two workers merge, on top of simply summing their trait vectors. |
-| `workerTraits.hybridThreshold` | number (0–1) | How close the second-highest trait must be to the dominant one (as a fraction of the dominant's value) for a **hybrid** capstone (Foreman/Warlord) to be offered alongside the dominant line's own capstones. |
+| `workerTraits.hybridThreshold` | number (0–1) | How close the second-highest trait must be to the dominant one (as a fraction of the dominant's value) for the **hybrid** capstone (Warlord) to be offered alongside the dominant line's own capstones. |
 | `workerTraits.battleShift.baseMultiplier` | number | Rush multiplier a worker gets from taking a battle shift with **zero** Rush trait points — the floor, before any Rush-line per-point bonus. |
 | `workerTraits.battleShift.maxCommitsPerMine` | number | Max workers that can be on a battle shift at the same mine simultaneously. |
 | `workerTraits.battleShift.restChargePerLevel` | number | Rest-charge pool size = `level × restChargePerLevel` — higher-level workers can shift through more consecutive battles before needing to recharge. |
 | `workerTraits.battleShift.restRechargePerWave` | number | Rest charges regained per wave for a worker **not** currently shifting on its desired mine (i.e. parked in reserve, or staffing a different mine). |
-| `workerTraits.lines.<yield\|golden\|rush>.label` / `.icon` | string | Display name/icon for the trait line. |
+| `workerTraits.lines.<yield\|rush>.label` / `.icon` | string | Display name/icon for the trait line. |
 | `workerTraits.lines.<line>.rollWeight` | number | Relative odds this line is the one rolled dominant on a brand-new worker. Same weighted-pick model as reward-card `weight` (§6) — `0` means the line never gets rolled as a new worker's starting trait (existing workers already holding it are unaffected). |
 | `workerTraits.lines.yield.resourceMultiplierPerPoint` | number | Yield: production multiplier gained per point of this trait. |
-| `workerTraits.lines.golden.goldPerResourcePerPoint` | number | Golden: fraction of a worker's resource output converted to bonus gold, per point. |
 | `workerTraits.lines.rush.battleMultiplierPerPoint` | number | Rush: added to `battleShift.baseMultiplier` per point when the worker takes a battle shift. |
 
 ### `workerTraits.capstones` — capstone catalog
 
-Structured as `capstones.<yield|golden|rush|hybrid>`, each an array of capstone definitions. Which
+Structured as `capstones.<yield|rush|hybrid>`, each an array of capstone definitions. Which
 *array* a capstone lives in only affects the editor's own organization — `getWorkerCapstoneEffect`
-searches all four arrays by `id`, so a capstone's *behavior* comes entirely from its own `effect` object,
+searches all three arrays by `id`, so a capstone's *behavior* comes entirely from its own `effect` object,
 not which array it's filed under.
 
 | Field | Type | Description |
 |---|---|---|
 | `id` | string | Unique capstone id, referenced by a worker's `capstone`/`pendingCapstone` runtime fields. |
 | `label`, `description` | string | Display text shown in the capstone-choice UI. |
-| `effect.kind` | string (enum, 8 values — see below) | Which capstone behavior this is. |
+| `effect.kind` | string (enum, 5 values — see below) | Which capstone behavior this is. |
 
 **`effect` variants** (enum for `effect.kind`):
 
@@ -278,11 +277,8 @@ not which array it's filed under.
 |---|---|---|
 | `yieldMul` | `value` | Multiplies the worker's Yield-trait production multiplier by `value`. |
 | `demandMul` | `value` | Multiplies the wave-demand bonus (§3 `waveDemand`) this worker benefits from by `value`. |
-| `goldenConversion` | `value` | Adds `value` to the worker's Golden-trait gold-conversion fraction. |
-| `passiveGold` | `value` | Flat passive gold/second granted while this worker exists (independent of mining activity). |
 | `rushBonus` | `value` | Adds `value` to the worker's battle-shift Rush multiplier. |
 | `battleDamageBonus` | `value` | While this worker is on an active battle shift, adds `value` (as a fraction, e.g. `0.2` = +20%) to the fortress's overall damage multiplier for that battle. |
-| `foreman` | `productionMultiplier`, `goldenConversionBonus` | Hybrid (Yield+Golden): grants **both** a production multiplier and a golden-conversion bonus at once — the only capstone with two numeric fields, since it grants two different kinds of bonus simultaneously. |
 | `warlord` | `productionMultiplier` | Hybrid (Rush+Yield): production multiplier that applies **only** while the worker is actively on a committed battle shift. |
 
 ---

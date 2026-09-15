@@ -1,6 +1,7 @@
 import { CONFIG } from "./config.js";
 import { createMine } from "./factories.js";
 import { createFortressState } from "./systems/fortressSystem.js";
+import { syncMineUnlocks } from "./systems/mineSystem.js";
 
 export function createInitialState() {
   const resources = {
@@ -19,7 +20,7 @@ export function createInitialState() {
     resources.ore = Math.max(resources.ore, CONFIG.startingOre);
   }
 
-  return {
+  const state = {
     resources,
     fortress: createFortressState(),
     ui: {
@@ -51,4 +52,7 @@ export function createInitialState() {
       result: null
     }
   };
+
+  syncMineUnlocks(state);
+  return state;
 }

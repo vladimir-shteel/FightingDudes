@@ -6,7 +6,7 @@ import {
   FORTRESS_WIDTH,
   syncFortressBuildingUnlocks
 } from "./fortressSystem.js";
-import { accrueWorkerRest, autoCommitBattleShifts, clearWorkerBattleShifts, consumeShiftRestFlags } from "./mineSystem.js";
+import { accrueWorkerRest, autoCommitBattleShifts, clearWorkerBattleShifts, consumeShiftRestFlags, syncMineUnlocks } from "./mineSystem.js";
 import { findTilePath } from "./pathfinding.js";
 import {
   beginFortressWave,
@@ -392,7 +392,7 @@ export function startFortressBattle(state) {
   if (state.fortress.battle.active || state.game.isOver) {
     return { ok: false, reason: "Battle is already running." };
   }
-  if ((state.fortress.pendingRewardDraft?.length ?? 0) > 0) {
+  if (CONFIG.rewardDraftEnabled !== false && (state.fortress.pendingRewardDraft?.length ?? 0) > 0) {
     return { ok: false, reason: "Choose a reward before starting the next wave." };
   }
 
@@ -796,8 +796,11 @@ function finishBattle(state, result) {
     } else {
       state.fortress.waveNumber += 1;
       syncFortressBuildingUnlocks(state);
+      syncMineUnlocks(state);
       state.fortress.message = `Victory. +${victoryGold} gold bonus.`;
-      rollUpgradeChoices(state);
+      if (CONFIG.rewardDraftEnabled !== false) {
+        rollUpgradeChoices(state);
+      }
       const nextWave = CONFIG.fortressWaves[state.fortress.waveNumber - 1];
       const bonus = nextWave?.startBonusGold ?? 0;
       const window = nextWave?.startBonusWindowSeconds ?? 0;
