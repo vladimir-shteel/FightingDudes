@@ -2,6 +2,7 @@
   "version": 1,
   "tickRateMs": 100,
   "goldIcon": "🪙",
+  "waveGapSeconds": 8,
   "passiveGoldPerSecond": 0,
   "passiveGoldPerSecondPerUnlockedMine": 0,
   "passiveGoldPayoutIntervalSeconds": 4,
@@ -1109,6 +1110,7 @@
     {
       "type": "boss",
       "isBoss": true,
+      "waitForClear": true,
       "enemyCount": 10,
       "spawnIntervalSeconds": 0.96,
       "killGold": 1,
@@ -1238,6 +1240,7 @@
     {
       "type": "boss",
       "isBoss": true,
+      "waitForClear": true,
       "enemyCount": 17,
       "spawnIntervalSeconds": 0.8,
       "killGold": 1,
@@ -1371,6 +1374,7 @@
     {
       "type": "boss",
       "isBoss": true,
+      "waitForClear": true,
       "enemyCount": 25,
       "spawnIntervalSeconds": 0.67,
       "killGold": 2,
@@ -1508,6 +1512,7 @@
     {
       "type": "boss",
       "isBoss": true,
+      "waitForClear": true,
       "enemyCount": 34,
       "spawnIntervalSeconds": 0.57,
       "killGold": 2,

@@ -389,33 +389,23 @@ function createProjectile(source, target, damage, type, splashRadius = 0) {
 }
 
 export function startFortressBattle(state) {
-  if (state.fortress.battle.active || state.game.isOver) {
-    return { ok: false, reason: "Battle is already running." };
+  // Stage 1 rework: this is now startFortressMatch — a one-shot entry that kicks off the
+  // continuous wave stream. Subsequent waves are spawned automatically inside tickFortressBattle
+  // via advanceToNextWave(). finishBattle() is intentionally never called by the stream.
+  if (state.fortress.stream?.active || state.fortress.battle.active || state.game.isOver) {
+    return { ok: false, reason: "Match already running." };
   }
-  if (CONFIG.rewardDraftEnabled !== false && (state.fortress.pendingRewardDraft?.length ?? 0) > 0) {
-    return { ok: false, reason: "Choose a reward before starting the next wave." };
-  }
-
-  const wave = CONFIG.fortressWaves[state.fortress.waveNumber - 1];
-  if (!wave) {
-    return { ok: false, reason: "All fortress waves are complete." };
+  if (!CONFIG.fortressWaves || CONFIG.fortressWaves.length === 0) {
+    return { ok: false, reason: "No waves configured." };
   }
 
-  const spawnQueue = expandComposition(wave);
-
-  const earlyStart = state.fortress.earlyStart;
-  if (earlyStart && earlyStart.window > 0) {
-    const fraction = Math.max(0, Math.min(1, earlyStart.remaining / earlyStart.window));
-    const rawBonus = Math.round(earlyStart.bonus * fraction);
-    if (rawBonus > 0) {
-      const paidBonus = Math.round(rawBonus * getFortressGoldMultiplier(state));
-      state.resources.gold += paidBonus;
-      state.fortress.message = `Early start +${paidBonus} gold.`;
-    }
-  }
   state.fortress.earlyStart = null;
-
   state.fortress.movingBuildingId = null;
+  state.fortress.waveNumber = 1;
+
+  const firstWave = CONFIG.fortressWaves[0];
+  const spawnQueue = expandComposition(firstWave);
+
   state.fortress.battle = {
     active: true,
     enemies: [],
@@ -431,6 +421,12 @@ export function startFortressBattle(state) {
     activeCasts: 0,
     result: null
   };
+  state.fortress.stream = {
+    active: true,
+    phase: "spawning",
+    currentWaveIndex: 0,
+    gapTimer: 0
+  };
   for (const building of state.fortress.buildings) {
     building.cooldownTimer = 0.5;
   }
@@ -439,7 +435,28 @@ export function startFortressBattle(state) {
   autoCommitBattleShifts(state);
   // Committed workers spend their rest to power the Shift.
   consumeShiftRestFlags(state);
-  return { ok: true, reason: `Fortress wave ${state.fortress.waveNumber} started.` };
+  return { ok: true, reason: "Match started. Waves incoming!" };
+}
+
+function advanceToNextWave(state) {
+  const stream = state.fortress.stream;
+  const nextIndex = stream.currentWaveIndex + 1;
+  const nextWave = CONFIG.fortressWaves[nextIndex];
+  if (!nextWave) {
+    stream.phase = "done";
+    stream.gapTimer = 0;
+    return;
+  }
+  stream.currentWaveIndex = nextIndex;
+  stream.phase = "spawning";
+  stream.gapTimer = 0;
+  state.fortress.waveNumber = nextIndex + 1;
+  const spawnQueue = expandComposition(nextWave);
+  state.fortress.battle.spawnQueue = spawnQueue;
+  state.fortress.battle.enemiesToSpawn = spawnQueue.length;
+  state.fortress.battle.spawnTimer = 0;
+  syncFortressBuildingUnlocks(state);
+  syncMineUnlocks(state);
 }
 
 function tickSpawns(state, deltaSeconds) {
@@ -854,29 +871,31 @@ export function giveUpFortressBattle(state) {
 
 function updateBattleMessage(state) {
   const battle = state.fortress.battle;
-  const wave = CONFIG.fortressWaves[state.fortress.waveNumber - 1];
+  const stream = state.fortress.stream;
+  const total = CONFIG.fortressWaves.length;
   const aliveEnemies = battle.enemies.filter((enemy) => enemy.hp > 0).length;
   const aliveAllies = battle.allies.filter((ally) => ally.hp > 0).length;
-  const damagedBuildings = state.fortress.buildings
-    .filter((building) => building.hp > 0 && building.hp < building.maxHp)
-    .length;
-  const destroyedBuildings = state.fortress.buildings
-    .filter((building) => building.hp <= 0)
-    .length;
-  const spawned = battle.enemiesSpawned ?? (wave.enemyCount - battle.enemiesToSpawn);
 
+  if (stream && stream.phase === "gap") {
+    const secs = Math.max(0, stream.gapTimer).toFixed(1);
+    state.fortress.message = `Wave ${state.fortress.waveNumber}/${total} cleared. Next wave in ${secs}s.`;
+    return;
+  }
+  if (stream && stream.phase === "waitClear") {
+    state.fortress.message = `Wave ${state.fortress.waveNumber}/${total}: clear the field before the next wave!`;
+    return;
+  }
+  if (stream && stream.phase === "done") {
+    state.fortress.message = `Final wave underway. ${aliveEnemies} enemies remain.`;
+    return;
+  }
   state.fortress.message =
-    `Wave ${state.fortress.waveNumber}: ${spawned}/${wave.enemyCount} enemies deployed, ` +
-    `${aliveEnemies} alive, ${aliveAllies} allies defending, ` +
-    `${damagedBuildings} damaged / ${destroyedBuildings} destroyed buildings.`;
+    `Wave ${state.fortress.waveNumber}/${total}: ${aliveEnemies} enemies, ${aliveAllies} allies defending.`;
 }
 
 export function tickFortressBattle(state, deltaSeconds) {
   const battle = state.fortress.battle;
   if (!battle.active) {
-    if (state.fortress.earlyStart) {
-      state.fortress.earlyStart.remaining = Math.max(0, state.fortress.earlyStart.remaining - deltaSeconds);
-    }
     return;
   }
 
@@ -904,10 +923,54 @@ export function tickFortressBattle(state, deltaSeconds) {
 
   const hq = state.fortress.buildings.find((building) => building.type === "hq");
   if (!hq || hq.hp <= 0) {
-    finishBattle(state, "defeat");
-  } else if (battle.enemiesToSpawn <= 0 && battle.enemies.length === 0) {
-    finishBattle(state, "victory");
-  } else {
-    updateBattleMessage(state);
+    // HQ down: stream-mode match is a permanent loss (no retries).
+    battle.active = false;
+    state.fortress.stream.active = false;
+    state.fortress.stream.phase = "done";
+    state.game.isOver = true;
+    state.game.result = "loss";
+    state.fortress.message = "HQ destroyed. The fortress has fallen.";
+    return;
   }
+
+  // Stream state machine — advance waves automatically.
+  const stream = state.fortress.stream;
+  if (stream && stream.active) {
+    const waveGap = CONFIG.waveGapSeconds ?? 8;
+    const currentWave = CONFIG.fortressWaves[stream.currentWaveIndex];
+    const spawnQueueEmpty = !battle.spawnQueue || battle.spawnQueue.length === 0;
+
+    if (stream.phase === "spawning" && spawnQueueEmpty) {
+      if (currentWave?.waitForClear) {
+        stream.phase = "waitClear";
+      } else {
+        stream.phase = "gap";
+        stream.gapTimer = waveGap;
+      }
+    }
+
+    if (stream.phase === "waitClear" && battle.enemies.length === 0) {
+      stream.phase = "gap";
+      stream.gapTimer = waveGap;
+    }
+
+    if (stream.phase === "gap") {
+      stream.gapTimer -= deltaSeconds;
+      if (stream.gapTimer <= 0) {
+        advanceToNextWave(state);
+      }
+    }
+
+    if (stream.phase === "done" && battle.enemies.length === 0) {
+      // Victory: last wave fully spawned and field cleared.
+      battle.active = false;
+      stream.active = false;
+      state.game.isOver = true;
+      state.game.result = "win";
+      state.fortress.message = "Prototype complete. The fortress survived every wave.";
+      return;
+    }
+  }
+
+  updateBattleMessage(state);
 }

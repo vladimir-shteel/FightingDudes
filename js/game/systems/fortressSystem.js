@@ -74,6 +74,12 @@ export function createFortressState() {
     pendingRewardDraft: null,
     buildingBuyDiscount: 1,
     earlyStart: null,
+    stream: {
+      active: false,
+      phase: "idle",
+      currentWaveIndex: -1,
+      gapTimer: 0
+    },
     unlockedBuildingTypes: getUnlockedFortressBuildingTypes(1)
   };
 }

@@ -854,6 +854,8 @@ export function mountUI(state, onStateChanged) {
     onStateChanged();
   });
 
+  // Stage 1 rework: give-up flow is disabled while the wave stream drives the match.
+  // Keep the handler wired but the button stays hidden via renderMeta.
   elements.fortressGiveUpButton.addEventListener("click", () => {
     if (!state.fortress.battle.active) {
       return;
@@ -1918,7 +1920,12 @@ export function mountUI(state, onStateChanged) {
   }
 
   function renderBattleMeta() {
-    elements.waveValue.textContent = `${state.fortress.waveNumber} / ${CONFIG.fortressWaves.length}`;
+    const stream = state.fortress.stream;
+    const total = CONFIG.fortressWaves.length;
+    const current = stream?.active
+      ? Math.min(total, (stream.currentWaveIndex ?? 0) + 1)
+      : state.fortress.waveNumber;
+    elements.waveValue.textContent = `${current} / ${total}`;
     renderWaveTelegraph();
   }
 
@@ -2044,9 +2051,13 @@ export function mountUI(state, onStateChanged) {
 
   function renderMeta() {
     document.body.classList.toggle("fortress-battle-active", state.fortress.battle.active);
-    elements.fortressFightButton.disabled = state.fortress.battle.active || state.game.isOver || Boolean(state.fortress.pendingRewardDraft?.length);
-    elements.fortressFightButton.hidden = state.fortress.battle.active;
-    elements.fortressGiveUpButton.hidden = !state.fortress.battle.active;
+    const streamActive = state.fortress.stream?.active === true;
+    const matchStarted = streamActive || state.game.isOver;
+    elements.fortressFightButton.disabled = matchStarted;
+    elements.fortressFightButton.hidden = matchStarted;
+    elements.fortressFightButton.textContent = "Начать";
+    // Stage 1 rework: give-up is disabled during the continuous stream.
+    elements.fortressGiveUpButton.hidden = true;
     updateEarlyStartHint(elements.fortressFightButton, state);
     elements.fortressMessage.textContent = state.fortress.message;
     renderEconomyMeta();
@@ -2062,10 +2073,17 @@ export function mountUI(state, onStateChanged) {
   }
 
   function renderVictoryState() {
-    elements.runEndOverlay.hidden = state.game.result !== "win";
-    elements.runEndTitle.textContent = "Prototype Complete";
-    elements.runEndText.textContent = "The fortress survived every wave.";
-    document.body.classList.toggle("state-win", state.game.result === "win");
+    const result = state.game.result;
+    elements.runEndOverlay.hidden = result !== "win" && result !== "loss";
+    if (result === "loss") {
+      elements.runEndTitle.textContent = "Fortress Fallen";
+      elements.runEndText.textContent = "HQ destroyed. The wave stream broke through.";
+    } else {
+      elements.runEndTitle.textContent = "Prototype Complete";
+      elements.runEndText.textContent = "The fortress survived every wave.";
+    }
+    document.body.classList.toggle("state-win", result === "win");
+    document.body.classList.toggle("state-loss", result === "loss");
   }
 
   function render() {
@@ -2084,7 +2102,12 @@ export function mountUI(state, onStateChanged) {
     document.body.classList.toggle("fortress-battle-active", state.fortress.battle.active);
     renderEconomyMeta();
     renderBattleMeta();
-    elements.fortressFightButton.disabled = state.fortress.battle.active || state.game.isOver || Boolean(state.fortress.pendingRewardDraft?.length);
+    {
+      const streamActive = state.fortress.stream?.active === true;
+      const matchStarted = streamActive || state.game.isOver;
+      elements.fortressFightButton.disabled = matchStarted;
+      elements.fortressFightButton.hidden = matchStarted;
+    }
     updateEarlyStartHint(elements.fortressFightButton, state);
     elements.fortressMessage.textContent = state.fortress.message;
     updateFortressShopAffordability();
