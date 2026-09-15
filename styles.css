@@ -2428,8 +2428,8 @@ h3 {
 .fortress-field {
   position: relative;
   display: grid;
-  --fortress-cols: 8;
-  --fortress-rows: 5;
+  --fortress-cols: 9;
+  --fortress-rows: 7;
   grid-template-columns: repeat(var(--fortress-cols), minmax(0, 1fr));
   grid-template-rows: repeat(var(--fortress-rows), minmax(54px, 1fr));
   gap: 8px;

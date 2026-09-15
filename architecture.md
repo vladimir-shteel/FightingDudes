@@ -62,7 +62,7 @@ survives a fixed sequence of enemy waves. It replaces an earlier, structurally d
 ## Main Systems
 
 ### `fortressSystem.js` — build field, buildings, economy sinks
-- Owns the `FORTRESS_WIDTH`/`FORTRESS_HEIGHT` (8×5) grid and building lifecycle: unlock-by-wave
+- Owns the `FORTRESS_WIDTH`/`FORTRESS_HEIGHT` (9×7) grid and building lifecycle: unlock-by-wave
   (`getUnlockedFortressBuildingTypes`), buy (auto-places on a random valid empty tile —
   `findFortressPlacement` — the player repositions afterward via **Move**), upgrade, repair, demolish,
   merge, and move.

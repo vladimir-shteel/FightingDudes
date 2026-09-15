@@ -651,7 +651,7 @@ function tickBossMechanic(state, enemy, deltaSeconds) {
       }
     }
     for (const building of state.fortress.buildings) {
-      if (building.hp <= 0) {
+      if (building.hp <= 0 || building.type === "mine") {
         continue;
       }
       if (distanceToBuildingEdge(enemy, building) <= enemy.mechanic.radius) {
