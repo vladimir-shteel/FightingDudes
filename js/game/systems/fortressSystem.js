@@ -3,8 +3,8 @@ import { clamp, generateId } from "../utils.js";
 import { spawnAllyForBuilding, volleyFromBuilding } from "./fortressBattleSystem.js";
 
 // Field is played horizontally: base on the LEFT, enemies march in from the RIGHT.
-export const FORTRESS_WIDTH = 8;
-export const FORTRESS_HEIGHT = 5;
+export const FORTRESS_WIDTH = 9;
+export const FORTRESS_HEIGHT = 7;
 
 function costEntries(costs = {}) {
   return Object.entries(costs).filter(([, amount]) => amount > 0);
@@ -36,8 +36,8 @@ export function createFortressState() {
     }
   }
 
-  // Base hugs the left edge, vertically centred on the 5-row field (rows 1-3).
-  const hq = createFortressBuilding("hq", { x: 0, y: 1 });
+  // Base hugs the left edge, vertically centred on the 7-row field (rows 2-4).
+  const hq = createFortressBuilding("hq", { x: 0, y: 2 });
   for (const tile of hq.tiles) {
     getTile({ fortress: { field } }, tile.x, tile.y).occupant = { buildingId: hq.id };
   }
@@ -66,6 +66,7 @@ export function createFortressState() {
       enemies: [],
       allies: [],
       projectiles: [],
+      bursts: [],
       spawnTimer: 0,
       enemiesToSpawn: 0,
       result: null
@@ -514,8 +515,8 @@ export function massMergeFortressBuildings(state) {
 
 export function moveFortressBuilding(state, buildingId, origin) {
   const building = state.fortress.buildings.find((item) => item.id === buildingId);
-  if (!building || building.type === "hq") {
-    return { ok: false, reason: "HQ stays anchored." };
+  if (!building) {
+    return { ok: false, reason: "Building not found." };
   }
   if (!canPlaceFortressBuilding(state, building.type, origin, building.id)) {
     return { ok: false, reason: "That footprint does not fit there." };

@@ -11,8 +11,8 @@
     "ore": 60
   },
   "startingOre": 0,
-  "unitBuyBaseCost": 5,
-  "unitBuyExponent": 1.09,
+  "unitBuyBaseCost": 4,
+  "unitBuyExponent": 1.04,
   "productionMultipliers": {
     "rest": 0.55
   },
@@ -859,36 +859,37 @@
       ],
       "unlockedByDefault": false,
       "unlockWave": 7,
+      "splashRadius": 1.0,
       "buyCost": {
-        "iron": 45
+        "iron": 60
       },
       "levels": [
         {
           "hp": 1,
           "damage": 40,
           "upgradeCost": {
-            "iron": 50
+            "iron": 70
           }
         },
         {
           "hp": 1,
           "damage": 70,
           "upgradeCost": {
-            "iron": 85
+            "iron": 110
           }
         },
         {
           "hp": 1,
           "damage": 115,
           "upgradeCost": {
-            "iron": 140
+            "iron": 175
           }
         },
         {
           "hp": 1,
           "damage": 180,
           "upgradeCost": {
-            "iron": 230
+            "iron": 290
           }
         },
         {
@@ -934,7 +935,7 @@
       "cooldownSeconds": 1,
       "rangeTiles": 2.4,
       "speedTilesPerSecond": 1.15,
-      "splashRadius": 1
+      "splashRadius": 1.5
     }
   },
   "fortressEnemies": {

@@ -421,6 +421,7 @@ export function startFortressBattle(state) {
     enemies: [],
     allies: [],
     projectiles: [],
+    bursts: [],
     spawnTimer: 0,
     spawnQueue,
     enemiesToSpawn: spawnQueue.length,
@@ -553,10 +554,22 @@ function tickEnemies(state, deltaSeconds) {
       const level = CONFIG.fortressBuildings.mine.levels[building.level - 1];
       const trapTriggerRadius = getCombatEngineConfig().trapMineTriggerRadius ?? 0.55;
       if (distanceToBuildingEdge(enemy, building) <= trapTriggerRadius) {
-        applyDamageToEnemy(enemy, level.damage * damageMultiplier);
-        markHit(enemy);
+        const mineTile = building.tiles[0];
+        const mineCenter = { x: mineTile.x + 0.5, y: mineTile.y + 0.5 };
+        const splashRadius = CONFIG.fortressBuildings.mine.splashRadius ?? 0;
+        for (const other of battle.enemies) {
+          if (other.hp <= 0) {
+            continue;
+          }
+          if (Math.hypot(other.x - mineCenter.x, other.y - mineCenter.y) <= splashRadius) {
+            applyDamageToEnemy(other, level.damage * damageMultiplier);
+            markHit(other);
+          }
+        }
+        battle.bursts.push({ x: mineCenter.x, y: mineCenter.y, radius: splashRadius, remaining: 0.35, duration: 0.35 });
         building.hp = 0;
         markHit(building);
+        break;
       }
     }
 
@@ -716,6 +729,7 @@ function tickProjectiles(state, deltaSeconds) {
             markHit(enemy);
           }
         }
+        battle.bursts.push({ x: target.x, y: target.y, radius: splash, remaining: 0.35, duration: 0.35 });
       } else {
         applyDamageToEnemy(target, dmg);
         markHit(target);
@@ -726,6 +740,14 @@ function tickProjectiles(state, deltaSeconds) {
     moveToward(projectile, target, deltaSeconds);
   }
   battle.projectiles = battle.projectiles.filter((projectile) => !projectile.done);
+}
+
+function tickBursts(state, deltaSeconds) {
+  const battle = state.fortress.battle;
+  for (const burst of battle.bursts) {
+    burst.remaining -= deltaSeconds;
+  }
+  battle.bursts = battle.bursts.filter((burst) => burst.remaining > 0);
 }
 
 function awardEnemyKillGold(state, enemy) {
@@ -752,6 +774,7 @@ function finishBattle(state, result) {
   state.fortress.battle.enemies = [];
   state.fortress.battle.allies = [];
   state.fortress.battle.projectiles = [];
+  state.fortress.battle.bursts = [];
 
   if (result === "defeat") {
     const postDefeatHpFraction = CONFIG.attrition?.postDefeatHpFraction ?? 0.4;
@@ -866,6 +889,7 @@ export function tickFortressBattle(state, deltaSeconds) {
   }
   tickAllies(state, deltaSeconds);
   tickProjectiles(state, deltaSeconds);
+  tickBursts(state, deltaSeconds);
   resolveUnitCollisions(state);
 
   for (const enemy of battle.enemies) {

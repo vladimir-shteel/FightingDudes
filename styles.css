@@ -3070,6 +3070,21 @@ h3 {
   box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.65);
 }
 
+.fortress-burst {
+  position: absolute;
+  left: calc((var(--x) / var(--fortress-cols)) * 100%);
+  top: calc((var(--y) / var(--fortress-rows)) * 100%);
+  width: calc(var(--radius) * 2 * (100% / var(--fortress-cols)));
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  border: 2px solid var(--panel-red-dark);
+  background: radial-gradient(circle, rgba(214, 88, 55, 0.35), rgba(214, 88, 55, 0) 70%);
+  transform: translate(-50%, -50%) scale(calc(0.35 + var(--progress) * 0.9));
+  opacity: calc(1 - var(--progress));
+  pointer-events: none;
+  z-index: 4;
+}
+
 @media (max-width: 900px) {
   .fortress-layout {
     grid-template-columns: 1fr;

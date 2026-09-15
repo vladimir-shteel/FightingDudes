@@ -1366,6 +1366,19 @@ export function mountUI(state, onStateChanged) {
       shot.style.setProperty("--y", projectile.y);
       elements.fortressField.append(shot);
     }
+
+    for (const burst of state.fortress.battle.bursts ?? []) {
+      if (!(burst.duration > 0)) {
+        continue;
+      }
+      const burstEl = document.createElement("div");
+      burstEl.className = "fortress-burst";
+      burstEl.style.setProperty("--x", burst.x);
+      burstEl.style.setProperty("--y", burst.y);
+      burstEl.style.setProperty("--radius", burst.radius);
+      burstEl.style.setProperty("--progress", 1 - burst.remaining / burst.duration);
+      elements.fortressField.append(burstEl);
+    }
   }
 
   function closeFortressPopup() {
@@ -1483,7 +1496,7 @@ export function mountUI(state, onStateChanged) {
             Repair ${renderFortressCost(repairCost)}
           </button>
         ` : ""}
-        <button class="fortress-popover-action" type="button" data-popup-move ${building.type === "hq" ? "disabled" : ""}>Move / Merge</button>
+        <button class="fortress-popover-action" type="button" data-popup-move>Move / Merge</button>
         ${building.type === "hq" ? "" : `
           <button class="fortress-popover-action is-danger" type="button" data-popup-demolish ${canDemolish ? "" : "disabled"}>
             <span>Demolish${demolishGold > 0 ? ` −${demolishGold}${CONFIG.goldIcon ?? "💰"}` : ""}</span>${hasRefund ? `<span class="fortress-popover-refund">+${renderFortressCost(demolishRefund)}</span>` : ""}
