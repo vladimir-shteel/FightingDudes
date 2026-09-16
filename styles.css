@@ -2611,6 +2611,10 @@ h3 {
   filter: saturate(0.6) brightness(0.85);
 }
 
+.fortress-tile.is-casting[data-cast-kind="repair"] {
+  box-shadow: 0 0 8px 2px rgba(102, 209, 122, 0.55);
+}
+
 .fortress-popover-cast {
   color: #66d17a;
   font-weight: 600;

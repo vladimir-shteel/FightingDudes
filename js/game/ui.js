@@ -1402,6 +1402,8 @@ export function mountUI(state, onStateChanged) {
           const movingBuilding = state.fortress.buildings.find((item) => item.id === movingBuildingId);
           const canMerge =
             movingBuilding &&
+            movingBuilding.hp > 0 &&
+            building.hp > 0 &&
             movingBuilding.type === building.type &&
             movingBuilding.type !== "hq" &&
             movingBuilding.level === building.level &&

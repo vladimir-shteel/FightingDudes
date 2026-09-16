@@ -606,14 +606,16 @@ function tickEnemies(state, deltaSeconds) {
       enemy.path = null;
       enemy.attackTimer -= deltaSeconds;
       if (enemy.attackTimer <= 0) {
-        const breachMult = enemy.mechanic?.kind === "breach" ? enemy.mechanic.damageMultVsBuildings : 1;
-        const shieldMult = bestBuilding.shieldRemaining > 0 ? (1 - (bestBuilding.shieldReduction ?? 0)) : 1;
-        bestBuilding.hp = clamp(
-          bestBuilding.hp - (enemy.attack * breachMult * shieldMult / defenseMultiplier),
-          0,
-          bestBuilding.maxHp
-        );
-        markHit(bestBuilding);
+        if (bestBuilding.casting?.kind !== "repair") {
+          const breachMult = enemy.mechanic?.kind === "breach" ? enemy.mechanic.damageMultVsBuildings : 1;
+          const shieldMult = bestBuilding.shieldRemaining > 0 ? (1 - (bestBuilding.shieldReduction ?? 0)) : 1;
+          bestBuilding.hp = clamp(
+            bestBuilding.hp - (enemy.attack * breachMult * shieldMult / defenseMultiplier),
+            0,
+            bestBuilding.maxHp
+          );
+          markHit(bestBuilding);
+        }
         enemy.attackTimer = enemy.cooldownSeconds;
       }
       continue;
@@ -663,7 +665,7 @@ function tickBossMechanic(state, enemy, deltaSeconds) {
       if (building.hp <= 0 || building.type === "mine") {
         continue;
       }
-      if (distanceToBuildingEdge(enemy, building) <= enemy.mechanic.radius) {
+      if (distanceToBuildingEdge(enemy, building) <= enemy.mechanic.radius && building.casting?.kind !== "repair") {
         building.hp = clamp(building.hp - damage, 0, building.maxHp);
         markHit(building);
       }

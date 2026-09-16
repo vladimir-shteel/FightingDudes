@@ -456,9 +456,6 @@ export function repairFortressBuilding(state, buildingId) {
   if (!building) {
     return { ok: false, reason: "Building not found." };
   }
-  if (building.hp <= 0) {
-    return { ok: false, reason: "Building is destroyed." };
-  }
   if (building.type === "mine") {
     return { ok: false, reason: "This building cannot be repaired." };
   }
@@ -510,6 +507,9 @@ export function mergeFortressBuildings(state, sourceId, targetId) {
   }
   if (source.type === "hq") {
     return { ok: false, reason: "HQ cannot be merged." };
+  }
+  if (source.hp <= 0 || target.hp <= 0) {
+    return { ok: false, reason: "Destroyed buildings cannot be merged." };
   }
   if (source.level !== target.level) {
     return { ok: false, reason: "Buildings must be the same level to merge." };
@@ -594,9 +594,6 @@ export function moveFortressBuilding(state, buildingId, origin) {
   if (!building) {
     return { ok: false, reason: "Building not found." };
   }
-  if (building.hp <= 0) {
-    return { ok: false, reason: "Building is destroyed." };
-  }
   if (isBuildingCasting(building)) {
     return { ok: false, reason: "Building is busy." };
   }
@@ -667,9 +664,6 @@ export function demolishFortressBuilding(state, buildingId) {
   if (building.type === "hq") {
     return { ok: false, reason: "The HQ cannot be demolished." };
   }
-  if (building.hp <= 0) {
-    return { ok: false, reason: "Building is destroyed." };
-  }
   if (isBuildingCasting(building)) {
     return { ok: false, reason: "Building is busy." };
   }
@@ -699,7 +693,7 @@ export function tickBuildingCasts(state, deltaSeconds) {
   const removed = [];
   for (const building of buildings) {
     if (!building.casting) continue;
-    if (building.hp <= 0) {
+    if (building.hp <= 0 && building.casting?.kind !== "repair") {
       building.casting = null;
       continue;
     }
