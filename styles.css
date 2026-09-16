@@ -2566,9 +2566,11 @@ h3 {
 
 /* Move-target tiles must stay clickable during battle too — Move/Demolish/Repair are no longer
    gated by battle.active, so the player needs to be able to tap the destination tile while a wave
-   is in progress (e.g. relocating a building that is currently being attacked). */
+   is in progress (e.g. relocating a building that is currently being attacked). Obstacles keep
+   their popover during battle as well, so players can clear the tile (e.g. to free up placement). */
 .fortress-field.is-battle-active .fortress-tile.is-valid-target,
-.fortress-field.is-battle-active .fortress-tile.is-invalid-target {
+.fortress-field.is-battle-active .fortress-tile.is-invalid-target,
+.fortress-field.is-battle-active .fortress-tile.is-obstacle {
   pointer-events: auto;
 }
 
