@@ -2597,6 +2597,43 @@ h3 {
   pointer-events: auto;
 }
 
+.fortress-cast-bar {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  bottom: 3px;
+  height: 4px;
+  z-index: 3;
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 2px;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.fortress-cast-bar > i {
+  display: block;
+  height: 100%;
+  background: #66d17a;
+  transition: width 80ms linear;
+}
+
+.fortress-cast-bar[data-cast-kind="move"] > i { background: #5aa9ff; }
+.fortress-cast-bar[data-cast-kind="demolish"] > i { background: #ff6a6a; }
+
+.fortress-tile.is-casting {
+  outline: 2px solid rgba(255, 255, 255, 0.35);
+  outline-offset: -2px;
+}
+
+.fortress-tile.is-casting[data-cast-kind="demolish"] {
+  filter: saturate(0.6) brightness(0.85);
+}
+
+.fortress-popover-cast {
+  color: #66d17a;
+  font-weight: 600;
+}
+
 .fortress-active-indicator {
   position: absolute;
   right: 3px;

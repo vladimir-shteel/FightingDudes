@@ -102,8 +102,43 @@ export function createFortressBuilding(type, origin) {
     activeBoostRemaining: 0,
     activeBoost: null,
     shieldRemaining: 0,
-    shieldReduction: 0
+    shieldReduction: 0,
+    casting: null
   };
+}
+
+// Continuous-mode building operations (Repair/Move/Demolish) run as casts on the building itself.
+// The building remains vulnerable during the cast (enemies keep pathing/attacking it); resources are
+// spent at cast start and are NOT refunded if the building dies mid-cast. Merge stays instant — the
+// natural "select → target" UX is its own delay.
+function getCastDurations() {
+  const casts = CONFIG.fortressCasts ?? {};
+  return {
+    repair: casts.repairSeconds ?? 5,
+    move: casts.moveSeconds ?? 3,
+    demolish: casts.demolishSeconds ?? 3
+  };
+}
+
+export function isBuildingCasting(building) {
+  return Boolean(building?.casting);
+}
+
+// Move-cast reserves its target cells: no other building may be placed/moved onto them until the
+// cast finishes (or the caster dies). Reservations do NOT block pathing — enemies walk through
+// pending target cells (they're still physically empty until the move completes).
+function collectReservedTiles(state, ignoredBuildingId) {
+  const reserved = new Set();
+  for (const building of state.fortress.buildings) {
+    if (building.id === ignoredBuildingId) continue;
+    if (!building.casting || building.casting.kind !== "move") continue;
+    const origin = building.casting.targetCell;
+    if (!origin) continue;
+    for (const offset of normalizeFootprint(building.type)) {
+      reserved.add(`${origin.x + offset.x}:${origin.y + offset.y}`);
+    }
+  }
+  return reserved;
 }
 
 export function getBuildingActiveDefinition(building) {
@@ -261,9 +296,15 @@ export function getFortressBuildingBuyCost(state, type) {
 }
 
 export function canPlaceFortressBuilding(state, type, origin, ignoredBuildingId = null) {
+  const reserved = collectReservedTiles(state, ignoredBuildingId);
   return normalizeFootprint(type).every((offset) => {
-    const tile = getTile(state, origin.x + offset.x, origin.y + offset.y);
+    const tx = origin.x + offset.x;
+    const ty = origin.y + offset.y;
+    const tile = getTile(state, tx, ty);
     if (!tile) {
+      return false;
+    }
+    if (reserved.has(`${tx}:${ty}`)) {
       return false;
     }
     if (!tile.occupant) {
@@ -394,11 +435,14 @@ export function repairFortressBuilding(state, buildingId) {
   if (!building) {
     return { ok: false, reason: "Building not found." };
   }
+  if (building.hp <= 0) {
+    return { ok: false, reason: "Building is destroyed." };
+  }
   if (building.type === "mine") {
     return { ok: false, reason: "This building cannot be repaired." };
   }
-  if (state.fortress.battle.active) {
-    return { ok: false, reason: "Cannot repair during battle." };
+  if (isBuildingCasting(building)) {
+    return { ok: false, reason: "Building is busy." };
   }
   if (building.hp >= building.maxHp) {
     return { ok: false, reason: "Building is already at full health." };
@@ -407,10 +451,19 @@ export function repairFortressBuilding(state, buildingId) {
   if (!spendResources(state.resources, cost)) {
     return { ok: false, reason: "Not enough resources to repair." };
   }
-  building.hp = building.maxHp;
+  const durations = getCastDurations();
+  const totalSeconds = durations.repair;
+  const missing = building.maxHp - building.hp;
+  building.casting = {
+    kind: "repair",
+    remainingSeconds: totalSeconds,
+    totalSeconds,
+    repairPerSecond: missing / Math.max(0.0001, totalSeconds),
+    startHp: building.hp
+  };
   building.damageFloor = 0;
   const definition = CONFIG.fortressBuildings[building.type];
-  return { ok: true, reason: `${definition.name} repaired.` };
+  return { ok: true, reason: `${definition.name}: repairing (${totalSeconds}s).` };
 }
 
 // Crystal is the "late power" currency: merging a combat building into a high tier costs crystal
@@ -445,8 +498,8 @@ export function mergeFortressBuildings(state, sourceId, targetId) {
   if (!nextLevel) {
     return { ok: false, reason: "Building is already max level." };
   }
-  if (state.fortress.battle.active) {
-    return { ok: false, reason: "Cannot merge during battle." };
+  if (isBuildingCasting(source) || isBuildingCasting(target)) {
+    return { ok: false, reason: "Building is busy." };
   }
   const crystalCost = getMergeCrystalCost(target.type, target.level + 1);
   if (crystalCost > 0 && !spendResources(state.resources, { crystal: crystalCost })) {
@@ -476,9 +529,6 @@ export function mergeFortressBuildings(state, sourceId, targetId) {
 // source tiles), so this collapses the whole field's mergeable pairs in one click. Pairs whose next
 // tier needs crystal you can't afford are skipped (not fatal) — everything else still merges.
 export function massMergeFortressBuildings(state) {
-  if (state.fortress.battle.active) {
-    return { ok: false, reason: "Cannot merge during battle." };
-  }
   let mergedCount = 0;
   let blockedByCrystal = false;
   while (true) {
@@ -523,13 +573,24 @@ export function moveFortressBuilding(state, buildingId, origin) {
   if (!building) {
     return { ok: false, reason: "Building not found." };
   }
+  if (building.hp <= 0) {
+    return { ok: false, reason: "Building is destroyed." };
+  }
+  if (isBuildingCasting(building)) {
+    return { ok: false, reason: "Building is busy." };
+  }
   if (!canPlaceFortressBuilding(state, building.type, origin, building.id)) {
     return { ok: false, reason: "That footprint does not fit there." };
   }
-  clearBuilding(state, building);
-  building.tiles = normalizeFootprint(building.type).map((tile) => ({ x: origin.x + tile.x, y: origin.y + tile.y }));
-  occupyBuilding(state, building);
-  return { ok: true, reason: "Building moved." };
+  const durations = getCastDurations();
+  const totalSeconds = durations.move;
+  building.casting = {
+    kind: "move",
+    remainingSeconds: totalSeconds,
+    totalSeconds,
+    targetCell: { x: origin.x, y: origin.y }
+  };
+  return { ok: true, reason: `Moving (${totalSeconds}s).` };
 }
 
 // Book value of a building = what it cost to FIELD at its current tier via the (only) upgrade path,
@@ -585,8 +646,11 @@ export function demolishFortressBuilding(state, buildingId) {
   if (building.type === "hq") {
     return { ok: false, reason: "The HQ cannot be demolished." };
   }
-  if (state.fortress.battle.active) {
-    return { ok: false, reason: "Cannot demolish during battle." };
+  if (building.hp <= 0) {
+    return { ok: false, reason: "Building is destroyed." };
+  }
+  if (isBuildingCasting(building)) {
+    return { ok: false, reason: "Building is busy." };
   }
   const definition = CONFIG.fortressBuildings[building.type];
   const goldCost = getFortressBuildingDemolishGoldCost(state, building);
@@ -594,17 +658,66 @@ export function demolishFortressBuilding(state, buildingId) {
     return { ok: false, reason: `Need ${goldCost} gold to demolish.` };
   }
   state.resources.gold -= goldCost;
-  const refund = getFortressBuildingRefund(state, building);
-  clearBuilding(state, building);
-  state.fortress.buildings = state.fortress.buildings.filter((item) => item.id !== building.id);
-  for (const [resourceKey, amount] of costEntries(refund)) {
-    state.resources[resourceKey] = (state.resources[resourceKey] ?? 0) + amount;
+  const durations = getCastDurations();
+  const totalSeconds = durations.demolish;
+  building.casting = {
+    kind: "demolish",
+    remainingSeconds: totalSeconds,
+    totalSeconds,
+    goldPaid: goldCost
+  };
+  return { ok: true, reason: `${definition?.name ?? "Building"}: demolishing (${totalSeconds}s).` };
+}
+
+// Ticks all in-progress building casts. Damage during a cast is applied by the normal battle
+// systems; here we just advance timers, apply repair-per-second, and finalize on completion.
+// Dying mid-cast clears the cast (resources already spent are forfeit).
+export function tickBuildingCasts(state, deltaSeconds) {
+  const buildings = state?.fortress?.buildings;
+  if (!buildings) return;
+  const removed = [];
+  for (const building of buildings) {
+    if (!building.casting) continue;
+    if (building.hp <= 0) {
+      building.casting = null;
+      continue;
+    }
+    const cast = building.casting;
+    cast.remainingSeconds -= deltaSeconds;
+    if (cast.kind === "repair") {
+      building.hp = Math.min(building.maxHp, building.hp + cast.repairPerSecond * deltaSeconds);
+    }
+    if (cast.remainingSeconds <= 0) {
+      if (cast.kind === "repair") {
+        building.hp = Math.min(building.maxHp, building.hp);
+        building.damageFloor = 0;
+        building.casting = null;
+      } else if (cast.kind === "move") {
+        const origin = cast.targetCell;
+        // Only apply the move if the target still fits (edge case: obstacles/reservations changed).
+        if (origin && canPlaceFortressBuilding(state, building.type, origin, building.id)) {
+          clearBuilding(state, building);
+          building.tiles = normalizeFootprint(building.type).map((t) => ({ x: origin.x + t.x, y: origin.y + t.y }));
+          occupyBuilding(state, building);
+        }
+        building.casting = null;
+      } else if (cast.kind === "demolish") {
+        const refund = getFortressBuildingRefund(state, building);
+        for (const [resourceKey, amount] of costEntries(refund)) {
+          state.resources[resourceKey] = (state.resources[resourceKey] ?? 0) + amount;
+        }
+        clearBuilding(state, building);
+        building.casting = null;
+        removed.push(building.id);
+      }
+    }
   }
-  const refundText = costEntries(refund).length
-    ? ` Refunded ${costEntries(refund).map(([key, value]) => `${value} ${key}`).join(", ")}.`
-    : "";
-  const goldText = goldCost > 0 ? ` (−${goldCost} gold)` : "";
-  return { ok: true, reason: `${definition?.name ?? "Building"} demolished${goldText}.${refundText}` };
+  if (removed.length > 0) {
+    state.fortress.buildings = state.fortress.buildings.filter((b) => !removed.includes(b.id));
+    if (state.ui?.fortressPopup?.kind === "building" && removed.includes(state.ui.fortressPopup.buildingId)) {
+      state.ui.fortressPopup = null;
+    }
+  }
 }
 
 export function applyFortressBaseHealthBonus(state, bonusAmount) {
