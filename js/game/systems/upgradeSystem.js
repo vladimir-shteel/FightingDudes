@@ -1,7 +1,7 @@
 import { CONFIG, getMineMaxLevel, getUnitLevelData } from "../config.js";
 import { getMaxWorkerLevel } from "./workerTraitSystem.js";
 import { applyFortressBaseHealthBonus } from "./fortressSystem.js";
-import { getCapstoneBattleDamageBonus } from "./workerTraitSystem.js";
+import { getCapstoneBattleDamageBonus, isWorkerStaffingMine } from "./workerTraitSystem.js";
 
 function shuffle(items) {
   const copy = [...items];
@@ -163,7 +163,6 @@ function upgradeFirstBuilding(state) {
   }
 
   building.level += 1;
-  building.damageFloor = 0;
   building.maxHp = nextLevel.hp + (state.economy.baseHealthBonus ?? 0);
   building.hp = building.maxHp;
   return { ok: true, reason: `${definition.name} upgraded to level ${building.level}.` };
@@ -388,16 +387,13 @@ export function getTemporaryProductionMultiplier(state) {
 }
 
 function getCommittedSkirmisherBonus(state) {
-  if (!state.fortress.battle.active) {
-    return 0;
-  }
   let bonus = 0;
-  // Stage 3: capstones now grant their battle damage bonus whenever the worker is standing on a mine
-  // during an active match. The old `battleShiftCommitted` gate died with the shift/rest system in
-  // stage 2 — this keeps capstones effective without reintroducing shift bookkeeping.
+  // Stage 4: capstones grant their battle damage bonus only while the worker is staffing a mine slot
+  // (not parked in reserve) — `isWorkerStaffingMine` is the shared gate, replacing the old
+  // `battleShiftCommitted` flag that died with the shift/rest system.
   for (const mine of state.mines) {
     for (const worker of mine.workerIds) {
-      if (worker) {
+      if (worker && isWorkerStaffingMine(state, worker)) {
         bonus += getCapstoneBattleDamageBonus(worker);
       }
     }

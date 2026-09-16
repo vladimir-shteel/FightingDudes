@@ -26,12 +26,11 @@ import {
 const CATEGORIES = [
   {
     name: "General",
-    hint: "Global pacing: tick rate, starting resources, worker buy-cost curve, passive gold trickle.",
+    hint: "Global pacing: tick rate, starting resources, worker buy-cost curve.",
     keys: [
       "version", "tickRateMs", "goldIcon",
-      "startingGold", "startingResources", "startingOre",
-      "unitBuyBaseCost", "unitBuyExponent",
-      "passiveGoldPerSecond", "passiveGoldPerSecondPerUnlockedMine", "passiveGoldPayoutIntervalSeconds"
+      "startingGold", "startingResources",
+      "unitBuyBaseCost", "unitBuyExponent"
     ]
   },
   {
@@ -78,12 +77,8 @@ const HINTS = {
   version: "Config format version. Auto-stamped by this editor's Save/Export — see the version badge above. Rarely worth hand-editing.",
   tickRateMs: "Simulation tick length in ms — lower is smoother but costs more CPU. Also paces the main loop's frame delay.",
   goldIcon: "Emoji shown next to the gold currency everywhere in the UI.",
-  passiveGoldPerSecond: "Not currently read by any system — the live passive-gold knob is passiveGoldPerSecondPerUnlockedMine below.",
-  passiveGoldPerSecondPerUnlockedMine: "Passive gold trickle per unlocked mine, paid out regardless of whether anyone is mining — keeps committing every worker to a battle from soft-locking the economy.",
-  passiveGoldPayoutIntervalSeconds: "How often (seconds) the passive gold trickle above pays out.",
   startingGold: "Gold the run starts with.",
   startingResources: "Non-gold resources the run starts with, per resource key.",
-  startingOre: "A floor applied to starting ore specifically, on top of (not instead of) startingResources.ore.",
   unitBuyBaseCost: "Base gold cost of the very first reserve worker, before the exponential scaling below.",
   unitBuyExponent: "Growth rate of reserve-worker buy cost: cost = unitBuyBaseCost × unitBuyExponent^(total worker power owned).",
 
@@ -130,9 +125,7 @@ const HINTS = {
   "fortress.obstacleRemovalBaseCost": "Gold cost to clear the first obstacle tile.",
   "fortress.obstacleRemovalCostStep": "How much the obstacle-clearing cost rises after each tile cleared.",
   "fortress.repairFallbackWoodPerLevel": "Repair cost (wood, per building level) used only for buildings with no buyCost — currently just the HQ.",
-  attrition: "How much HP a building loses permanently per defeat, what fraction it's restored to, and the repair cost rate — the per-wave sink coupling mining and combat.",
-  "attrition.floorPerDefeat": "Permanent HP-restore penalty added to a building each time it's destroyed — repeated losses squeeze its restored HP until repaired.",
-  "attrition.postDefeatHpFraction": "Base fraction of maxHp a destroyed building is restored to, and the floor a win can never delete a building below.",
+  attrition: "The building repair cost rate — the sink coupling mining and combat.",
   "attrition.repairCostPerHpFractionOfBuyCost": "Repair cost rate: fraction of (buyCost × building level) charged per fraction of missing HP.",
   abilityCostAccumulation: "Each building-active cast THIS battle raises the cost of the NEXT cast by this factor — makes actives a recurring sink instead of free-to-spam.",
 

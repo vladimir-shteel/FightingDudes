@@ -41,7 +41,6 @@ export function createMine(index) {
     level: 1,
     workerIds: Array.from({ length: maxSlots }, () => null),
     workerProgress: Array.from({ length: maxSlots }, () => 0),
-    purchasedSlotIndices,
-    passiveProgress: 0
+    purchasedSlotIndices
   };
 }

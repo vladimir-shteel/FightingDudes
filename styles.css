@@ -939,41 +939,6 @@ h3 {
   box-shadow: 0 3px 0 var(--panel-earth);
 }
 
-#showProductionButton {
-  position: relative;
-  overflow: visible;
-}
-
-#showProductionButton.has-rested::after {
-  content: "⚡";
-  position: absolute;
-  top: -8px;
-  right: -8px;
-  font-size: 12px;
-  line-height: 1;
-  padding: 3px 4px;
-  border-radius: 999px;
-  background: rgba(120, 200, 255, 0.95);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
-  animation: rested-badge-pulse 1.4s ease-in-out infinite;
-}
-
-@keyframes rested-badge-pulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.18); }
-}
-
-/* Rested workers waiting: the whole button glows so it's hard to miss, not just the corner badge. */
-#showProductionButton.has-rested {
-  background: linear-gradient(180deg, #3f86b8, var(--panel-wood));
-  animation: production-cta-pulse 1.3s ease-in-out infinite;
-}
-
-@keyframes production-cta-pulse {
-  0%, 100% { box-shadow: 0 3px 0 var(--panel-earth), 0 0 0 0 rgba(120, 200, 255, 0); }
-  50% { box-shadow: 0 3px 0 var(--panel-earth), 0 0 16px 4px rgba(120, 200, 255, 0.85); }
-}
-
 .mine-card[data-resource-key="ore"] .secondary-button,
 .mine-card[data-resource-key="wood"] .secondary-button,
 .mine-card[data-resource-key="crystal"] .secondary-button,
@@ -1120,22 +1085,6 @@ h3 {
 
 .unit-card.is-hit .unit-icon {
   animation: hit-flash 90ms ease;
-}
-
-.unit-card.is-shifted .unit-icon {
-  filter: drop-shadow(0 5px 0 rgba(76, 42, 19, 0.12)) drop-shadow(0 0 10px rgba(255, 205, 69, 0.7));
-}
-
-/* The mine SLOT glows gold while its worker is on Shift — draws the eye to where resources pour in. */
-.slot.slot-shifting {
-  box-shadow: inset 0 0 0 2px rgba(255, 205, 69, 0.9), 0 0 12px 2px rgba(255, 205, 69, 0.55);
-  background: radial-gradient(circle at 50% 40%, rgba(255, 224, 130, 0.35), transparent 70%);
-  animation: slot-shift-glow 1s ease-in-out infinite;
-}
-
-@keyframes slot-shift-glow {
-  0%, 100% { box-shadow: inset 0 0 0 2px rgba(255, 205, 69, 0.7), 0 0 8px 1px rgba(255, 205, 69, 0.4); }
-  50% { box-shadow: inset 0 0 0 2px rgba(255, 214, 90, 1), 0 0 18px 4px rgba(255, 205, 69, 0.8); }
 }
 
 .unit-badges {
@@ -1412,65 +1361,6 @@ h3 {
   background: linear-gradient(90deg, #f4f6f9 0%, #a8b1c0 100%);
 }
 
-.shift-toggle {
-  width: 100%;
-  margin-top: 4px;
-  padding: 4px 6px;
-  border-radius: 999px;
-  background: rgba(255, 248, 229, 0.94);
-  border: 2px solid rgba(114, 63, 28, 0.16);
-  color: var(--text);
-  font-size: 9px;
-  font-weight: 900;
-  line-height: 1;
-}
-
-.shift-toggle.is-committed {
-  background: #ffe38b;
-  border-color: rgba(115, 63, 28, 0.3);
-}
-
-.shift-toggle:disabled {
-  opacity: 0.72;
-  cursor: not-allowed;
-}
-
-.unit-status-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 20px;
-  min-height: 18px;
-  padding: 1px 4px;
-  border-radius: 999px;
-  border: 1px solid rgba(76, 42, 19, 0.14);
-  font-size: 11px;
-  line-height: 1;
-}
-
-.unit-status-badge.is-rested { background: #fff2b8; }
-.unit-status-badge.is-shift { background: #ffcd45; }
-.unit-status-badge.is-depleted { background: rgba(150, 150, 150, 0.22); opacity: 0.7; }
-
-.unit-card.is-rested .unit-icon-main {
-  filter: drop-shadow(0 0 4px rgba(255, 205, 69, 0.6));
-}
-
-.compact-card .unit-status-badge {
-  min-width: 14px;
-  min-height: 14px;
-  padding: 0 2px;
-  font-size: 8px;
-}
-
-@media (max-width: 640px) {
-  .compact-card .unit-status-badge {
-    min-width: 12px;
-    min-height: 12px;
-    font-size: 7px;
-  }
-}
-
 .unit-traits {
   display: flex;
   flex-wrap: wrap;
@@ -1514,13 +1404,6 @@ h3 {
     padding: 0 4px;
     font-size: 8px;
     border-width: 1px;
-  }
-  .compact-card .unit-status-badge {
-    position: absolute;
-    top: 2px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 3;
   }
   .compact-card .compact-traits {
     position: absolute;
@@ -1654,14 +1537,6 @@ h3 {
   color: #6a4207;
 }
 
-.resource-tick.is-shift {
-  font-size: 16px;
-  color: #0b4a6a;
-  text-shadow:
-    0 0 5px rgba(120, 200, 255, 0.95),
-    0 0 10px rgba(120, 200, 255, 0.7),
-    0 1px 0 rgba(255, 255, 255, 0.9);
-}
 
 @keyframes resource-tick-pop {
   0% {
@@ -2785,27 +2660,6 @@ h3 {
 .worker-popover-capstone span {
   font-weight: 600;
   opacity: 0.85;
-}
-
-.worker-popover-shift {
-  padding: 5px 8px;
-  border-radius: 8px;
-  background: rgba(120, 120, 120, 0.14);
-  border: 1px solid rgba(115, 63, 28, 0.18);
-  font-size: 11px;
-  font-weight: 600;
-  text-align: center;
-  opacity: 0.85;
-}
-
-.worker-popover-shift.is-rested {
-  background: rgba(120, 200, 255, 0.18);
-  opacity: 1;
-}
-
-.worker-popover-shift.is-shifted {
-  background: rgba(255, 205, 69, 0.22);
-  opacity: 1;
 }
 
 .worker-move-cancel {

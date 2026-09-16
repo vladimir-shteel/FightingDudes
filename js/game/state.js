@@ -16,10 +16,6 @@ export function createInitialState() {
       resources[resourceKey] = amount;
     }
   }
-  if (typeof CONFIG.startingOre === "number" && resources.ore !== undefined) {
-    resources.ore = Math.max(resources.ore, CONFIG.startingOre);
-  }
-
   const state = {
     resources,
     fortress: createFortressState(),
@@ -35,9 +31,6 @@ export function createInitialState() {
     mines: Array.from({ length: CONFIG.mine.resourceTypes.length }, (_, index) => createMine(index)),
     resourceBursts: [],
     economy: {
-      unitsPurchased: 0,
-      workerStartLevel: 1,
-      workerBuyDiscount: 1,
       goldMultiplier: 1,
       productionMultiplier: 1,
       temporaryProductionMultiplier: 1,

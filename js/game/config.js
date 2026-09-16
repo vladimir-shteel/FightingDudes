@@ -1,10 +1,8 @@
 export const CONFIG = {
   version: 0,
   tickRateMs: 100,
-  passiveGoldPerSecond: 0,
   startingGold: 0,
   startingResources: {},
-  startingOre: 0,
   unitBuyBaseCost: 0,
   unitBuyExponent: 1,
   merge: {

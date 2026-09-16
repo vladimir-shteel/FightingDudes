@@ -293,26 +293,20 @@ function getBurstSourceScreen(burst) {
 
 // Flash the resource chip in place with a quick "+N" pop — used when the burst's source
 // screen is off-screen, so we don't fling tokens across from a hidden origin.
-function flashResourceTick(elements, target, resourceKey, displayAmount, isShift = false) {
+function flashResourceTick(elements, target, resourceKey, displayAmount) {
   target.animate(
-    isShift
-      ? [
-          { transform: "scale(1)", filter: "brightness(1)" },
-          { transform: "scale(1.22)", filter: "brightness(1.9)" },
-          { transform: "scale(1)", filter: "brightness(1)" }
-        ]
-      : [
-          { transform: "scale(1)", filter: "brightness(1)" },
-          { transform: "scale(1.12)", filter: "brightness(1.55)" },
-          { transform: "scale(1)", filter: "brightness(1)" }
-        ],
-    { duration: isShift ? 300 : 340, easing: "ease-out" }
+    [
+      { transform: "scale(1)", filter: "brightness(1)" },
+      { transform: "scale(1.12)", filter: "brightness(1.55)" },
+      { transform: "scale(1)", filter: "brightness(1)" }
+    ],
+    { duration: 340, easing: "ease-out" }
   );
 
   const rect = target.getBoundingClientRect();
   const token = document.createElement("div");
-  token.className = `resource-tick resource-${resourceKey}${isShift ? " is-shift" : ""}`;
-  token.textContent = isShift ? `⚡+${displayAmount}` : `+${displayAmount}`;
+  token.className = `resource-tick resource-${resourceKey}`;
+  token.textContent = `+${displayAmount}`;
   token.style.left = `${rect.left + rect.width / 2}px`;
   token.style.top = `${rect.top}px`;
   elements.fxLayer.append(token);
@@ -360,7 +354,7 @@ function playResourceBurst(elements, burst, activeScreen) {
     // during battle while the player is on the fortress screen) flash brighter with a ⚡ so the
     // mining spike is legible across screens.
     if (!sourceVisible) {
-      flashResourceTick(elements, target, payout.resourceKey, displayAmount, Boolean(burst.shift));
+      flashResourceTick(elements, target, payout.resourceKey, displayAmount);
       continue;
     }
 
@@ -783,8 +777,6 @@ export function mountUI(state, onStateChanged) {
     onStateChanged();
   });
 
-  // Stage 3: give-up flow is fully removed with finishBattle/attrition. Element stays hidden.
-
   function renderReserve() {
     elements.reserveZone.innerHTML = "";
     const selected = getSelectedUnitContext();
@@ -872,12 +864,7 @@ export function mountUI(state, onStateChanged) {
 
       const mineLevelData = getMineLevelData(mine.level);
       const slotMultipliers = mineLevelData?.slotProductionMultipliers ?? [];
-      const passiveInterval = Math.max(0.001, CONFIG.passiveGoldPayoutIntervalSeconds ?? 1);
-      const passiveProgress = mine.isUnlocked
-        ? Math.min(1, (mine.passiveProgress ?? 0) / passiveInterval)
-        : 0;
-      const showPassive = mine.isUnlocked && (CONFIG.passiveGoldPerSecondPerUnlockedMine ?? 0) > 0;
-      const producesGold = showPassive || (CONFIG.mine.goldPerSecondPerWorkerLevel ?? 0) > 0;
+      const producesGold = (CONFIG.mine.goldPerSecondPerWorkerLevel ?? 0) > 0;
       const headerAction = purchaseState.kind === "owned"
         ? `<span class="tag">Owned</span>`
         : purchaseState.kind === "available-to-buy"
@@ -902,18 +889,6 @@ export function mountUI(state, onStateChanged) {
           <span class="tag">${mine.isUnlocked ? `Slots ${purchasedSlotCount}/${getMineMaxLevel()}` : "Locked"}</span>
           <span class="tag">${mine.isUnlocked ? "Bought" : `Wave ${purchaseState.unlockWave}`}</span>
           ${demandResource === mine.resourceKey ? `<span class="tag demand-tag" title="Wave Demand"><span class="demand-tag-full">Wave Demand </span>×${CONFIG.waveDemand?.slotProductionMultiplier ?? 1}</span>` : ""}
-          ${showPassive ? `
-            <div class="mine-passive" data-mine-passive="${mine.id}" title="Passive gold trickle">
-              ${getResourceIconMarkup("gold", "mine-passive-icon")}
-              <div class="mine-passive-bar">
-                <div
-                  class="mine-passive-fill"
-                  data-mine-passive-fill="${mine.id}"
-                  style="width:${passiveProgress * 100}%"
-                ></div>
-              </div>
-            </div>
-          ` : ""}
           <span class="tag">Lv ${mine.level}</span>
         </div>
       `;
@@ -1926,29 +1901,10 @@ export function mountUI(state, onStateChanged) {
 
   function renderMineProgressFrame() {
     const collectionInterval = Math.max(0.001, CONFIG.mine.collectionIntervalSeconds ?? 1);
-    const passiveInterval = Math.max(0.001, CONFIG.passiveGoldPayoutIntervalSeconds ?? 1);
 
     for (const mine of state.mines) {
       if (!mine.isUnlocked) {
         continue;
-      }
-
-      const passiveFill = elements.minesGrid.querySelector(`[data-mine-passive-fill="${mine.id}"]`);
-      if (passiveFill) {
-        const passiveProgress = Math.min(1, (mine.passiveProgress ?? 0) / passiveInterval);
-        const cacheKey = `${mine.id}:passive`;
-        const previousProgress = mineProgressCache.get(cacheKey) ?? passiveProgress;
-        const isPassiveReset = passiveProgress < previousProgress;
-        if (isPassiveReset) {
-          passiveFill.classList.add("is-resetting");
-        } else {
-          passiveFill.classList.remove("is-resetting");
-        }
-        passiveFill.style.width = `${passiveProgress * 100}%`;
-        mineProgressCache.set(cacheKey, passiveProgress);
-        if (isPassiveReset) {
-          requestAnimationFrame(() => passiveFill.classList.remove("is-resetting"));
-        }
       }
 
       for (let index = 0; index < getMineMaxLevel(); index += 1) {

@@ -131,7 +131,6 @@ export function createDevTools(state, requestRender, { onOpenConfig } = {}) {
   function repairAll() {
     for (const building of state.fortress.buildings) {
       building.hp = building.maxHp;
-      building.damageFloor = 0;
     }
     state.fortress.message = "DEV: all buildings repaired.";
   }

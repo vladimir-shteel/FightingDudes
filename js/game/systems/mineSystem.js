@@ -37,8 +37,9 @@ function setSlotPurchased(mine, slotIndex) {
 }
 
 function getProductionMultiplier(state) {
-  // Every worker mines at the same rate whether or not a battle is active; the worker-shift/rest
-  // system that used to modulate this per-worker during battle has been removed.
+  // Every staffed worker mines at the same rate; the worker-shift/rest system that used to modulate
+  // this per-worker during battle has been removed. (Note: tickMineProduction itself only runs while
+  // the stream is active — see below — production doesn't happen before the match starts.)
   return getFortressResourceMultiplier(state) * getTemporaryProductionMultiplier(state);
 }
 
@@ -377,7 +378,6 @@ export function tickMineProduction(state, deltaSeconds) {
   if (!state?.fortress?.stream?.active) return;
   for (const mine of state.mines) {
     if (!mine.isUnlocked) {
-      mine.passiveProgress = 0;
       continue;
     }
 
@@ -428,7 +428,6 @@ export function tickMineProduction(state, deltaSeconds) {
         id: `${mine.id}-${index}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
         mineId: mine.id,
         slotIndex: index,
-        shift: false,
         payouts: [
           { resourceKey: mine.resourceKey, amount: resourceAmount }
         ].filter((payout) => payout.amount > 0)

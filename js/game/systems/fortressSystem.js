@@ -117,7 +117,6 @@ export function createFortressBuilding(type, origin) {
     tiles: footprint.map((tile) => ({ x: origin.x + tile.x, y: origin.y + tile.y })),
     hp: level.hp + baseHealthBonus,
     maxHp: level.hp + baseHealthBonus,
-    damageFloor: 0,
     cooldownTimer: 0,
     activeCooldown: 0,
     activeBoostRemaining: 0,
@@ -139,9 +138,10 @@ export function getBuildingActiveDefinition(building) {
 export function getBuildingActiveCost(state, building) {
   const active = getBuildingActiveDefinition(building);
   const base = active?.cost ?? {};
-  // In-battle cost accumulation: every active cast THIS battle (any building) makes the next one
-  // cost more, so abilities become a real recurring resource Sink instead of near-free spam. Resets
-  // each battle. Couples with the capital cost curve — a wide ability roster is expensive to fire.
+  // Cost accumulation is currently disabled (`abilityCostAccumulation: 1`): the stream model runs one
+  // continuous battle for the whole match, so a per-cast multiplier that only resets on battle start
+  // would compound unboundedly over 24 waves. `activeCasts` still increments below in case a future
+  // balance pass reintroduces escalation with a real reset point (e.g. per-wave).
   const casts = state?.fortress?.battle?.activeCasts ?? 0;
   const mult = Math.pow(CONFIG.abilityCostAccumulation ?? 1, casts);
   return Object.fromEntries(
@@ -231,11 +231,6 @@ export function getBuildingMaxHpCap(state, building) {
   const baseHp = getBuildingBaseHp(building);
   const bonusHp = getBaseHealthBonus(state);
   return Math.max(1, baseHp + bonusHp);
-}
-
-export function applyBuildingAttrition(building, state) {
-  building.maxHp = getBuildingMaxHpCap(state, building);
-  building.hp = Math.min(building.hp, building.maxHp);
 }
 
 export function getTile(state, x, y) {
@@ -380,7 +375,6 @@ export function upgradeFortressBuilding(state, buildingId) {
     return { ok: false, reason: "Not enough resources for upgrade." };
   }
   building.level += 1;
-  building.damageFloor = 0;
   const bonusHp = getBaseHealthBonus(state);
   building.maxHp = nextLevel.hp + bonusHp;
   building.hp = nextLevel.hp + bonusHp;
@@ -428,7 +422,6 @@ export function repairFortressBuilding(state, buildingId) {
     return { ok: false, reason: "Not enough resources to repair." };
   }
   building.hp = building.maxHp;
-  building.damageFloor = 0;
   const definition = CONFIG.fortressBuildings[building.type];
   return { ok: true, reason: `${definition.name} repaired.` };
 }
@@ -477,7 +470,6 @@ export function mergeFortressBuildings(state, sourceId, targetId) {
   state.fortress.buildings = state.fortress.buildings.filter((item) => item.id !== source.id);
 
   target.level += 1;
-  target.damageFloor = 0;
   const bonusHp = getBaseHealthBonus(state);
   target.maxHp = nextLevel.hp + bonusHp;
   target.hp = target.maxHp;

@@ -28,7 +28,7 @@ function getTotalWorkerPower(state) {
 export function getUnitBuyCost(state) {
   const workerPower = getTotalWorkerPower(state);
   const baseCost = CONFIG.unitBuyBaseCost * ((CONFIG.unitBuyExponent ?? 1) ** workerPower);
-  return Math.max(1, Math.floor(baseCost * (state.economy.workerBuyDiscount ?? 1)));
+  return Math.max(1, Math.floor(baseCost));
 }
 
 export function buyUnit(state) {
@@ -38,8 +38,7 @@ export function buyUnit(state) {
   }
 
   state.resources.gold -= cost;
-  state.economy.unitsPurchased += 1;
-  state.reserveUnits.push(createReserveUnit(state.economy.workerStartLevel ?? 1));
+  state.reserveUnits.push(createReserveUnit(1));
 
   return { ok: true, reason: "A fresh worker joined the pile." };
 }

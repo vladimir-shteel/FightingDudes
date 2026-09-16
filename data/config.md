@@ -28,7 +28,7 @@ Buildings / Units & Merging / Mining / Rewards), so you can jump between the two
 
 ## 1. General
 
-Global pacing values: simulation speed, starting resources, the worker-buying cost curve, passive gold.
+Global pacing values: simulation speed, starting resources, the worker-buying cost curve.
 
 | Path | Type | Description |
 |---|---|---|
@@ -37,13 +37,8 @@ Global pacing values: simulation speed, starting resources, the worker-buying co
 | `goldIcon` | string | Emoji shown next to the gold currency everywhere in the UI. |
 | `startingGold` | number | Gold the run starts with. |
 | `startingResources` | object | `{ resourceKey: amount }` — non-gold resources the run starts with. Only keys that already exist in the resource ledger (i.e. real mine resource keys) take effect. |
-| `startingOre` | number | A *floor* applied to starting ore specifically, on top of (not instead of) `startingResources.ore`. Final starting ore = `max(startingResources.ore ?? 0, startingOre)`. |
 | `unitBuyBaseCost` | number | Base gold cost of the very first reserve-worker purchase, before scaling. |
 | `unitBuyExponent` | number | Growth rate of the worker-buy cost curve. Cost = `unitBuyBaseCost × unitBuyExponent ^ (total worker power owned)`, where "power" sums `2^(level-1)` over every reserve *and* mine worker. |
-| `productionMultipliers.rest` | number | Baseline mine production rate multiplier while a worker is resting (i.e. **not** on a battle shift). `1.0` = full rate; `0.55` (the shipped default) means a resting worker produces at 55% pace — battle-shift workers get their rate from `workerTraits.battleShift` instead (see §5). |
-| `passiveGoldPerSecond` | number | **Not read by any system.** Dead field — the live passive-gold knob is `passiveGoldPerSecondPerUnlockedMine` below. Left in the schema for now; don't expect changing it to do anything. |
-| `passiveGoldPerSecondPerUnlockedMine` | number | Passive gold trickle **per unlocked mine**, paid out regardless of whether anyone is actively mining. Exists purely so committing every worker to a battle can't soft-lock the economy. `0` disables it entirely. |
-| `passiveGoldPayoutIntervalSeconds` | number | How often (seconds) the passive trickle above pays out. |
 
 ---
 
@@ -216,9 +211,7 @@ Per-level `attack`/`hp` bonuses come from `combat.unitAttackPerLevel`/`unitHpPer
 | `fortress.obstacleRemovalBaseCost` | number | Gold cost to clear the first obstacle. |
 | `fortress.obstacleRemovalCostStep` | number | How much the clearing cost rises after each tile cleared. |
 | `fortress.repairFallbackWoodPerLevel` | number | Repair cost (in wood, × building level) used **only** for buildings with an empty `buyCost` — currently just the HQ, which has no normal buy cost to base a repair rate on. |
-| `attrition.floorPerDefeat` | number | Permanent HP-restore penalty added to a building each time it's destroyed in a defeat. Stacks across repeated losses until repaired. |
-| `attrition.postDefeatHpFraction` | number (0–1) | Base fraction of `maxHp` a destroyed building is restored to. After a defeat, actual restore fraction = `postDefeatHpFraction − accumulated floorPerDefeat`. After a *victory*, any building still at 0 HP is pulled back up to exactly this fraction (a win can never delete a building outright). |
-| `attrition.repairCostPerHpFractionOfBuyCost` | number | Repair cost rate: `missingHpFraction × rate × buyCost × buildingLevel`. |
+| `attrition.repairCostPerHpFractionOfBuyCost` | number | Repair cost rate: `missingHpFraction × rate × buyCost × buildingLevel`. This is the only field left under `attrition` — the old post-defeat HP penalty/restore mechanics it used to describe (`floorPerDefeat`, `postDefeatHpFraction`) were never read and have been removed. |
 | `abilityCostAccumulation` | number | Each building-active cast **this battle** (any building) raises the cost of the *next* cast, battle-wide, by this factor: `cost × abilityCostAccumulation ^ castsSoFarThisBattle`. Resets each battle. |
 
 ---
@@ -246,14 +239,9 @@ Per-level `attack`/`hp` bonuses come from `combat.unitAttackPerLevel`/`unitHpPer
 |---|---|---|
 | `workerTraits.mergeBonusPoints` | number | Extra trait points added to the dominant trait line whenever two workers merge, on top of simply summing their trait vectors. |
 | `workerTraits.hybridThreshold` | number (0–1) | How close the second-highest trait must be to the dominant one (as a fraction of the dominant's value) for the **hybrid** capstone (Warlord) to be offered alongside the dominant line's own capstones. |
-| `workerTraits.battleShift.baseMultiplier` | number | Rush multiplier a worker gets from taking a battle shift with **zero** Rush trait points — the floor, before any Rush-line per-point bonus. |
-| `workerTraits.battleShift.maxCommitsPerMine` | number | Max workers that can be on a battle shift at the same mine simultaneously. |
-| `workerTraits.battleShift.restChargePerLevel` | number | Rest-charge pool size = `level × restChargePerLevel` — higher-level workers can shift through more consecutive battles before needing to recharge. |
-| `workerTraits.battleShift.restRechargePerWave` | number | Rest charges regained per wave for a worker **not** currently shifting on its desired mine (i.e. parked in reserve, or staffing a different mine). |
 | `workerTraits.lines.<yield\|rush>.label` / `.icon` | string | Display name/icon for the trait line. |
 | `workerTraits.lines.<line>.rollWeight` | number | Relative odds this line is the one rolled dominant on a brand-new worker. Same weighted-pick model as reward-card `weight` (§6) — `0` means the line never gets rolled as a new worker's starting trait (existing workers already holding it are unaffected). |
 | `workerTraits.lines.yield.resourceMultiplierPerPoint` | number | Yield: production multiplier gained per point of this trait. |
-| `workerTraits.lines.rush.battleMultiplierPerPoint` | number | Rush: added to `battleShift.baseMultiplier` per point when the worker takes a battle shift. |
 
 ### `workerTraits.capstones` — capstone catalog
 
@@ -274,9 +262,9 @@ not which array it's filed under.
 |---|---|---|
 | `yieldMul` | `value` | Multiplies the worker's Yield-trait production multiplier by `value`. |
 | `demandMul` | `value` | Multiplies the wave-demand bonus (§3 `waveDemand`) this worker benefits from by `value`. |
-| `rushBonus` | `value` | Adds `value` to the worker's battle-shift Rush multiplier. |
-| `battleDamageBonus` | `value` | While this worker is on an active battle shift, adds `value` (as a fraction, e.g. `0.2` = +20%) to the fortress's overall damage multiplier for that battle. |
-| `warlord` | `productionMultiplier` | Hybrid (Rush+Yield): production multiplier that applies **only** while the worker is actively on a committed battle shift. |
+| `rushBonus` | `value` | Defined in the schema (Warmind capstone) but currently unread by any system — dead effect kind. |
+| `battleDamageBonus` | `value` | While this worker is staffing a mine slot (not parked in reserve), adds `value` (as a fraction, e.g. `0.2` = +20%) to the fortress's overall damage multiplier. |
+| `warlord` | `productionMultiplier` | Hybrid (Rush+Yield): production multiplier that applies **only** while the worker is staffing a mine slot (not parked in reserve). |
 
 ---
 
@@ -339,7 +327,7 @@ draft — the game doesn't error, the player just sees fewer than 3 choices.
 | `goldMultiplier` | `value` | Permanently multiplies gold income. | `permanent` |
 | `productionMultiplier` | `value` | Permanently multiplies mine production. | `permanent` |
 | `baseHealthBonus` | `value` | Adds flat HP to every fortress building, immediately (retroactive, not just future builds). | `permanent` |
-| `temporaryMultiplier` | `bonusKind` (enum: `production`/`damage`/`defense`), `value`, `durationWaves` | Queues a multiplier that activates at the **start of the next battle** and decays after `durationWaves` waves. | `temporary` |
+| `temporaryMultiplier` | `bonusKind` (enum: `production`/`damage`/`defense`), `value`, `durationSeconds` | Applies a multiplier immediately and counts it down in real time; it's dropped once `durationSeconds` elapses. | `temporary` |
 | `promoteWorker` | — | Instantly promotes one eligible reserve/mine worker by one level (respects the wave-gated level cap — §5). | `oneShot` |
 | `upgradeBuilding` | — | Instantly upgrades one eligible building for free (respects the crystal-tier gate — won't skip past it). | `oneShot` |
 | `unlockMineSlot` | — | Unlocks a mine or opens one more slot on an already-open mine, for free — but only if it's already wave-eligible; never skips a gate. | `oneShot` |

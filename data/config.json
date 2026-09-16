@@ -3,15 +3,11 @@
   "tickRateMs": 100,
   "goldIcon": "🪙",
   "waveGapSeconds": 8,
-  "passiveGoldPerSecond": 0,
-  "passiveGoldPerSecondPerUnlockedMine": 0,
-  "passiveGoldPayoutIntervalSeconds": 4,
   "startingGold": 40,
   "startingResources": {
     "wood": 110,
     "ore": 60
   },
-  "startingOre": 0,
   "unitBuyBaseCost": 4,
   "unitBuyExponent": 1.04,
   "combat": {
@@ -31,7 +27,7 @@
     "refundFraction": 0.4,
     "goldCostPerCopy": 8
   },
-  "abilityCostAccumulation": 1.6,
+  "abilityCostAccumulation": 1,
   "rewardDraftEnabled": false,
   "resourceCaps": {
     "wood": 500,
@@ -160,8 +156,6 @@
     }
   },
   "attrition": {
-    "floorPerDefeat": 0.2,
-    "postDefeatHpFraction": 0.4,
     "repairCostPerHpFractionOfBuyCost": 1
   },
   "rewardDraft": {

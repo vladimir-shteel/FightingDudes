@@ -148,15 +148,14 @@ export function getCapstoneYieldMultiplier(unit) {
   return 1;
 }
 
-export function getCapstoneRushBonus(unit) {
-  const capstone = getWorkerCapstoneEffect(unit);
-  if (!capstone) {
-    return 0;
+// A worker's combat/production capstone should only be "in play" while the player has actively
+// chosen to staff it on a mine slot (as opposed to parking it in reserve) — this is what returns the
+// active-use decision to the player now that the old battleShiftCommitted gate is gone.
+export function isWorkerStaffingMine(state, unit) {
+  if (!unit || !Array.isArray(state?.mines)) {
+    return false;
   }
-  if (capstone.effect.kind === "rushBonus") {
-    return capstone.effect.value ?? 0;
-  }
-  return 0;
+  return state.mines.some((mine) => mine.workerIds.some((worker) => worker?.id === unit.id));
 }
 
 export function getCapstoneDemandMultiplierBonus(unit) {
@@ -180,9 +179,9 @@ export function getCapstoneWarlordProductionMultiplier(state, unit) {
   if (!capstone || capstone.effect.kind !== "warlord") {
     return 1;
   }
-  // Stage 3: warlord capstone triggers on any worker present on a mine during an active match; the
-  // old shift-commit flag is gone.
-  const active = Boolean(unit && state?.fortress?.battle?.active);
+  // Stage 4: warlord capstone is only active while its worker is staffing a mine slot (not parked in
+  // reserve) — the old shift-commit flag is gone, this is its replacement gate.
+  const active = isWorkerStaffingMine(state, unit);
   return active ? capstone.effect.productionMultiplier ?? 1 : 1;
 }
 
