@@ -852,8 +852,10 @@ export function tickFortressBattle(state, deltaSeconds) {
   // Stream state machine — advance waves automatically.
   const stream = state.fortress.stream;
   if (stream && stream.active) {
-    const waveGap = CONFIG.waveGapSeconds ?? 8;
+    // Per-wave `gapSeconds` wins over the global `waveGapSeconds`; early waves use long breathers,
+    // late waves tighten back up to the global default.
     const currentWave = CONFIG.fortressWaves[stream.currentWaveIndex];
+    const waveGap = currentWave?.gapSeconds ?? CONFIG.waveGapSeconds ?? 8;
     const spawnQueueEmpty = !battle.spawnQueue || battle.spawnQueue.length === 0;
 
     if (stream.phase === "spawning" && spawnQueueEmpty) {

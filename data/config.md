@@ -97,6 +97,7 @@ not how strong anyone is. Changing them rarely needs to track balance changes el
 |---|---|---|
 | `enemyCount` | number | Total enemies this wave spawns. Should equal the sum of `composition[].count` — it's read independently by the UI for progress display, so keep it in sync by hand. |
 | `spawnIntervalSeconds` | number (sec) | Time between individual enemy spawns within the wave. |
+| `gapSeconds` | number (sec) *(optional)* | Pause after this wave finishes (or after its boss is cleared) before the next wave starts. Falls back to top-level `waveGapSeconds` when omitted. Early waves use long breathers (18–24s) so the player can build; boss waves get 12–20s post-clear; late waves settle at ~10s. |
 | `killGold` | number | Gold paid **immediately per kill**. Most early waves use `1`; later waves bump it. |
 | `demandResource` | string (enum) | Which mine resource gets `waveDemand.slotProductionMultiplier` (§1/General has the multiplier; see `waveDemand` below) applied to its slots this wave. **Enum**: any key from `mine.resourceTypes[].key` (`wood`/`ore`/`iron`/`crystal` by default) — never `"gold"`, since gold isn't a mine resource and a demand on it would silently do nothing. |
 | `composition` | array of `{archetype, count}` | Enemy groups for this wave. `expandComposition` round-robins these into an interleaved spawn queue (so a wave with grunt×5 + runner×2 alternates types as they arrive, rather than 5 grunts then 2 runners back to back). |
