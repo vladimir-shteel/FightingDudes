@@ -122,7 +122,7 @@ export function createDevTools(state, requestRender, { onOpenConfig } = {}) {
     }
     const max = window.__game?.CONFIG?.fortressWaves?.length ?? 24;
     state.fortress.waveNumber = Math.min(max, (state.fortress.waveNumber ?? 1) + 1);
-    state.fortress.pendingRewardDraft = null;
+    state.fortress.pendingRewardDrafts = [];
     syncFortressBuildingUnlocks(state);
     syncMineUnlocks(state);
     state.fortress.message = `DEV: jumped to wave ${state.fortress.waveNumber}.`;

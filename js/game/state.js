@@ -43,9 +43,7 @@ export function createInitialState() {
       temporaryProductionMultiplier: 1,
       damageMultiplier: 1,
       defenseMultiplier: 1,
-      baseHealthBonus: 0,
-      queuedTemporaryBonuses: [],
-      temporaryBonuses: []
+      baseHealthBonus: 0
     },
     game: {
       isOver: false,

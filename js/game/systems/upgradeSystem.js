@@ -111,8 +111,8 @@ function getCardDurationText(cardDef) {
   if (cardDef.category !== "temporary") {
     return "Instant";
   }
-  const duration = Math.max(1, cardDef.effect?.durationWaves ?? 2);
-  return `${duration} wave${duration === 1 ? "" : "s"}`;
+  const seconds = Math.max(1, cardDef.effect?.durationSeconds ?? 60);
+  return `${seconds}s`;
 }
 
 function upgradeFirstWorker(state) {
@@ -241,13 +241,18 @@ const EFFECT_APPLIERS = {
     applyFortressBaseHealthBonus(state, bonus);
   },
   temporaryMultiplier(state, effect) {
-    const duration = Math.max(1, effect.durationWaves ?? 2);
-    state.economy.queuedTemporaryBonuses.push({
+    // Stage 3: temporary bonuses are now realtime seconds, active immediately (no wave gating). The
+    // main game loop ticks `state.fortress.activeUpgradeEffects` down each frame and pulls expired
+    // ones. Multipliers on `state.economy.*` are recomputed from that list every tick.
+    const seconds = Math.max(1, effect.durationSeconds ?? 60);
+    state.fortress.activeUpgradeEffects.push({
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       kind: effect.bonusKind,
       multiplier: effect.value ?? 1,
-      remainingWaves: duration
+      remainingSeconds: seconds,
+      totalSeconds: seconds
     });
+    refreshTemporaryMultiplierState(state);
   },
   promoteWorker(state) {
     return upgradeFirstWorker(state);
@@ -286,25 +291,25 @@ function buildRuntimeCard(cardDef) {
 }
 
 function refreshTemporaryMultiplierState(state) {
-  const temporaryBonuses = state.economy.temporaryBonuses ?? [];
-  // Temporary "Harvest Surge" production boost — an ALWAYS-ON multiplier for its duration, decoupled
-  // from battle. There is intentionally NO blanket battle production multiplier: during a battle the
-  // ONLY mining boost comes from committed shift workers (their rush multiplier). That is the whole
-  // point of the shift mechanic — it is the player's lever for in-battle mining engagement.
-  state.economy.temporaryProductionMultiplier = temporaryBonuses
-    .filter((bonus) => bonus.kind === "production")
-    .reduce((product, bonus) => product * bonus.multiplier, 1);
-  state.economy.damageMultiplier = temporaryBonuses
-    .filter((bonus) => bonus.kind === "damage")
-    .reduce((product, bonus) => product * bonus.multiplier, 1);
-  state.economy.defenseMultiplier = temporaryBonuses
-    .filter((bonus) => bonus.kind === "defense")
-    .reduce((product, bonus) => product * bonus.multiplier, 1);
+  const activeEffects = state.fortress?.activeUpgradeEffects ?? [];
+  // Temporary reward-card bonuses are ALWAYS-ON multipliers for their remaining seconds. The game loop
+  // ticks them down (see tickUpgradeEffects) and refreshes these product multipliers each frame.
+  state.economy.temporaryProductionMultiplier = activeEffects
+    .filter((effect) => effect.kind === "production")
+    .reduce((product, effect) => product * effect.multiplier, 1);
+  state.economy.damageMultiplier = activeEffects
+    .filter((effect) => effect.kind === "damage")
+    .reduce((product, effect) => product * effect.multiplier, 1);
+  state.economy.defenseMultiplier = activeEffects
+    .filter((effect) => effect.kind === "defense")
+    .reduce((product, effect) => product * effect.multiplier, 1);
 }
 
 // One card per category (permanent / temporary / oneShot), weighted-random within that category. A
 // category with no cards (or all-zero weights) simply contributes nothing — the draft can come back
 // with fewer than 3 cards rather than crashing, so a designer emptying a category out is safe.
+// Stage 3: drafts are queued — a boss-wave drop pushes a fresh 3-card set onto pendingRewardDrafts and
+// the modal walks the queue one draft at a time.
 export function rollUpgradeChoices(state) {
   const draft = shuffle(
     ["permanent", "temporary", "oneShot"]
@@ -313,12 +318,17 @@ export function rollUpgradeChoices(state) {
       .map(buildRuntimeCard)
   );
 
-  state.fortress.pendingRewardDraft = draft;
+  if (!Array.isArray(state.fortress.pendingRewardDrafts)) {
+    state.fortress.pendingRewardDrafts = [];
+  }
+  state.fortress.pendingRewardDrafts.push(draft);
   return draft;
 }
 
 export function applyUpgradeChoice(state, choiceId) {
-  const choice = state.fortress.pendingRewardDraft?.find((item) => item.id === choiceId);
+  const drafts = state.fortress.pendingRewardDrafts ?? [];
+  const currentDraft = drafts[0];
+  const choice = currentDraft?.find((item) => item.id === choiceId);
   if (!choice) {
     return { ok: false, reason: "Reward card is no longer available." };
   }
@@ -329,42 +339,36 @@ export function applyUpgradeChoice(state, choiceId) {
   }
 
   if (choice.category === "temporary") {
-    state.fortress.message = `${choice.title} queued. It begins with the next wave.`;
+    state.fortress.message = `${choice.title} active.`;
   } else {
     state.fortress.message = `${choice.title} applied.`;
   }
 
-  state.fortress.pendingRewardDraft = null;
+  // Drop the head draft — if more remain, the UI shows the next one immediately without closing.
+  drafts.shift();
   return { ok: true, reason: state.fortress.message };
 }
 
-export function beginFortressWave(state) {
-  const queued = state.economy.queuedTemporaryBonuses ?? [];
-  if (queued.length === 0) {
+// Stage 3: `beginFortressWave`/`endFortressWave` are gone. Temporary bonuses now tick per-second in
+// the main game loop instead of gating on wave boundaries. Effects with a `remainingSeconds` timer
+// count down; when they hit zero the entry is dropped and multipliers are recomputed.
+export function tickUpgradeEffects(state, deltaSeconds) {
+  const active = state.fortress?.activeUpgradeEffects;
+  if (!Array.isArray(active) || active.length === 0) {
     return;
   }
-
-  state.economy.temporaryBonuses = [
-    ...(state.economy.temporaryBonuses ?? []),
-    ...queued
-  ];
-  state.economy.queuedTemporaryBonuses = [];
-  refreshTemporaryMultiplierState(state);
-}
-
-export function endFortressWave(state) {
-  const active = state.economy.temporaryBonuses ?? [];
-  if (active.length === 0) {
-    return;
+  let changed = false;
+  for (const effect of active) {
+    effect.remainingSeconds = (effect.remainingSeconds ?? 0) - deltaSeconds;
   }
-
-  state.economy.temporaryBonuses = active
-    .map((bonus) => ({
-      ...bonus,
-      remainingWaves: (bonus.remainingWaves ?? 0) - 1
-    }))
-    .filter((bonus) => bonus.remainingWaves > 0);
-  refreshTemporaryMultiplierState(state);
+  const survivors = active.filter((effect) => (effect.remainingSeconds ?? 0) > 0);
+  if (survivors.length !== active.length) {
+    changed = true;
+  }
+  state.fortress.activeUpgradeEffects = survivors;
+  if (changed) {
+    refreshTemporaryMultiplierState(state);
+  }
 }
 
 export function getFortressGoldMultiplier(state) {
@@ -388,9 +392,12 @@ function getCommittedSkirmisherBonus(state) {
     return 0;
   }
   let bonus = 0;
+  // Stage 3: capstones now grant their battle damage bonus whenever the worker is standing on a mine
+  // during an active match. The old `battleShiftCommitted` gate died with the shift/rest system in
+  // stage 2 — this keeps capstones effective without reintroducing shift bookkeeping.
   for (const mine of state.mines) {
     for (const worker of mine.workerIds) {
-      if (worker?.battleShiftCommitted) {
+      if (worker) {
         bonus += getCapstoneBattleDamageBonus(worker);
       }
     }

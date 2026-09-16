@@ -2,6 +2,7 @@ import { createInitialState } from "./game/state.js";
 import { mountUI } from "./game/ui.js";
 import { tickFortressBattle } from "./game/systems/fortressBattleSystem.js";
 import { tickMineProduction } from "./game/systems/mineSystem.js";
+import { tickUpgradeEffects } from "./game/systems/upgradeSystem.js";
 import { createDevTools } from "./game/devTools.js";
 import { createConfigEditor } from "./game/configEditor.js";
 import { CONFIG, initConfig } from "./game/config.js";
@@ -26,6 +27,7 @@ async function bootstrap() {
     for (let step = 0; step < steps; step += 1) {
       tickMineProduction(state, deltaSeconds);
       tickFortressBattle(state, deltaSeconds);
+      tickUpgradeEffects(state, deltaSeconds);
     }
     ui.renderFrame();
 

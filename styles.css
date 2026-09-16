@@ -1742,6 +1742,86 @@ h3 {
   backdrop-filter: blur(6px);
 }
 
+/* Stage 3: non-blocking variant — the game keeps ticking behind. The overlay's own backdrop still
+   catches outside-clicks to defer the choice, but pointer-events fall through to the field around
+   the card by keeping the backdrop lighter and letting pointer-events on the card handle picks. */
+.upgrade-overlay-nonblocking {
+  background: rgba(43, 30, 20, 0.25);
+  backdrop-filter: none;
+  pointer-events: none;
+}
+
+.upgrade-overlay-nonblocking .upgrade-card {
+  pointer-events: auto;
+}
+
+.upgrade-close-button {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(114, 63, 28, 0.22);
+  color: var(--text, #2b1e14);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+.upgrade-close-button:hover {
+  background: rgba(114, 63, 28, 0.38);
+}
+
+.upgrade-card {
+  position: relative;
+}
+
+/* Stage 3: pulsing "reward available" button — floats near the top-right of the fortress field on
+   desktop, docks to the top center on mobile. z-index below the overlay so an open modal covers it. */
+.upgrade-available-button {
+  position: fixed;
+  top: 88px;
+  right: 22px;
+  z-index: 70;
+  padding: 10px 18px;
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #ffdc6a 0%, #f2a133 100%);
+  color: #402812;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(242, 161, 51, 0.55), 0 0 0 0 rgba(255, 210, 90, 0.75);
+  animation: upgradeAvailablePulse 1.4s ease-in-out infinite;
+}
+
+.upgrade-available-button[hidden] {
+  display: none;
+}
+
+@keyframes upgradeAvailablePulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 6px 20px rgba(242, 161, 51, 0.55), 0 0 0 0 rgba(255, 210, 90, 0.75);
+  }
+  50% {
+    transform: scale(1.06);
+    box-shadow: 0 8px 26px rgba(242, 161, 51, 0.8), 0 0 0 12px rgba(255, 210, 90, 0);
+  }
+}
+
+@media (max-width: 480px) {
+  .upgrade-available-button {
+    top: 74px;
+    right: 12px;
+    padding: 8px 14px;
+    font-size: 13px;
+  }
+}
+
 .upgrade-overlay[hidden] {
   display: none;
 }

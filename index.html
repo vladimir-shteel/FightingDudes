@@ -124,8 +124,11 @@
   <div id="traitInfoPanel" class="trait-info-panel" hidden></div>
   <div id="fortressBuffsPanel" class="trait-info-panel" hidden></div>
 
-  <div id="upgradeOverlay" class="upgrade-overlay" hidden>
+  <button id="upgradeAvailableButton" class="upgrade-available-button" type="button" hidden>Награда!</button>
+
+  <div id="upgradeOverlay" class="upgrade-overlay upgrade-overlay-nonblocking" hidden>
     <section class="upgrade-card" aria-label="Choose reward">
+      <button id="upgradeCloseButton" class="upgrade-close-button" type="button" aria-label="Close">×</button>
       <p class="eyebrow">Victory Reward</p>
       <h2>Choose a Reward</h2>
       <div id="upgradeChoices" class="upgrade-choices"></div>

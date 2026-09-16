@@ -209,7 +209,7 @@
           "kind": "temporaryMultiplier",
           "bonusKind": "production",
           "value": 1.25,
-          "durationWaves": 2
+          "durationSeconds": 60
         }
       },
       {
@@ -222,7 +222,7 @@
           "kind": "temporaryMultiplier",
           "bonusKind": "damage",
           "value": 1.2,
-          "durationWaves": 2
+          "durationSeconds": 60
         }
       },
       {
@@ -235,7 +235,7 @@
           "kind": "temporaryMultiplier",
           "bonusKind": "defense",
           "value": 1.15,
-          "durationWaves": 2
+          "durationSeconds": 60
         }
       },
       {

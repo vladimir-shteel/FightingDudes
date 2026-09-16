@@ -155,7 +155,7 @@ const HINTS = {
   "mine.resourceTypes": "One entry per mine: resource key/label/icon, unlock wave, buy cost, and per-slot unlock waves/costs.",
   "mine.levels": "Per mine-level slot count and per-slot production multipliers — later slots are worth more.",
 
-  rewardDraft: "The victory-reward card pool — a flat list under 'cards'. Each card: category (permanent/temporary/oneShot), weight (odds within its category — 0 means it never appears; this is the rarity knob), and effect (a kind plus whatever numbers that kind needs, e.g. value / durationWaves)."
+  rewardDraft: "The victory-reward card pool — a flat list under 'cards'. Each card: category (permanent/temporary/oneShot), weight (odds within its category — 0 means it never appears; this is the rarity knob), and effect (a kind plus whatever numbers that kind needs, e.g. value / durationSeconds)."
 };
 
 // A handful of string fields only ever take one of a small, code-defined set of values — the game

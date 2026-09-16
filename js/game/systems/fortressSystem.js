@@ -71,9 +71,9 @@ export function createFortressState() {
       enemiesToSpawn: 0,
       result: null
     },
-    pendingRewardDraft: null,
+    pendingRewardDrafts: [],
+    activeUpgradeEffects: [],
     buildingBuyDiscount: 1,
-    earlyStart: null,
     stream: {
       active: false,
       phase: "idle",
@@ -206,8 +206,7 @@ export function getBuildingBaseHp(building) {
 }
 
 export function getBuildingMaxHpCap(state, building) {
-  // Attrition never reduces maxHp — only current HP. See finishBattle: defeats leave hp low,
-  // maxHp stays as (baseHp + baseHealthBonus). Repair fills to full maxHp.
+  // maxHp = baseHp + baseHealthBonus. Combat only ever reduces current hp; repair refills to maxHp.
   const baseHp = getBuildingBaseHp(building);
   const bonusHp = getBaseHealthBonus(state);
   return Math.max(1, baseHp + bonusHp);

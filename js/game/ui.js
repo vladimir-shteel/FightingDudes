@@ -26,7 +26,7 @@ import {
   moveMineUnitToMineSlot,
   returnMineUnitToReserve
 } from "./systems/mineSystem.js";
-import { giveUpFortressBattle, startFortressBattle } from "./systems/fortressBattleSystem.js";
+import { startFortressBattle } from "./systems/fortressBattleSystem.js";
 import {
   buyFortressBuilding,
   canAffordResources,
@@ -111,8 +111,10 @@ function buildFortressBuffsMarkup(state) {
   if (prodMul > 1) permRows.push({ icon: "⛏️", label: "Supply Line", effect: `Mine output ×${prodMul.toFixed(2)}` });
   if (hpBonus > 0) permRows.push({ icon: "🛡️", label: "Fortified Core", effect: `+${hpBonus} base HP` });
 
-  const tempActive = eco.temporaryBonuses ?? [];
-  const tempQueued = eco.queuedTemporaryBonuses ?? [];
+  // Stage 3: temporary bonuses now live on `state.fortress.activeUpgradeEffects` and count down in
+  // seconds, ticking every frame. There is no "queued" bucket any more — effects activate
+  // immediately when the card is picked.
+  const tempActive = state.fortress?.activeUpgradeEffects ?? [];
   const kindMeta = {
     production: { icon: "⛏️", label: "Harvest Surge", metric: "Production" },
     damage: { icon: "⚔️", label: "War Drums", metric: "Damage" },
@@ -120,12 +122,10 @@ function buildFortressBuffsMarkup(state) {
   };
   const tempActiveRows = tempActive.map((b) => {
     const meta = kindMeta[b.kind] ?? { icon: "✨", label: b.kind, metric: b.kind };
-    return `<div class="trait-info-row"><span class="unit-trait">${meta.icon}</span><div><strong>${meta.label}</strong><p>${meta.metric} ×${b.multiplier} · ${b.remainingWaves} wave${b.remainingWaves === 1 ? "" : "s"} left</p></div></div>`;
+    const remaining = Math.max(0, Math.ceil(b.remainingSeconds ?? 0));
+    return `<div class="trait-info-row"><span class="unit-trait">${meta.icon}</span><div><strong>${meta.label}</strong><p>${meta.metric} ×${b.multiplier} · ${remaining}s left</p></div></div>`;
   });
-  const tempQueuedRows = tempQueued.map((b) => {
-    const meta = kindMeta[b.kind] ?? { icon: "✨", label: b.kind, metric: b.kind };
-    return `<div class="trait-info-row"><span class="unit-trait">${meta.icon}</span><div><strong>${meta.label} (queued)</strong><p>Starts next wave · ${meta.metric} ×${b.multiplier} for ${b.remainingWaves} wave${b.remainingWaves === 1 ? "" : "s"}</p></div></div>`;
-  });
+  const tempQueuedRows = [];
 
   const permHtml = permRows.length
     ? permRows.map((r) => `<div class="trait-info-row"><span class="unit-trait">${r.icon}</span><div><strong>${r.label}</strong><p>${r.effect}</p></div></div>`).join("")
@@ -139,7 +139,7 @@ function buildFortressBuffsMarkup(state) {
     ${permHtml}
     <strong>Temporary</strong>
     ${tempHtml}
-    <p class="trait-info-hint">Rewards from wave victories stack here. Temporary buffs count down after each wave you win.</p>
+    <p class="trait-info-hint">Rewards from bosses stack here. Temporary buffs count down in real time.</p>
   `;
 }
 
@@ -418,6 +418,8 @@ export function mountUI(state, onStateChanged) {
     fortressMassMergeButton: document.querySelector("#fortressMassMergeButton"),
     upgradeOverlay: document.querySelector("#upgradeOverlay"),
     upgradeChoices: document.querySelector("#upgradeChoices"),
+    upgradeCloseButton: document.querySelector("#upgradeCloseButton"),
+    upgradeAvailableButton: document.querySelector("#upgradeAvailableButton"),
     capstoneOverlay: document.querySelector("#capstoneOverlay"),
     capstoneChoices: document.querySelector("#capstoneChoices"),
     runEndOverlay: document.querySelector("#runEndOverlay"),
@@ -782,19 +784,7 @@ export function mountUI(state, onStateChanged) {
     onStateChanged();
   });
 
-  // Stage 1 rework: give-up flow is disabled while the wave stream drives the match.
-  // Keep the handler wired but the button stays hidden via renderMeta.
-  elements.fortressGiveUpButton.addEventListener("click", () => {
-    if (!state.fortress.battle.active) {
-      return;
-    }
-    if (!window.confirm("Give up this wave? Your fortress takes the loss and you can try again.")) {
-      return;
-    }
-    const result = giveUpFortressBattle(state);
-    state.fortress.message = result.reason;
-    onStateChanged();
-  });
+  // Stage 3: give-up flow is fully removed with finishBattle/attrition. Element stays hidden.
 
   function renderReserve() {
     elements.reserveZone.innerHTML = "";
@@ -1749,12 +1739,41 @@ export function mountUI(state, onStateChanged) {
   }
   setupFortressShopLoop();
 
+  // Stage 3: pending reward drafts are a QUEUE — each boss wave pushes one draft. The modal is
+  // non-blocking (the game loop keeps ticking underneath) and walks the queue: after a pick, if
+  // more drafts remain the next set is rendered in place; otherwise the modal closes. A close
+  // button lets the player defer without losing the queue — the pulsing "upgrade available"
+  // button keeps prompting until every draft is picked.
+  let upgradeModalOpen = false;
+
   function renderUpgradeChoices() {
-    const choices = state.fortress.pendingRewardDraft ?? [];
-    elements.upgradeOverlay.hidden = choices.length === 0;
+    const drafts = state.fortress.pendingRewardDrafts ?? [];
+    const currentDraft = drafts[0] ?? [];
+    const queueLen = drafts.length;
+    const hasQueue = queueLen > 0;
+
+    // Auto-open the modal when a fresh draft lands (queue transitioned from 0 to non-empty and the
+    // modal wasn't already open). We DON'T force-open on every render because the player may have
+    // deliberately closed it to defer the pick — respect that.
+    // Kept implicit: the pulsing button is the entry point once closed.
+
+    if (elements.upgradeAvailableButton) {
+      // Show the pulsing prompt whenever there's an unpicked draft and the modal is closed.
+      elements.upgradeAvailableButton.hidden = !(hasQueue && !upgradeModalOpen);
+      if (hasQueue && queueLen > 1) {
+        elements.upgradeAvailableButton.textContent = `Награда (${queueLen})`;
+      } else {
+        elements.upgradeAvailableButton.textContent = "Награда!";
+      }
+    }
+
+    if (!hasQueue) {
+      upgradeModalOpen = false;
+    }
+    elements.upgradeOverlay.hidden = !(hasQueue && upgradeModalOpen);
     elements.upgradeChoices.innerHTML = "";
 
-    for (const choice of choices) {
+    for (const choice of currentDraft) {
       const card = document.createElement("button");
       card.type = "button";
       card.className = `upgrade-choice-card reward-${choice.category}`;
@@ -1773,10 +1792,39 @@ export function mountUI(state, onStateChanged) {
       card.addEventListener("click", () => {
         const result = applyUpgradeChoice(state, choice.id);
         state.fortress.message = result.reason;
+        // If the queue drained, close automatically; otherwise stay open and render the next draft.
+        if ((state.fortress.pendingRewardDrafts ?? []).length === 0) {
+          upgradeModalOpen = false;
+        }
         onStateChanged();
       });
       elements.upgradeChoices.append(card);
     }
+  }
+
+  if (elements.upgradeAvailableButton) {
+    elements.upgradeAvailableButton.addEventListener("click", () => {
+      if ((state.fortress.pendingRewardDrafts ?? []).length === 0) {
+        return;
+      }
+      upgradeModalOpen = true;
+      onStateChanged();
+    });
+  }
+  if (elements.upgradeCloseButton) {
+    elements.upgradeCloseButton.addEventListener("click", () => {
+      upgradeModalOpen = false;
+      onStateChanged();
+    });
+  }
+  // Click on the overlay backdrop (outside the card) also defers.
+  if (elements.upgradeOverlay) {
+    elements.upgradeOverlay.addEventListener("click", (event) => {
+      if (event.target === elements.upgradeOverlay) {
+        upgradeModalOpen = false;
+        onStateChanged();
+      }
+    });
   }
 
   function findPendingCapstoneWorker() {
@@ -1958,21 +2006,6 @@ export function mountUI(state, onStateChanged) {
     }
   }
 
-  function updateEarlyStartHint(button, gameState) {
-    const early = gameState.fortress.earlyStart;
-    if (!early || early.window <= 0 || gameState.fortress.battle.active) {
-      button.removeAttribute("data-early-bonus");
-      button.removeAttribute("title");
-      return;
-    }
-    const fraction = Math.max(0, Math.min(1, early.remaining / early.window));
-    const bonus = Math.round(early.bonus * fraction);
-    button.dataset.earlyBonus = String(bonus);
-    button.title = bonus > 0
-      ? `Early-start bonus: +${bonus} gold (${early.remaining.toFixed(1)}s left)`
-      : "Early-start bonus expired.";
-  }
-
   function renderMeta() {
     document.body.classList.toggle("fortress-battle-active", state.fortress.battle.active);
     const streamActive = state.fortress.stream?.active === true;
@@ -1982,7 +2015,6 @@ export function mountUI(state, onStateChanged) {
     elements.fortressFightButton.textContent = "Начать";
     // Stage 1 rework: give-up is disabled during the continuous stream.
     elements.fortressGiveUpButton.hidden = true;
-    updateEarlyStartHint(elements.fortressFightButton, state);
     elements.fortressMessage.textContent = state.fortress.message;
     renderEconomyMeta();
     renderBattleMeta();
@@ -2032,9 +2064,11 @@ export function mountUI(state, onStateChanged) {
       elements.fortressFightButton.disabled = matchStarted;
       elements.fortressFightButton.hidden = matchStarted;
     }
-    updateEarlyStartHint(elements.fortressFightButton, state);
     elements.fortressMessage.textContent = state.fortress.message;
     updateFortressShopAffordability();
+    // Stage 3: reward-button visibility also has to update every frame so it appears mid-battle
+    // (rewards drop while enemies are still ticking around).
+    renderUpgradeChoices();
     // During battle only update the persistent actor/projectile/burst DOM (CSS tweens
     // their positions between ticks) — never rebuild the tile grid, so the transition
     // isn't reset every 100ms. Outside battle, `render()` on state change is authoritative.

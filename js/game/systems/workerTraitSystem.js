@@ -180,7 +180,9 @@ export function getCapstoneWarlordProductionMultiplier(state, unit) {
   if (!capstone || capstone.effect.kind !== "warlord") {
     return 1;
   }
-  const active = Boolean(unit?.battleShiftCommitted && state?.fortress?.battle?.active);
+  // Stage 3: warlord capstone triggers on any worker present on a mine during an active match; the
+  // old shift-commit flag is gone.
+  const active = Boolean(unit && state?.fortress?.battle?.active);
   return active ? capstone.effect.productionMultiplier ?? 1 : 1;
 }
 

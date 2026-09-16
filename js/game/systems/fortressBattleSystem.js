@@ -1,7 +1,6 @@
 import { CONFIG } from "../config.js";
 import { clamp, generateId } from "../utils.js";
 import {
-  applyBuildingAttrition,
   FORTRESS_HEIGHT,
   FORTRESS_WIDTH,
   syncFortressBuildingUnlocks
@@ -9,8 +8,6 @@ import {
 import { syncMineUnlocks } from "./mineSystem.js";
 import { findTilePath } from "./pathfinding.js";
 import {
-  beginFortressWave,
-  endFortressWave,
   getFortressDamageMultiplier,
   getFortressDefenseMultiplier,
   getFortressGoldMultiplier,
@@ -391,7 +388,8 @@ function createProjectile(source, target, damage, type, splashRadius = 0) {
 export function startFortressBattle(state) {
   // Stage 1 rework: this is now startFortressMatch — a one-shot entry that kicks off the
   // continuous wave stream. Subsequent waves are spawned automatically inside tickFortressBattle
-  // via advanceToNextWave(). finishBattle() is intentionally never called by the stream.
+  // via advanceToNextWave(). Match end is handled inline in tickFortressBattle (HQ dies -> loss;
+  // final wave cleared -> win).
   if (state.fortress.stream?.active || state.fortress.battle.active || state.game.isOver) {
     return { ok: false, reason: "Match already running." };
   }
@@ -399,7 +397,6 @@ export function startFortressBattle(state) {
     return { ok: false, reason: "No waves configured." };
   }
 
-  state.fortress.earlyStart = null;
   state.fortress.movingBuildingId = null;
   state.fortress.waveNumber = 1;
 
@@ -430,7 +427,6 @@ export function startFortressBattle(state) {
   for (const building of state.fortress.buildings) {
     building.cooldownTimer = 0.5;
   }
-  beginFortressWave(state);
   return { ok: true, reason: "Match started. Waves incoming!" };
 }
 
@@ -780,87 +776,10 @@ function awardEnemyKillGold(state, enemy) {
   });
 }
 
-function finishBattle(state, result) {
-  const wave = CONFIG.fortressWaves[state.fortress.waveNumber - 1];
-  state.fortress.battle.active = false;
-  state.fortress.battle.result = result;
-  state.fortress.battle.enemies = [];
-  state.fortress.battle.allies = [];
-  state.fortress.battle.projectiles = [];
-  state.fortress.battle.bursts = [];
-
-  if (result === "defeat") {
-    const postDefeatHpFraction = CONFIG.attrition?.postDefeatHpFraction ?? 0.4;
-    const floorPerDefeat = CONFIG.attrition?.floorPerDefeat ?? 0;
-    for (const building of state.fortress.buildings) {
-      if (building.hp > 0) {
-        building.cooldownTimer = 0;
-        continue;
-      }
-      // Attrition: each defeat adds floorPerDefeat to damageFloor. Restore fraction
-      // shrinks as damageFloor grows. maxHp is untouched — repair or victory clears
-      // the floor and brings hp back to full.
-      building.damageFloor = (building.damageFloor ?? 0) + floorPerDefeat;
-      const restoreFraction = Math.max(0, postDefeatHpFraction - building.damageFloor);
-      building.hp = Math.max(1, Math.floor(building.maxHp * restoreFraction));
-      building.cooldownTimer = 0;
-    }
-  } else {
-    // ATTRITION (steady per-wave sink coupling mining<->combat): victory clears the permanent
-    // damageFloor, but buildings KEEP the HP they lost this fight — you repair with resources between
-    // waves. Harder fights chew more HP -> more repair -> more mining. Destroyed buildings are pulled
-    // back to a repairable fraction so a WIN never outright deletes your defense (no death-spiral).
-    const victoryFloor = CONFIG.attrition?.postDefeatHpFraction ?? 0.4;
-    for (const building of state.fortress.buildings) {
-      building.damageFloor = 0;
-      if (building.hp <= 0) {
-        building.hp = Math.max(1, Math.floor(building.maxHp * victoryFloor));
-      }
-      building.cooldownTimer = 0;
-    }
-  }
-
-  if (result === "victory") {
-    const victoryGold = wave.victoryGold * getFortressGoldMultiplier(state);
-    state.resources.gold += victoryGold;
-    state.fortress.battle.goldEarned = (state.fortress.battle.goldEarned ?? 0) + victoryGold;
-    endFortressWave(state);
-    if (state.fortress.waveNumber >= CONFIG.fortressWaves.length) {
-      state.game.isOver = true;
-      state.game.result = "win";
-      state.fortress.message = "Prototype complete. The fortress survived every wave.";
-    } else {
-      state.fortress.waveNumber += 1;
-      syncFortressBuildingUnlocks(state);
-      syncMineUnlocks(state);
-      state.fortress.message = `Victory. +${victoryGold} gold bonus.`;
-      if (CONFIG.rewardDraftEnabled !== false) {
-        rollUpgradeChoices(state);
-      }
-      const nextWave = CONFIG.fortressWaves[state.fortress.waveNumber - 1];
-      const bonus = nextWave?.startBonusGold ?? 0;
-      const window = nextWave?.startBonusWindowSeconds ?? 0;
-      state.fortress.earlyStart = bonus > 0 && window > 0
-        ? { remaining: window, window, bonus }
-        : null;
-    }
-  } else {
-    const earnedGold = state.fortress.battle.goldEarned ?? 0;
-    state.fortress.message = `HQ destroyed. Kept ${earnedGold} gold from kills.`;
-  }
-
-}
-
-export function giveUpFortressBattle(state) {
-  if (!state.fortress.battle.active) {
-    return { ok: false, reason: "No battle to give up." };
-  }
-  // Concede a doomed fight: resolve it as a normal defeat (attrition damage applies, the wave can be
-  // retried) so the player doesn't have to watch a lost battle play out.
-  finishBattle(state, "defeat");
-  state.fortress.message = "Surrendered — the wave is lost. Regroup and try again.";
-  return { ok: true, reason: "Battle surrendered." };
-}
+// Stage 3: `finishBattle`, `giveUpFortressBattle`, `earlyStart`, and the attrition post-fight
+// bookkeeping are gone. The wave stream in `tickFortressBattle` is now the sole authority for
+// ending a match (win at "done" phase, loss on HQ destruction). Reward drops fire from the
+// `waitClear → gap` transition inside that state machine, one draft per boss wave.
 
 function updateBattleMessage(state) {
   const battle = state.fortress.battle;
@@ -945,6 +864,12 @@ export function tickFortressBattle(state, deltaSeconds) {
     if (stream.phase === "waitClear" && battle.enemies.length === 0) {
       stream.phase = "gap";
       stream.gapTimer = waveGap;
+      // Boss waves are exactly the waves flagged `waitForClear: true` in config, so this transition
+      // is the boss-cleared moment. One reward draft per boss goes into the queue; the UI shows a
+      // pulsing "upgrade available" button and the modal walks the queue without pausing the game.
+      if (CONFIG.rewardDraftEnabled !== false) {
+        rollUpgradeChoices(state);
+      }
     }
 
     if (stream.phase === "gap") {
