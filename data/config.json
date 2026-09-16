@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "tickRateMs": 100,
   "goldIcon": "🪙",
   "waveGapSeconds": 10,
@@ -11,9 +11,9 @@
   "unitBuyBaseCost": 4,
   "unitBuyExponent": 1.04,
   "combat": {
-    "hpScalePerWave": 0.08,
-    "attackScalePerWave": 0.03,
-    "armorScalePerWave": 0.055,
+    "hpScalePerWave": 0.07,
+    "attackScalePerWave": 0.04,
+    "armorScalePerWave": 0.035,
     "armorMinFraction": 0.15,
     "unitAttackPerLevel": 0.35,
     "unitHpPerLevel": 0.2
@@ -918,7 +918,7 @@
       "icon": "🧙",
       "hp": 23,
       "attack": 10,
-      "cooldownSeconds": 1.0,
+      "cooldownSeconds": 1,
       "rangeTiles": 2.4,
       "speedTilesPerSecond": 0.46,
       "splashRadius": 1.5
@@ -978,7 +978,7 @@
       "rangeTiles": 0.5,
       "speedTilesPerSecond": 0.26,
       "tag": "boss",
-      "armor": 5,
+      "armor": 2,
       "mechanic": {
         "kind": "aura",
         "radius": 1.6,
@@ -988,29 +988,29 @@
     "necromancer": {
       "name": "Necromancer",
       "icon": "💀",
-      "hp": 247,
+      "hp": 160,
       "attack": 12,
       "cooldownSeconds": 1.4,
       "rangeTiles": 2,
       "speedTilesPerSecond": 0.28,
       "tag": "boss",
-      "armor": 6,
+      "armor": 3,
       "mechanic": {
         "kind": "summon",
         "archetype": "grunt",
-        "intervalSeconds": 8
+        "intervalSeconds": 10
       }
     },
     "breacher": {
       "name": "Breacher",
       "icon": "🐉",
-      "hp": 351,
+      "hp": 310,
       "attack": 26,
       "cooldownSeconds": 1.3,
       "rangeTiles": 0.45,
       "speedTilesPerSecond": 0.22,
       "tag": "boss",
-      "armor": 10,
+      "armor": 6,
       "mechanic": {
         "kind": "breach",
         "damageMultVsBuildings": 3
@@ -1021,7 +1021,7 @@
     {
       "enemyCount": 4,
       "spawnIntervalSeconds": 2.4,
-      "killGold": 1,
+      "killGold": 2,
       "demandResource": "wood",
       "composition": [
         {
@@ -1038,7 +1038,7 @@
     {
       "enemyCount": 4,
       "spawnIntervalSeconds": 2.3,
-      "killGold": 1,
+      "killGold": 2,
       "demandResource": "ore",
       "composition": [
         {
@@ -1055,7 +1055,7 @@
     {
       "enemyCount": 4,
       "spawnIntervalSeconds": 2.2,
-      "killGold": 1,
+      "killGold": 2,
       "demandResource": "wood",
       "composition": [
         {
@@ -1072,7 +1072,7 @@
     {
       "enemyCount": 5,
       "spawnIntervalSeconds": 2.1,
-      "killGold": 1,
+      "killGold": 2,
       "demandResource": "ore",
       "composition": [
         {
@@ -1088,8 +1088,8 @@
     },
     {
       "enemyCount": 5,
-      "spawnIntervalSeconds": 2.0,
-      "killGold": 1,
+      "spawnIntervalSeconds": 2,
+      "killGold": 2,
       "demandResource": "ore",
       "composition": [
         {
@@ -1107,25 +1107,21 @@
       "type": "boss",
       "isBoss": true,
       "waitForClear": true,
-      "enemyCount": 10,
+      "enemyCount": 4,
       "spawnIntervalSeconds": 1.43,
-      "killGold": 1,
+      "killGold": 2,
       "demandResource": "iron",
       "composition": [
         {
-          "archetype": "orcKing",
+          "archetype": "necromancer",
           "count": 1
         },
         {
           "archetype": "grunt",
-          "count": 6
-        },
-        {
-          "archetype": "runner",
           "count": 2
         },
         {
-          "archetype": "armored",
+          "archetype": "runner",
           "count": 1
         }
       ],
@@ -1134,7 +1130,7 @@
     {
       "enemyCount": 6,
       "spawnIntervalSeconds": 1.4,
-      "killGold": 1,
+      "killGold": 2,
       "demandResource": "wood",
       "composition": [
         {
@@ -1155,7 +1151,7 @@
     {
       "enemyCount": 6,
       "spawnIntervalSeconds": 1.38,
-      "killGold": 1,
+      "killGold": 2,
       "demandResource": "ore",
       "composition": [
         {
@@ -1176,7 +1172,7 @@
     {
       "enemyCount": 7,
       "spawnIntervalSeconds": 1.35,
-      "killGold": 2,
+      "killGold": 3,
       "demandResource": "iron",
       "composition": [
         {
@@ -1197,7 +1193,7 @@
     {
       "enemyCount": 7,
       "spawnIntervalSeconds": 1.33,
-      "killGold": 2,
+      "killGold": 3,
       "demandResource": "ore",
       "composition": [
         {
@@ -1218,7 +1214,7 @@
     {
       "enemyCount": 7,
       "spawnIntervalSeconds": 1.31,
-      "killGold": 2,
+      "killGold": 3,
       "demandResource": "iron",
       "composition": [
         {
@@ -1242,11 +1238,11 @@
       "waitForClear": true,
       "enemyCount": 12,
       "spawnIntervalSeconds": 1.28,
-      "killGold": 2,
+      "killGold": 3,
       "demandResource": "crystal",
       "composition": [
         {
-          "archetype": "necromancer",
+          "archetype": "orcKing",
           "count": 1
         },
         {
@@ -1267,7 +1263,7 @@
     {
       "enemyCount": 8,
       "spawnIntervalSeconds": 1.26,
-      "killGold": 2,
+      "killGold": 3,
       "demandResource": "wood",
       "composition": [
         {
@@ -1292,7 +1288,7 @@
     {
       "enemyCount": 8,
       "spawnIntervalSeconds": 1.23,
-      "killGold": 2,
+      "killGold": 3,
       "demandResource": "ore",
       "composition": [
         {
@@ -1317,7 +1313,7 @@
     {
       "enemyCount": 8,
       "spawnIntervalSeconds": 1.21,
-      "killGold": 2,
+      "killGold": 3,
       "demandResource": "iron",
       "composition": [
         {
@@ -1342,7 +1338,7 @@
     {
       "enemyCount": 8,
       "spawnIntervalSeconds": 1.18,
-      "killGold": 2,
+      "killGold": 3,
       "demandResource": "crystal",
       "composition": [
         {
@@ -1367,7 +1363,7 @@
     {
       "enemyCount": 8,
       "spawnIntervalSeconds": 1.16,
-      "killGold": 3,
+      "killGold": 4,
       "demandResource": "wood",
       "composition": [
         {
@@ -1395,7 +1391,7 @@
       "waitForClear": true,
       "enemyCount": 15,
       "spawnIntervalSeconds": 1.13,
-      "killGold": 3,
+      "killGold": 4,
       "demandResource": "ore",
       "composition": [
         {
@@ -1424,7 +1420,7 @@
     {
       "enemyCount": 9,
       "spawnIntervalSeconds": 1.11,
-      "killGold": 3,
+      "killGold": 4,
       "demandResource": "iron",
       "composition": [
         {
@@ -1449,7 +1445,7 @@
     {
       "enemyCount": 9,
       "spawnIntervalSeconds": 1.09,
-      "killGold": 3,
+      "killGold": 4,
       "demandResource": "crystal",
       "composition": [
         {
@@ -1474,7 +1470,7 @@
     {
       "enemyCount": 9,
       "spawnIntervalSeconds": 1.06,
-      "killGold": 3,
+      "killGold": 4,
       "demandResource": "wood",
       "composition": [
         {
@@ -1499,7 +1495,7 @@
     {
       "enemyCount": 9,
       "spawnIntervalSeconds": 1.04,
-      "killGold": 3,
+      "killGold": 4,
       "demandResource": "ore",
       "composition": [
         {
@@ -1524,7 +1520,7 @@
     {
       "enemyCount": 10,
       "spawnIntervalSeconds": 1.01,
-      "killGold": 3,
+      "killGold": 4,
       "demandResource": "iron",
       "composition": [
         {
@@ -1552,11 +1548,11 @@
       "waitForClear": true,
       "enemyCount": 16,
       "spawnIntervalSeconds": 0.99,
-      "killGold": 3,
+      "killGold": 4,
       "demandResource": "crystal",
       "composition": [
         {
-          "archetype": "orcKing",
+          "archetype": "necromancer",
           "count": 1
         },
         {
@@ -1581,7 +1577,7 @@
     {
       "enemyCount": 10,
       "spawnIntervalSeconds": 0.96,
-      "killGold": 4,
+      "killGold": 5,
       "demandResource": "wood",
       "composition": [
         {
@@ -1606,7 +1602,7 @@
     {
       "enemyCount": 10,
       "spawnIntervalSeconds": 0.94,
-      "killGold": 4,
+      "killGold": 5,
       "demandResource": "ore",
       "composition": [
         {
@@ -1631,7 +1627,7 @@
     {
       "enemyCount": 10,
       "spawnIntervalSeconds": 0.92,
-      "killGold": 4,
+      "killGold": 5,
       "demandResource": "iron",
       "composition": [
         {
@@ -1656,7 +1652,7 @@
     {
       "enemyCount": 11,
       "spawnIntervalSeconds": 0.89,
-      "killGold": 4,
+      "killGold": 5,
       "demandResource": "crystal",
       "composition": [
         {
@@ -1681,7 +1677,7 @@
     {
       "enemyCount": 11,
       "spawnIntervalSeconds": 0.87,
-      "killGold": 4,
+      "killGold": 5,
       "demandResource": "wood",
       "composition": [
         {
@@ -1709,11 +1705,11 @@
       "waitForClear": true,
       "enemyCount": 18,
       "spawnIntervalSeconds": 0.84,
-      "killGold": 4,
+      "killGold": 5,
       "demandResource": "ore",
       "composition": [
         {
-          "archetype": "necromancer",
+          "archetype": "orcKing",
           "count": 1
         },
         {
@@ -1738,7 +1734,7 @@
     {
       "enemyCount": 11,
       "spawnIntervalSeconds": 0.82,
-      "killGold": 4,
+      "killGold": 5,
       "demandResource": "iron",
       "composition": [
         {
@@ -1763,7 +1759,7 @@
     {
       "enemyCount": 11,
       "spawnIntervalSeconds": 0.79,
-      "killGold": 4,
+      "killGold": 5,
       "demandResource": "crystal",
       "composition": [
         {
@@ -1788,7 +1784,7 @@
     {
       "enemyCount": 12,
       "spawnIntervalSeconds": 0.77,
-      "killGold": 5,
+      "killGold": 6,
       "demandResource": "wood",
       "composition": [
         {
@@ -1813,7 +1809,7 @@
     {
       "enemyCount": 12,
       "spawnIntervalSeconds": 0.74,
-      "killGold": 5,
+      "killGold": 6,
       "demandResource": "ore",
       "composition": [
         {
@@ -1838,7 +1834,7 @@
     {
       "enemyCount": 12,
       "spawnIntervalSeconds": 0.72,
-      "killGold": 5,
+      "killGold": 6,
       "demandResource": "iron",
       "composition": [
         {
@@ -1866,7 +1862,7 @@
       "waitForClear": true,
       "enemyCount": 19,
       "spawnIntervalSeconds": 0.7,
-      "killGold": 5,
+      "killGold": 6,
       "demandResource": "crystal",
       "composition": [
         {
@@ -1895,7 +1891,7 @@
     {
       "enemyCount": 13,
       "spawnIntervalSeconds": 0.67,
-      "killGold": 5,
+      "killGold": 6,
       "demandResource": "wood",
       "composition": [
         {
@@ -1920,7 +1916,7 @@
     {
       "enemyCount": 13,
       "spawnIntervalSeconds": 0.65,
-      "killGold": 5,
+      "killGold": 6,
       "demandResource": "ore",
       "composition": [
         {
@@ -1945,7 +1941,7 @@
     {
       "enemyCount": 13,
       "spawnIntervalSeconds": 0.62,
-      "killGold": 5,
+      "killGold": 6,
       "demandResource": "iron",
       "composition": [
         {
@@ -1970,7 +1966,7 @@
     {
       "enemyCount": 13,
       "spawnIntervalSeconds": 0.6,
-      "killGold": 5,
+      "killGold": 6,
       "demandResource": "crystal",
       "composition": [
         {
@@ -1995,7 +1991,7 @@
     {
       "enemyCount": 13,
       "spawnIntervalSeconds": 0.57,
-      "killGold": 6,
+      "killGold": 7,
       "demandResource": "wood",
       "composition": [
         {
@@ -2023,11 +2019,11 @@
       "waitForClear": true,
       "enemyCount": 22,
       "spawnIntervalSeconds": 0.55,
-      "killGold": 6,
+      "killGold": 7,
       "demandResource": "ore",
       "composition": [
         {
-          "archetype": "orcKing",
+          "archetype": "necromancer",
           "count": 1
         },
         {
@@ -2052,7 +2048,7 @@
     {
       "enemyCount": 14,
       "spawnIntervalSeconds": 0.52,
-      "killGold": 6,
+      "killGold": 7,
       "demandResource": "iron",
       "composition": [
         {
@@ -2077,7 +2073,7 @@
     {
       "enemyCount": 14,
       "spawnIntervalSeconds": 0.5,
-      "killGold": 6,
+      "killGold": 7,
       "demandResource": "crystal",
       "composition": [
         {
@@ -2163,7 +2159,7 @@
     "goldPerSecondPerWorkerLevel": 0,
     "collectionIntervalSeconds": 4,
     "workerProductionByLevel": {
-      "1": 4,
+      "1": 5,
       "2": 8,
       "3": 16,
       "4": 34,
@@ -2199,10 +2195,10 @@
         "icon": "🪨",
         "mineName": "Stone Quarry",
         "unlockedByDefault": false,
-        "unlockWave": 2,
+        "unlockWave": 1,
         "buyCost": {},
         "slotUnlockWaves": [
-          2,
+          1,
           8,
           15,
           20

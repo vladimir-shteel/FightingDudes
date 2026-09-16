@@ -260,14 +260,15 @@ function createFortressEnemy(state, archetypeKey) {
   const base = CONFIG.fortressEnemies[archetypeKey];
   const waveBonus = Math.max(0, state.fortress.waveNumber - 1);
   const c = CONFIG.combat ?? {};
-  // Multiplicative wave scaling PRESERVES archetype identity across waves (the old additive
-  // +5(w-1)+0.35(w-1)^2 added a flat HP slab to every archetype and erased the swarm/tank
-  // distinction late). Armor scales multiplicatively too, so it tracks the tier-growth of the
-  // big-hit sources and chip keeps bouncing at every wave.
-  const hp = Math.round(base.hp * (1 + (c.hpScalePerWave ?? 0.14) * waveBonus));
+  // COMPOUNDING wave scaling ((1+k)^(w-1), not linear 1+k*(w-1)). Player power compounds in stream
+  // mode — spawned allies accumulate across waves, spawner tiers multiply — so a linear enemy curve
+  // flatlines around wave 20 and every invested run clears the back half untouched (see
+  // tools/balance-sim). Compounding keeps each wave a real check on the previous investment.
+  // Multiplicative growth also preserves archetype identity across waves (swarm/tank/boss ratios).
+  const hp = Math.round(base.hp * Math.pow(1 + (c.hpScalePerWave ?? 0.14), waveBonus));
   const baseArmor = base.armor ?? 0;
   const armor = baseArmor > 0
-    ? Math.round(baseArmor * (1 + (c.armorScalePerWave ?? 0.10) * waveBonus))
+    ? Math.round(baseArmor * Math.pow(1 + (c.armorScalePerWave ?? 0.10), waveBonus))
     : 0;
   return {
     id: generateId("fortress-enemy"),
@@ -277,7 +278,7 @@ function createFortressEnemy(state, archetypeKey) {
     hp,
     maxHp: hp,
     armor,
-    attack: Math.round(base.attack * (1 + (c.attackScalePerWave ?? 0.06) * waveBonus)),
+    attack: Math.round(base.attack * Math.pow(1 + (c.attackScalePerWave ?? 0.06), waveBonus)),
     cooldownSeconds: base.cooldownSeconds,
     attackTimer: 0,
     range: base.rangeTiles,

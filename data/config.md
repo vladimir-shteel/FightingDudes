@@ -54,9 +54,9 @@ every archetype's HP converging to one flat number by wave 20.
 
 | Path | Type | Description |
 |---|---|---|
-| `combat.hpScalePerWave` | number | Enemy HP multiplier growth per wave. E.g. `0.14` → wave *n* enemy HP = `baseHp × (1 + 0.14 × (n-1))`. |
-| `combat.attackScalePerWave` | number | Enemy attack growth per wave, same formula shape as HP. |
-| `combat.armorScalePerWave` | number | Enemy armor growth per wave — only affects enemies that already have `armor > 0` in `fortressEnemies` (an enemy with 0 base armor never gains any). |
+| `combat.hpScalePerWave` | number | Enemy HP growth rate per wave, COMPOUNDING: `0.07` → wave *n* enemy HP = `baseHp × 1.07^(n-1)`. Compounding (not linear) keeps pace with the player's compounding economy (ally swarm + spawner tiers). |
+| `combat.attackScalePerWave` | number | Enemy attack growth per wave, compounding like HP: `baseAttack × 1.035^(n-1)` (with `0.035`). |
+| `combat.armorScalePerWave` | number | Enemy armor growth per wave, compounding like HP (`baseArmor × 1.035^(n-1)` with `0.035`) — only affects enemies that already have `armor > 0` in `fortressEnemies` (an enemy with 0 base armor never gains any). |
 | `combat.armorMinFraction` | number (0–1) | Armor damage floor. Effective damage = `max(raw × armorMinFraction, raw − armor)` — a hit is **never** reduced below this fraction of its raw value, however high the target's armor. Keeps armor a soft counter (big hits still land) rather than granting immunity. |
 | `combat.unitAttackPerLevel` | number | Attack bonus per **spawner-building level** for allies it trains — e.g. a level-3 Barracks' Warriors hit harder than a level-1 Barracks' Warriors. Multiplier = `1 + unitAttackPerLevel × (buildingLevel - 1)`. |
 | `combat.unitHpPerLevel` | number | Same idea as `unitAttackPerLevel`, but for the trained unit's HP. |
@@ -98,7 +98,7 @@ not how strong anyone is. Changing them rarely needs to track balance changes el
 | `enemyCount` | number | Total enemies this wave spawns. Should equal the sum of `composition[].count` — it's read independently by the UI for progress display, so keep it in sync by hand. |
 | `spawnIntervalSeconds` | number (sec) | Time between individual enemy spawns within the wave. |
 | `gapSeconds` | number (sec) *(optional)* | Pause after this wave finishes (or after its boss is cleared) before the next wave starts. Falls back to top-level `waveGapSeconds` when omitted. Early waves use long breathers (18–24s) so the player can build; boss waves get 12–20s post-clear; late waves settle at ~10s. |
-| `killGold` | number | Gold paid **immediately per kill**. Most early waves use `1`; later waves bump it. |
+| `killGold` | number | Gold paid **immediately per kill**. Tiered in blocks: `2` for waves 1-8, then `3` / `4` / `5` / `6` per 8-wave block, `7` for waves 41-44. |
 | `demandResource` | string (enum) | Which mine resource gets `waveDemand.slotProductionMultiplier` (§1/General has the multiplier; see `waveDemand` below) applied to its slots this wave. **Enum**: any key from `mine.resourceTypes[].key` (`wood`/`ore`/`iron`/`crystal` by default) — never `"gold"`, since gold isn't a mine resource and a demand on it would silently do nothing. |
 | `composition` | array of `{archetype, count}` | Enemy groups for this wave. `expandComposition` round-robins these into an interleaved spawn queue (so a wave with grunt×5 + runner×2 alternates types as they arrive, rather than 5 grunts then 2 runners back to back). |
 | `composition[].archetype` | string (enum) | Which `fortressEnemies` key to spawn. **Enum**: any key in `fortressEnemies` (see below). |
