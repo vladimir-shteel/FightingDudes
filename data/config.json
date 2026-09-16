@@ -3,7 +3,7 @@
   "tickRateMs": 100,
   "goldIcon": "🪙",
   "waveGapSeconds": 8,
-  "startingGold": 40,
+  "startingGold": 50,
   "startingResources": {
     "wood": 110,
     "ore": 60
@@ -11,9 +11,9 @@
   "unitBuyBaseCost": 4,
   "unitBuyExponent": 1.04,
   "combat": {
-    "hpScalePerWave": 0.14,
-    "attackScalePerWave": 0.06,
-    "armorScalePerWave": 0.1,
+    "hpScalePerWave": 0.08,
+    "attackScalePerWave": 0.03,
+    "armorScalePerWave": 0.055,
     "armorMinFraction": 0.15,
     "unitAttackPerLevel": 0.35,
     "unitHpPerLevel": 0.2
@@ -30,10 +30,10 @@
   "abilityCostAccumulation": 1,
   "rewardDraftEnabled": false,
   "resourceCaps": {
-    "wood": 500,
-    "ore": 400,
-    "iron": 300,
-    "crystal": 200
+    "wood": 999999,
+    "ore": 999999,
+    "iron": 999999,
+    "crystal": 999999
   },
   "waveDemand": {
     "slotProductionMultiplier": 1.25
@@ -845,7 +845,7 @@
       ],
       "unlockedByDefault": false,
       "unlockWave": 7,
-      "splashRadius": 1.0,
+      "splashRadius": 1,
       "buyCost": {
         "iron": 60
       },
@@ -889,38 +889,38 @@
     "warrior": {
       "name": "Warrior",
       "icon": "🤺",
-      "hp": 42,
+      "hp": 55,
       "attack": 8,
       "cooldownSeconds": 0.75,
       "rangeTiles": 0.5,
-      "speedTilesPerSecond": 1.45
+      "speedTilesPerSecond": 0.58
     },
     "archer": {
       "name": "Archer",
       "icon": "🧝",
-      "hp": 24,
+      "hp": 31,
       "attack": 7,
       "cooldownSeconds": 1.2,
       "rangeTiles": 2.6,
-      "speedTilesPerSecond": 1.2
+      "speedTilesPerSecond": 0.48
     },
     "rider": {
       "name": "Rider",
       "icon": "🏇",
-      "hp": 58,
+      "hp": 75,
       "attack": 12,
       "cooldownSeconds": 1.1,
       "rangeTiles": 0.45,
-      "speedTilesPerSecond": 1.9
+      "speedTilesPerSecond": 0.76
     },
     "mage": {
       "name": "Mage",
       "icon": "🧙",
-      "hp": 18,
+      "hp": 23,
       "attack": 10,
-      "cooldownSeconds": 1,
+      "cooldownSeconds": 1.0,
       "rangeTiles": 2.4,
-      "speedTilesPerSecond": 1.15,
+      "speedTilesPerSecond": 0.46,
       "splashRadius": 1.5
     }
   },
@@ -928,55 +928,55 @@
     "grunt": {
       "name": "Grunt",
       "icon": "👹",
-      "hp": 28,
+      "hp": 36,
       "attack": 10,
       "cooldownSeconds": 0.8,
       "rangeTiles": 0.42,
-      "speedTilesPerSecond": 0.95,
+      "speedTilesPerSecond": 0.38,
       "tag": "normal",
       "armor": 0
     },
     "runner": {
       "name": "Runner",
       "icon": "🐺",
-      "hp": 18,
+      "hp": 23,
       "attack": 6,
       "cooldownSeconds": 0.7,
       "rangeTiles": 0.42,
-      "speedTilesPerSecond": 1.55,
+      "speedTilesPerSecond": 0.62,
       "tag": "fast",
       "armor": 0
     },
     "armored": {
       "name": "Ogre",
       "icon": "👺",
-      "hp": 60,
+      "hp": 78,
       "attack": 13,
       "cooldownSeconds": 1.1,
       "rangeTiles": 0.42,
-      "speedTilesPerSecond": 0.7,
+      "speedTilesPerSecond": 0.28,
       "tag": "armored",
       "armor": 12
     },
     "archerE": {
       "name": "Sniper",
       "icon": "🏹",
-      "hp": 22,
+      "hp": 29,
       "attack": 9,
       "cooldownSeconds": 1.4,
       "rangeTiles": 2.4,
-      "speedTilesPerSecond": 0.9,
+      "speedTilesPerSecond": 0.36,
       "tag": "ranged",
       "armor": 0
     },
     "orcKing": {
       "name": "Orc King",
       "icon": "🐗",
-      "hp": 240,
+      "hp": 312,
       "attack": 18,
       "cooldownSeconds": 1.1,
       "rangeTiles": 0.5,
-      "speedTilesPerSecond": 0.65,
+      "speedTilesPerSecond": 0.26,
       "tag": "boss",
       "armor": 10,
       "mechanic": {
@@ -988,27 +988,27 @@
     "necromancer": {
       "name": "Necromancer",
       "icon": "💀",
-      "hp": 190,
+      "hp": 247,
       "attack": 12,
       "cooldownSeconds": 1.4,
       "rangeTiles": 2,
-      "speedTilesPerSecond": 0.7,
+      "speedTilesPerSecond": 0.28,
       "tag": "boss",
       "armor": 6,
       "mechanic": {
         "kind": "summon",
         "archetype": "grunt",
-        "intervalSeconds": 6
+        "intervalSeconds": 8
       }
     },
     "breacher": {
       "name": "Breacher",
       "icon": "🐉",
-      "hp": 270,
+      "hp": 351,
       "attack": 26,
       "cooldownSeconds": 1.3,
       "rangeTiles": 0.45,
-      "speedTilesPerSecond": 0.55,
+      "speedTilesPerSecond": 0.22,
       "tag": "boss",
       "armor": 10,
       "mechanic": {
@@ -1019,26 +1019,30 @@
   },
   "fortressWaves": [
     {
-      "enemyCount": 2,
-      "spawnIntervalSeconds": 1.6,
+      "enemyCount": 4,
+      "spawnIntervalSeconds": 1.55,
       "killGold": 1,
       "demandResource": "wood",
       "composition": [
         {
           "archetype": "grunt",
-          "count": 2
+          "count": 3
+        },
+        {
+          "archetype": "runner",
+          "count": 1
         }
       ]
     },
     {
-      "enemyCount": 3,
-      "spawnIntervalSeconds": 1.6,
+      "enemyCount": 4,
+      "spawnIntervalSeconds": 1.53,
       "killGold": 1,
       "demandResource": "ore",
       "composition": [
         {
           "archetype": "grunt",
-          "count": 2
+          "count": 3
         },
         {
           "archetype": "runner",
@@ -1047,14 +1051,14 @@
       ]
     },
     {
-      "enemyCount": 6,
-      "spawnIntervalSeconds": 1.2,
+      "enemyCount": 4,
+      "spawnIntervalSeconds": 1.5,
       "killGold": 1,
       "demandResource": "wood",
       "composition": [
         {
           "archetype": "grunt",
-          "count": 5
+          "count": 3
         },
         {
           "archetype": "runner",
@@ -1063,21 +1067,33 @@
       ]
     },
     {
-      "enemyCount": 8,
-      "spawnIntervalSeconds": 1,
+      "enemyCount": 5,
+      "spawnIntervalSeconds": 1.48,
       "killGold": 1,
-      "demandResource": "iron",
+      "demandResource": "ore",
       "composition": [
         {
           "archetype": "grunt",
-          "count": 5
+          "count": 4
         },
         {
           "archetype": "runner",
-          "count": 2
+          "count": 1
+        }
+      ]
+    },
+    {
+      "enemyCount": 5,
+      "spawnIntervalSeconds": 1.45,
+      "killGold": 1,
+      "demandResource": "ore",
+      "composition": [
+        {
+          "archetype": "grunt",
+          "count": 4
         },
         {
-          "archetype": "armored",
+          "archetype": "runner",
           "count": 1
         }
       ]
@@ -1087,9 +1103,9 @@
       "isBoss": true,
       "waitForClear": true,
       "enemyCount": 10,
-      "spawnIntervalSeconds": 0.96,
+      "spawnIntervalSeconds": 1.43,
       "killGold": 1,
-      "demandResource": "ore",
+      "demandResource": "iron",
       "composition": [
         {
           "archetype": "orcKing",
@@ -1097,19 +1113,7 @@
         },
         {
           "archetype": "grunt",
-          "count": 9
-        }
-      ]
-    },
-    {
-      "enemyCount": 11,
-      "spawnIntervalSeconds": 0.93,
-      "killGold": 1,
-      "demandResource": "iron",
-      "composition": [
-        {
-          "archetype": "grunt",
-          "count": 7
+          "count": 6
         },
         {
           "archetype": "runner",
@@ -1118,82 +1122,106 @@
         {
           "archetype": "armored",
           "count": 1
-        },
-        {
-          "archetype": "archerE",
-          "count": 1
         }
       ]
     },
     {
-      "enemyCount": 12,
-      "spawnIntervalSeconds": 0.9,
+      "enemyCount": 6,
+      "spawnIntervalSeconds": 1.4,
       "killGold": 1,
       "demandResource": "wood",
       "composition": [
         {
           "archetype": "grunt",
-          "count": 8
+          "count": 4
         },
         {
           "archetype": "runner",
-          "count": 2
-        },
-        {
-          "archetype": "armored",
           "count": 1
         },
         {
-          "archetype": "archerE",
+          "archetype": "armored",
           "count": 1
         }
       ]
     },
     {
-      "enemyCount": 14,
-      "spawnIntervalSeconds": 0.87,
+      "enemyCount": 6,
+      "spawnIntervalSeconds": 1.38,
       "killGold": 1,
-      "demandResource": "crystal",
+      "demandResource": "ore",
       "composition": [
         {
           "archetype": "grunt",
-          "count": 7
+          "count": 4
         },
         {
           "archetype": "runner",
-          "count": 3
+          "count": 1
         },
         {
           "archetype": "armored",
-          "count": 2
-        },
-        {
-          "archetype": "archerE",
-          "count": 2
+          "count": 1
         }
       ]
     },
     {
-      "enemyCount": 15,
-      "spawnIntervalSeconds": 0.84,
-      "killGold": 1,
+      "enemyCount": 7,
+      "spawnIntervalSeconds": 1.35,
+      "killGold": 2,
       "demandResource": "iron",
       "composition": [
         {
           "archetype": "grunt",
-          "count": 8
+          "count": 4
         },
         {
           "archetype": "runner",
-          "count": 3
+          "count": 2
         },
         {
           "archetype": "armored",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "enemyCount": 7,
+      "spawnIntervalSeconds": 1.33,
+      "killGold": 2,
+      "demandResource": "ore",
+      "composition": [
+        {
+          "archetype": "grunt",
+          "count": 4
+        },
+        {
+          "archetype": "runner",
           "count": 2
         },
         {
-          "archetype": "archerE",
+          "archetype": "armored",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "enemyCount": 7,
+      "spawnIntervalSeconds": 1.31,
+      "killGold": 2,
+      "demandResource": "iron",
+      "composition": [
+        {
+          "archetype": "grunt",
+          "count": 4
+        },
+        {
+          "archetype": "runner",
           "count": 2
+        },
+        {
+          "archetype": "armored",
+          "count": 1
         }
       ]
     },
@@ -1201,9 +1229,9 @@
       "type": "boss",
       "isBoss": true,
       "waitForClear": true,
-      "enemyCount": 17,
-      "spawnIntervalSeconds": 0.8,
-      "killGold": 1,
+      "enemyCount": 12,
+      "spawnIntervalSeconds": 1.28,
+      "killGold": 2,
       "demandResource": "crystal",
       "composition": [
         {
@@ -1212,107 +1240,135 @@
         },
         {
           "archetype": "grunt",
-          "count": 10
+          "count": 6
         },
         {
           "archetype": "runner",
-          "count": 6
+          "count": 3
+        },
+        {
+          "archetype": "armored",
+          "count": 2
         }
       ]
     },
     {
-      "enemyCount": 18,
-      "spawnIntervalSeconds": 0.78,
-      "killGold": 1,
+      "enemyCount": 8,
+      "spawnIntervalSeconds": 1.26,
+      "killGold": 2,
       "demandResource": "wood",
       "composition": [
         {
           "archetype": "grunt",
-          "count": 10
-        },
-        {
-          "archetype": "runner",
           "count": 4
         },
         {
-          "archetype": "armored",
+          "archetype": "runner",
           "count": 2
         },
         {
+          "archetype": "armored",
+          "count": 1
+        },
+        {
           "archetype": "archerE",
-          "count": 2
+          "count": 1
         }
       ]
     },
     {
-      "enemyCount": 20,
-      "spawnIntervalSeconds": 0.75,
-      "killGold": 1,
+      "enemyCount": 8,
+      "spawnIntervalSeconds": 1.23,
+      "killGold": 2,
       "demandResource": "ore",
       "composition": [
         {
           "archetype": "grunt",
-          "count": 12
-        },
-        {
-          "archetype": "runner",
           "count": 4
         },
         {
-          "archetype": "armored",
+          "archetype": "runner",
           "count": 2
         },
         {
+          "archetype": "armored",
+          "count": 1
+        },
+        {
           "archetype": "archerE",
-          "count": 2
+          "count": 1
         }
       ]
     },
     {
-      "enemyCount": 21,
-      "spawnIntervalSeconds": 0.72,
-      "killGold": 1,
+      "enemyCount": 8,
+      "spawnIntervalSeconds": 1.21,
+      "killGold": 2,
       "demandResource": "iron",
       "composition": [
         {
           "archetype": "grunt",
-          "count": 11
-        },
-        {
-          "archetype": "runner",
           "count": 4
         },
         {
+          "archetype": "runner",
+          "count": 2
+        },
+        {
           "archetype": "armored",
-          "count": 3
+          "count": 1
         },
         {
           "archetype": "archerE",
-          "count": 3
+          "count": 1
         }
       ]
     },
     {
-      "enemyCount": 23,
-      "spawnIntervalSeconds": 0.7,
+      "enemyCount": 8,
+      "spawnIntervalSeconds": 1.18,
       "killGold": 2,
       "demandResource": "crystal",
       "composition": [
         {
           "archetype": "grunt",
-          "count": 12
+          "count": 4
         },
         {
           "archetype": "runner",
-          "count": 5
+          "count": 2
         },
         {
           "archetype": "armored",
-          "count": 3
+          "count": 1
         },
         {
           "archetype": "archerE",
-          "count": 3
+          "count": 1
+        }
+      ]
+    },
+    {
+      "enemyCount": 8,
+      "spawnIntervalSeconds": 1.16,
+      "killGold": 3,
+      "demandResource": "wood",
+      "composition": [
+        {
+          "archetype": "grunt",
+          "count": 4
+        },
+        {
+          "archetype": "runner",
+          "count": 2
+        },
+        {
+          "archetype": "armored",
+          "count": 1
+        },
+        {
+          "archetype": "archerE",
+          "count": 1
         }
       ]
     },
@@ -1320,10 +1376,161 @@
       "type": "boss",
       "isBoss": true,
       "waitForClear": true,
-      "enemyCount": 25,
-      "spawnIntervalSeconds": 0.67,
-      "killGold": 2,
+      "enemyCount": 15,
+      "spawnIntervalSeconds": 1.13,
+      "killGold": 3,
+      "demandResource": "ore",
+      "composition": [
+        {
+          "archetype": "breacher",
+          "count": 1
+        },
+        {
+          "archetype": "grunt",
+          "count": 6
+        },
+        {
+          "archetype": "runner",
+          "count": 3
+        },
+        {
+          "archetype": "armored",
+          "count": 2
+        },
+        {
+          "archetype": "archerE",
+          "count": 3
+        }
+      ]
+    },
+    {
+      "enemyCount": 9,
+      "spawnIntervalSeconds": 1.11,
+      "killGold": 3,
       "demandResource": "iron",
+      "composition": [
+        {
+          "archetype": "grunt",
+          "count": 4
+        },
+        {
+          "archetype": "runner",
+          "count": 2
+        },
+        {
+          "archetype": "armored",
+          "count": 1
+        },
+        {
+          "archetype": "archerE",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "enemyCount": 9,
+      "spawnIntervalSeconds": 1.09,
+      "killGold": 3,
+      "demandResource": "crystal",
+      "composition": [
+        {
+          "archetype": "grunt",
+          "count": 4
+        },
+        {
+          "archetype": "runner",
+          "count": 2
+        },
+        {
+          "archetype": "armored",
+          "count": 1
+        },
+        {
+          "archetype": "archerE",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "enemyCount": 9,
+      "spawnIntervalSeconds": 1.06,
+      "killGold": 3,
+      "demandResource": "wood",
+      "composition": [
+        {
+          "archetype": "grunt",
+          "count": 4
+        },
+        {
+          "archetype": "runner",
+          "count": 2
+        },
+        {
+          "archetype": "armored",
+          "count": 1
+        },
+        {
+          "archetype": "archerE",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "enemyCount": 9,
+      "spawnIntervalSeconds": 1.04,
+      "killGold": 3,
+      "demandResource": "ore",
+      "composition": [
+        {
+          "archetype": "grunt",
+          "count": 4
+        },
+        {
+          "archetype": "runner",
+          "count": 2
+        },
+        {
+          "archetype": "armored",
+          "count": 1
+        },
+        {
+          "archetype": "archerE",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "enemyCount": 10,
+      "spawnIntervalSeconds": 1.01,
+      "killGold": 3,
+      "demandResource": "iron",
+      "composition": [
+        {
+          "archetype": "grunt",
+          "count": 5
+        },
+        {
+          "archetype": "runner",
+          "count": 2
+        },
+        {
+          "archetype": "armored",
+          "count": 1
+        },
+        {
+          "archetype": "archerE",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "type": "boss",
+      "isBoss": true,
+      "waitForClear": true,
+      "enemyCount": 16,
+      "spawnIntervalSeconds": 0.99,
+      "killGold": 3,
+      "demandResource": "crystal",
       "composition": [
         {
           "archetype": "orcKing",
@@ -1331,111 +1538,139 @@
         },
         {
           "archetype": "grunt",
-          "count": 13
+          "count": 7
         },
         {
           "archetype": "runner",
-          "count": 6
+          "count": 3
         },
         {
           "archetype": "armored",
-          "count": 5
+          "count": 2
+        },
+        {
+          "archetype": "archerE",
+          "count": 3
         }
       ]
     },
     {
-      "enemyCount": 26,
-      "spawnIntervalSeconds": 0.65,
-      "killGold": 2,
+      "enemyCount": 10,
+      "spawnIntervalSeconds": 0.96,
+      "killGold": 4,
       "demandResource": "wood",
       "composition": [
         {
           "archetype": "grunt",
-          "count": 15
+          "count": 4
         },
         {
           "archetype": "runner",
-          "count": 5
+          "count": 2
         },
         {
           "archetype": "armored",
-          "count": 3
+          "count": 2
         },
         {
           "archetype": "archerE",
-          "count": 3
+          "count": 2
         }
       ]
     },
     {
-      "enemyCount": 28,
-      "spawnIntervalSeconds": 0.63,
-      "killGold": 2,
-      "demandResource": "crystal",
-      "composition": [
-        {
-          "archetype": "grunt",
-          "count": 16
-        },
-        {
-          "archetype": "runner",
-          "count": 6
-        },
-        {
-          "archetype": "armored",
-          "count": 3
-        },
-        {
-          "archetype": "archerE",
-          "count": 3
-        }
-      ]
-    },
-    {
-      "enemyCount": 30,
-      "spawnIntervalSeconds": 0.61,
-      "killGold": 2,
+      "enemyCount": 10,
+      "spawnIntervalSeconds": 0.94,
+      "killGold": 4,
       "demandResource": "ore",
       "composition": [
         {
           "archetype": "grunt",
-          "count": 16
+          "count": 4
         },
         {
           "archetype": "runner",
-          "count": 6
+          "count": 2
         },
         {
           "archetype": "armored",
-          "count": 4
+          "count": 2
         },
         {
           "archetype": "archerE",
-          "count": 4
+          "count": 2
         }
       ]
     },
     {
-      "enemyCount": 32,
-      "spawnIntervalSeconds": 0.59,
-      "killGold": 2,
+      "enemyCount": 10,
+      "spawnIntervalSeconds": 0.92,
+      "killGold": 4,
       "demandResource": "iron",
       "composition": [
         {
           "archetype": "grunt",
-          "count": 18
+          "count": 4
         },
         {
           "archetype": "runner",
-          "count": 6
+          "count": 2
         },
         {
           "archetype": "armored",
-          "count": 4
+          "count": 2
         },
         {
           "archetype": "archerE",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "enemyCount": 11,
+      "spawnIntervalSeconds": 0.89,
+      "killGold": 4,
+      "demandResource": "crystal",
+      "composition": [
+        {
+          "archetype": "grunt",
           "count": 4
+        },
+        {
+          "archetype": "runner",
+          "count": 2
+        },
+        {
+          "archetype": "armored",
+          "count": 2
+        },
+        {
+          "archetype": "archerE",
+          "count": 3
+        }
+      ]
+    },
+    {
+      "enemyCount": 11,
+      "spawnIntervalSeconds": 0.87,
+      "killGold": 4,
+      "demandResource": "wood",
+      "composition": [
+        {
+          "archetype": "grunt",
+          "count": 4
+        },
+        {
+          "archetype": "runner",
+          "count": 2
+        },
+        {
+          "archetype": "armored",
+          "count": 2
+        },
+        {
+          "archetype": "archerE",
+          "count": 3
         }
       ]
     },
@@ -1443,9 +1678,160 @@
       "type": "boss",
       "isBoss": true,
       "waitForClear": true,
-      "enemyCount": 34,
-      "spawnIntervalSeconds": 0.57,
-      "killGold": 2,
+      "enemyCount": 18,
+      "spawnIntervalSeconds": 0.84,
+      "killGold": 4,
+      "demandResource": "ore",
+      "composition": [
+        {
+          "archetype": "necromancer",
+          "count": 1
+        },
+        {
+          "archetype": "grunt",
+          "count": 7
+        },
+        {
+          "archetype": "runner",
+          "count": 3
+        },
+        {
+          "archetype": "armored",
+          "count": 3
+        },
+        {
+          "archetype": "archerE",
+          "count": 4
+        }
+      ]
+    },
+    {
+      "enemyCount": 11,
+      "spawnIntervalSeconds": 0.82,
+      "killGold": 4,
+      "demandResource": "iron",
+      "composition": [
+        {
+          "archetype": "grunt",
+          "count": 4
+        },
+        {
+          "archetype": "runner",
+          "count": 2
+        },
+        {
+          "archetype": "armored",
+          "count": 2
+        },
+        {
+          "archetype": "archerE",
+          "count": 3
+        }
+      ]
+    },
+    {
+      "enemyCount": 11,
+      "spawnIntervalSeconds": 0.79,
+      "killGold": 4,
+      "demandResource": "crystal",
+      "composition": [
+        {
+          "archetype": "grunt",
+          "count": 4
+        },
+        {
+          "archetype": "runner",
+          "count": 2
+        },
+        {
+          "archetype": "armored",
+          "count": 2
+        },
+        {
+          "archetype": "archerE",
+          "count": 3
+        }
+      ]
+    },
+    {
+      "enemyCount": 12,
+      "spawnIntervalSeconds": 0.77,
+      "killGold": 5,
+      "demandResource": "wood",
+      "composition": [
+        {
+          "archetype": "grunt",
+          "count": 5
+        },
+        {
+          "archetype": "runner",
+          "count": 2
+        },
+        {
+          "archetype": "armored",
+          "count": 2
+        },
+        {
+          "archetype": "archerE",
+          "count": 3
+        }
+      ]
+    },
+    {
+      "enemyCount": 12,
+      "spawnIntervalSeconds": 0.74,
+      "killGold": 5,
+      "demandResource": "ore",
+      "composition": [
+        {
+          "archetype": "grunt",
+          "count": 5
+        },
+        {
+          "archetype": "runner",
+          "count": 2
+        },
+        {
+          "archetype": "armored",
+          "count": 2
+        },
+        {
+          "archetype": "archerE",
+          "count": 3
+        }
+      ]
+    },
+    {
+      "enemyCount": 12,
+      "spawnIntervalSeconds": 0.72,
+      "killGold": 5,
+      "demandResource": "iron",
+      "composition": [
+        {
+          "archetype": "grunt",
+          "count": 5
+        },
+        {
+          "archetype": "runner",
+          "count": 2
+        },
+        {
+          "archetype": "armored",
+          "count": 2
+        },
+        {
+          "archetype": "archerE",
+          "count": 3
+        }
+      ]
+    },
+    {
+      "type": "boss",
+      "isBoss": true,
+      "waitForClear": true,
+      "enemyCount": 19,
+      "spawnIntervalSeconds": 0.7,
+      "killGold": 5,
       "demandResource": "crystal",
       "composition": [
         {
@@ -1454,83 +1840,162 @@
         },
         {
           "archetype": "grunt",
-          "count": 15
+          "count": 7
         },
         {
           "archetype": "runner",
-          "count": 8
+          "count": 3
         },
         {
           "archetype": "armored",
-          "count": 5
+          "count": 4
         },
         {
           "archetype": "archerE",
-          "count": 5
+          "count": 4
         }
       ]
     },
     {
-      "enemyCount": 36,
-      "spawnIntervalSeconds": 0.55,
-      "killGold": 2,
+      "enemyCount": 13,
+      "spawnIntervalSeconds": 0.67,
+      "killGold": 5,
       "demandResource": "wood",
       "composition": [
         {
           "archetype": "grunt",
-          "count": 21
+          "count": 5
         },
         {
           "archetype": "runner",
-          "count": 7
+          "count": 2
         },
         {
           "archetype": "armored",
-          "count": 4
+          "count": 3
         },
         {
           "archetype": "archerE",
-          "count": 4
+          "count": 3
         }
       ]
     },
     {
-      "enemyCount": 38,
-      "spawnIntervalSeconds": 0.53,
-      "killGold": 2,
+      "enemyCount": 13,
+      "spawnIntervalSeconds": 0.65,
+      "killGold": 5,
       "demandResource": "ore",
       "composition": [
         {
           "archetype": "grunt",
-          "count": 20
+          "count": 5
         },
         {
           "archetype": "runner",
-          "count": 8
+          "count": 2
         },
         {
           "archetype": "armored",
-          "count": 5
+          "count": 3
         },
         {
           "archetype": "archerE",
-          "count": 5
+          "count": 3
         }
       ]
     },
     {
-      "enemyCount": 41,
-      "spawnIntervalSeconds": 0.51,
-      "killGold": 2,
+      "enemyCount": 13,
+      "spawnIntervalSeconds": 0.62,
+      "killGold": 5,
       "demandResource": "iron",
       "composition": [
         {
           "archetype": "grunt",
-          "count": 23
+          "count": 5
         },
         {
           "archetype": "runner",
+          "count": 2
+        },
+        {
+          "archetype": "armored",
+          "count": 3
+        },
+        {
+          "archetype": "archerE",
+          "count": 3
+        }
+      ]
+    },
+    {
+      "enemyCount": 13,
+      "spawnIntervalSeconds": 0.6,
+      "killGold": 5,
+      "demandResource": "crystal",
+      "composition": [
+        {
+          "archetype": "grunt",
+          "count": 5
+        },
+        {
+          "archetype": "runner",
+          "count": 2
+        },
+        {
+          "archetype": "armored",
+          "count": 3
+        },
+        {
+          "archetype": "archerE",
+          "count": 3
+        }
+      ]
+    },
+    {
+      "enemyCount": 13,
+      "spawnIntervalSeconds": 0.57,
+      "killGold": 6,
+      "demandResource": "wood",
+      "composition": [
+        {
+          "archetype": "grunt",
+          "count": 5
+        },
+        {
+          "archetype": "runner",
+          "count": 2
+        },
+        {
+          "archetype": "armored",
+          "count": 3
+        },
+        {
+          "archetype": "archerE",
+          "count": 3
+        }
+      ]
+    },
+    {
+      "type": "boss",
+      "isBoss": true,
+      "waitForClear": true,
+      "enemyCount": 22,
+      "spawnIntervalSeconds": 0.55,
+      "killGold": 6,
+      "demandResource": "ore",
+      "composition": [
+        {
+          "archetype": "orcKing",
+          "count": 1
+        },
+        {
+          "archetype": "grunt",
           "count": 8
+        },
+        {
+          "archetype": "runner",
+          "count": 3
         },
         {
           "archetype": "armored",
@@ -1543,26 +2008,50 @@
       ]
     },
     {
-      "enemyCount": 44,
+      "enemyCount": 14,
+      "spawnIntervalSeconds": 0.52,
+      "killGold": 6,
+      "demandResource": "iron",
+      "composition": [
+        {
+          "archetype": "grunt",
+          "count": 5
+        },
+        {
+          "archetype": "runner",
+          "count": 2
+        },
+        {
+          "archetype": "armored",
+          "count": 4
+        },
+        {
+          "archetype": "archerE",
+          "count": 3
+        }
+      ]
+    },
+    {
+      "enemyCount": 14,
       "spawnIntervalSeconds": 0.5,
-      "killGold": 2,
+      "killGold": 6,
       "demandResource": "crystal",
       "composition": [
         {
           "archetype": "grunt",
-          "count": 25
+          "count": 5
         },
         {
           "archetype": "runner",
-          "count": 9
+          "count": 2
         },
         {
           "archetype": "armored",
-          "count": 5
+          "count": 4
         },
         {
           "archetype": "archerE",
-          "count": 5
+          "count": 3
         }
       ]
     }
