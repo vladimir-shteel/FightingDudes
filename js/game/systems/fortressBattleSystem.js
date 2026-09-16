@@ -798,7 +798,7 @@ function updateBattleMessage(state) {
     return;
   }
   if (stream && stream.phase === "done") {
-    state.fortress.message = `Final wave underway. ${aliveEnemies} enemies remain.`;
+    state.fortress.message = `Clearing final wave: ${aliveEnemies} enemies remaining.`;
     return;
   }
   state.fortress.message =

@@ -44,9 +44,9 @@ survives a fixed sequence of enemy waves. It replaces an earlier, structurally d
 - `fortress` — the whole build/battle side of the game, from `fortressSystem.createFortressState()`:
   `field` (an 8×5 tile array, each `{x, y, occupant}` where occupant is `null`, `"obstacle"`, or
   `{buildingId}`), `buildings` (starts with just the HQ), `obstacleRemovalCost` (rises each use),
-  `waveNumber`, `unlockedBuildingTypes`, `pendingRewardDraft` (victory-reward cards awaiting a pick),
-  `earlyStart` (a shrinking gold bonus window for starting the next wave quickly), and `battle`
-  (`active`, `enemies`, `allies`, `projectiles`, spawn queue/counters, `result`).
+  `waveNumber`, `unlockedBuildingTypes`, `pendingRewardDrafts[]` (a queue of boss-wave reward drafts
+  awaiting a pick), `stream` (the continuous-wave state machine — see **Continuous stream mode (v2)**
+  below), and `battle` (`active`, `enemies`, `allies`, `projectiles`, spawn queue/counters, `result`).
 - `reserveUnits` — mergeable workers not currently staffing a mine.
 - `mines` — one per `CONFIG.mine.resourceTypes` entry (`createMine`), each with its own `workerIds`/
   `workerProgress` arrays, unlock state, purchased-slot bitmap, and level.
@@ -56,8 +56,8 @@ survives a fixed sequence of enemy waves. It replaces an earlier, structurally d
 - `ui` — `selectedUnitId`, `dragUnitId`, `fortressPopup`, `workerActionPopup`, `handledResourceBurstIds`,
   `isCheatsOpen`. Drives which popover/selection state the renderer shows; no drag-and-drop payload.
 - `resourceBursts` — short-lived payout events the UI turns into flying resource-chip animations.
-- `game` — `{ isOver, result }`, set once the final wave is cleared or the HQ falls in a way the player
-  doesn't retry (see fortress battle system below — most defeats are just a retryable wave loss).
+- `game` — `{ isOver, result }`, set once the stream reaches `done` with no enemies left (victory) or
+  the HQ's `hp` drops to 0 (defeat) — both are terminal now; see **Continuous stream mode (v2)** below.
 
 ## Main Systems
 
@@ -124,44 +124,26 @@ survives a fixed sequence of enemy waves. It replaces an earlier, structurally d
   hits bounce to ~15%, so burst damage (turret/mine) is the efficient counter, but nothing is fully immune.
 - **Boss mechanics** (`tickBossMechanic`): `aura` (periodic AoE damage to nearby allies/buildings every
   `combatEngine.bossAuraTickSeconds`) or `summon` (spawns another enemy archetype on an interval).
-- **Wave lifecycle** (`startFortressBattle`/`tickFortressBattle`/`finishBattle`): a wave ends when the
-  HQ dies (defeat) or the spawn queue and all enemies are gone (victory).
-  - **Attrition** (defeat): each defeat adds `attrition.floorPerDefeat` to a building's permanent
-    `damageFloor`; its restored HP fraction is `attrition.postDefeatHpFraction − damageFloor`, so
-    repeated losses squeeze how much a destroyed building comes back with until it's repaired.
-  - **Attrition** (victory): `damageFloor` clears, but buildings keep whatever HP they lost *this*
-    fight — you repair between waves with resources. Any building left at 0 HP is pulled back up to
-    `attrition.postDefeatHpFraction` so a win can never delete your defense outright.
-  - Victory pays `wave.victoryGold`, advances `waveNumber`, rolls a new reward draft
-    (`upgradeSystem.rollUpgradeChoices`), and opens the next wave's early-start bonus window.
-  - `giveUpFortressBattle` resolves an unwinnable fight as an ordinary (retryable) defeat.
-- **Per-kill gold** (`awardEnemyKillGold`): each wave may set `killGold`, paid immediately per kill, on
-  top of the lump `victoryGold` at the end.
+- **Wave lifecycle**: waves are no longer discrete start/end events the player triggers — see
+  **Continuous stream mode (v2)** below for the streaming state machine that now owns spawning,
+  pacing, rewards, and win/loss detection (`tickFortressBattle`/`updateBattleMessage`).
+- **Per-kill gold** (`awardEnemyKillGold`): each wave sets `killGold`, paid immediately per kill.
 
-### `mineSystem.js` — resource production and the worker "battle shift"
+### `mineSystem.js` — resource production
 - **Production** (`tickMineProduction`): each occupied, purchased slot accumulates progress and pays
   out on a rolling collection interval. `config.json → mine`'s `workerProductionByLevel` table is the
   preferred source of the per-payout amount (`amount[workerLevel] × slotProductionMultiplier`); an
   older flat `baseProductionPerSecond × level × seconds` formula is a fallback if that table is absent.
-  A **passive gold trickle** runs independently per unlocked mine (`passiveGoldPerSecondPerUnlockedMine`
-  every `passiveGoldPayoutIntervalSeconds`) purely so the game can't soft-lock after every worker gets
-  committed to battle.
-- **Battle shift** (`autoCommitBattleShifts`/`accrueWorkerRest`/`consumeShiftRestFlags`): each worker
-  has a "desired mine" and a pool of rest charges (`getMaxRestCharges` scales with level). A worker
-  parked on its desired mine with charges left auto-commits when a battle starts (up to
-  `workerTraits.battleShift.maxCommitsPerMine` per mine), spending one charge for a production-rate
-  *frequency* boost during that battle (payout interval divided by the worker's Rush multiplier — the
-  lump size per payout is unchanged, so the mine visibly "pumps" faster rather than silently paying
-  more). A worker NOT on its desired mine (in reserve, or staffing a different one) still mines at the
-  normal rate and regains `workerTraits.battleShift.restRechargePerWave` rest per wave. Once a shifted
-  worker exhausts its charges, its desired mine re-rolls to a different open mine.
-  There is intentionally **no blanket in-battle production multiplier** — the shift mechanic is the
-  only lever for in-battle mining engagement.
+  Every worker mines at the same rate whether a battle is active or not — the worker-shift/rest system
+  that used to modulate this per-worker during battle has been removed (stage 2 of the continuous-stream
+  rework). A **passive gold trickle** runs independently per unlocked mine
+  (`passiveGoldPerSecondPerUnlockedMine` every `passiveGoldPayoutIntervalSeconds`) purely so the game
+  can't soft-lock after every worker gets committed to battle.
 - **Wave demand** (`getCurrentWaveDemandResource`/`getDemandMultiplier`): the active wave can name one
   resource; mines producing it get `waveDemand.slotProductionMultiplier` (plus any capstone demand bonus).
 - Worker placement/movement (`assignReserveUnitToMine`, `moveMineUnitToMineSlot`,
-  `mergeReserveUnitIntoMineUnit`, `returnMineUnitToReserve`…) all respect
-  `isWorkerBattleShiftLocked` — a committed worker can't be pulled or merged mid-battle.
+  `mergeReserveUnitIntoMineUnit`, `returnMineUnitToReserve`…) work the same whether or not a battle is
+  active — there is no more shift-lock preventing a worker from being pulled or merged mid-battle.
 
 ### `workerTraitSystem.js` — Yield/Rush traits and merge capstones
 - Every new worker rolls a trait vector across two lines — **Yield** (production multiplier),
@@ -236,6 +218,40 @@ survives a fixed sequence of enemy waves. It replaces an earlier, structurally d
   it, tap another card or an empty mine slot to assign/merge/move it, tap an empty fortress tile to
   buy-and-auto-place a building or clear an obstacle, tap a placed building for a popup
   (Repair/Demolish/Move/Use-Active). Victory-reward and capstone choices render as modal overlay cards.
+
+## Continuous stream mode (v2)
+
+Waves used to be discrete: the player pressed a per-wave start button, fought, and the match paused
+between waves for the player to repair/shop. That model is gone. The match now starts with a single
+click and waves flow continuously until the run ends.
+
+- **Starting a match**: one click on `#fortressFightButton` (labelled **Start**) calls
+  `startFortressBattle`, which activates `state.fortress.stream`. There is no per-wave start button and
+  no early-start bonus window (`earlyStart` no longer exists on `state.fortress`).
+- **The stream state machine** lives in `state.fortress.stream` (`active`, `phase`,
+  `currentWaveIndex`, `gapTimer`) and is driven by `tickFortressBattle`
+  (`js/game/systems/fortressBattleSystem.js`). Phases: `idle → spawning → gap → spawning (next
+  wave) → … → done`. A boss wave (`wave.waitForClear: true`) substitutes `waitClear` for `gap`: the
+  stream holds there until the field is fully clear of enemies before advancing, instead of just
+  waiting out a timer.
+  - `gap` waits `CONFIG.waveGapSeconds` (global) between non-boss waves.
+  - `waitClear` (boss waves only) waits for `enemies.length === 0` regardless of elapsed time.
+  - `done` is reached once every wave in `CONFIG.fortressWaves` has been dispatched. **Victory** is
+    `phase === "done" && enemies.length === 0`. **Defeat** is HQ `hp <= 0` at any point — it ends the
+    match outright now; a lost wave no longer resets to a retryable state.
+- **Rewards**: a boss wave's `waitClear → gap` transition pushes a fresh reward draft onto
+  `state.fortress.pendingRewardDrafts[]` (queue, not a single slot) — 4 drafts total across a full run.
+  The `#upgradeOverlay` modal is **non-blocking**: the game keeps running behind it, and
+  `#upgradeAvailableButton` pulses to prompt the player to open the queued draft(s) on their own time.
+  `CONFIG.rewardDraftEnabled` gates the whole feature — currently `false`, so no cards drop yet.
+- **Repair / Move / Demolish** are casts, not instant actions: triggering one sets
+  `building.casting = { kind, startedAt, durationSeconds, ... }`, and `tickBuildingCasts` (called from
+  the main loop) resolves it once its duration elapses. **Merge remains instant** — it does not use the
+  casting system.
+- **Removed**: worker battle-shift/rest, attrition (`damageFloor`/`postDefeatHpFraction`), and the
+  per-wave lifecycle functions `finishBattle`, `giveUpFortressBattle`, `earlyStart`,
+  `beginFortressWave`, `endFortressWave` no longer exist anywhere in the codebase. Do not reference them
+  when describing current behavior.
 
 ## Config Editor & Dev Tools
 
@@ -350,10 +366,10 @@ Top-level keys in `data/config.json`:
 - `fortressEnemies` — base stats per enemy archetype, plus an optional `mechanic` block (`aura`,
   `summon`, or `breach`) for the three boss archetypes.
 - `fortressWaves` — an ordered array, one entry per wave: `enemyCount`, `spawnIntervalSeconds`,
-  `killGold`, `victoryGold`, optional `startBonusGold`/`startBonusWindowSeconds` (the early-start
-  bonus), `demandResource`, and `composition` (an array of `{archetype, count}` groups that
+  `killGold`, `demandResource`, and `composition` (an array of `{archetype, count}` groups that
   `expandComposition` round-robins into an interleaved spawn queue rather than spawning one group at a
-  time). Boss waves add `"type": "boss"`/`"isBoss": true` as a display flag.
+  time). Boss waves add `"type": "boss"`/`"isBoss": true` as a display flag and, functionally,
+  `waitForClear: true` (see **Continuous stream mode (v2)**).
 
 ## Extension Points
 
@@ -378,8 +394,8 @@ Top-level keys in `data/config.json`:
 
 - Building purchase auto-places on a random valid tile; the player repositions with **Move** rather
   than dragging a placement preview.
-- Loss is a retryable *wave* loss (attrition damages/floors buildings but the run continues), not a
-  terminal game state — `game.isOver` is only set on the final-wave victory.
+- Loss is terminal: HQ `hp` reaching 0 sets `game.isOver` immediately, same as clearing the final wave.
+  There is no retryable-wave/attrition safety net anymore (see **Continuous stream mode (v2)**).
 - Reward cards deliberately never bypass wave/crystal gates, even the "free" one-shot ones.
 - Because data loads through `fetch()`, the prototype must be opened through a local/static web server
   (see `start-server.bat`) or GitHub Pages — not directly as `file://`.

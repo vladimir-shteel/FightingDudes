@@ -102,14 +102,11 @@ not how strong anyone is. Changing them rarely needs to track balance changes el
 |---|---|---|
 | `enemyCount` | number | Total enemies this wave spawns. Should equal the sum of `composition[].count` — it's read independently by the UI for progress display, so keep it in sync by hand. |
 | `spawnIntervalSeconds` | number (sec) | Time between individual enemy spawns within the wave. |
-| `killGold` | number | Gold paid **immediately per kill**, on top of the lump `victoryGold` at wave's end. Most early waves use `1`; later waves bump it. |
-| `victoryGold` | number | Lump gold bonus paid once the wave is fully cleared. |
+| `killGold` | number | Gold paid **immediately per kill**. Most early waves use `1`; later waves bump it. |
 | `demandResource` | string (enum) | Which mine resource gets `waveDemand.slotProductionMultiplier` (§1/General has the multiplier; see `waveDemand` below) applied to its slots this wave. **Enum**: any key from `mine.resourceTypes[].key` (`wood`/`ore`/`iron`/`crystal` by default) — never `"gold"`, since gold isn't a mine resource and a demand on it would silently do nothing. |
 | `composition` | array of `{archetype, count}` | Enemy groups for this wave. `expandComposition` round-robins these into an interleaved spawn queue (so a wave with grunt×5 + runner×2 alternates types as they arrive, rather than 5 grunts then 2 runners back to back). |
 | `composition[].archetype` | string (enum) | Which `fortressEnemies` key to spawn. **Enum**: any key in `fortressEnemies` (see below). |
 | `composition[].count` | number | How many of that archetype in this wave. |
-| `startBonusGold` | number *(optional)* | Gold paid if the player starts the *next* wave quickly after this one's victory (see `startBonusWindowSeconds`). Omit to disable the early-start bonus for the wave that follows. |
-| `startBonusWindowSeconds` | number *(optional, sec)* | How long after victory the early-start bonus window stays open; the payout shrinks linearly to 0 as the window elapses. |
 | `type` | string | **Cosmetic only — not read by any system.** `"boss"` is used by convention on boss waves but nothing checks it; `isBoss` (below) is what actually matters. |
 | `isBoss` | boolean *(optional)* | Drives the "BOSS" badge in the wave telegraph UI (`ui.js`). Set alongside `type: "boss"` by convention, but only this field is functionally read. |
 

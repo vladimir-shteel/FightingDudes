@@ -1033,7 +1033,6 @@
       "enemyCount": 2,
       "spawnIntervalSeconds": 1.6,
       "killGold": 1,
-      "victoryGold": 18,
       "demandResource": "wood",
       "composition": [
         {
@@ -1046,9 +1045,6 @@
       "enemyCount": 3,
       "spawnIntervalSeconds": 1.6,
       "killGold": 1,
-      "victoryGold": 22,
-      "startBonusGold": 11,
-      "startBonusWindowSeconds": 20,
       "demandResource": "ore",
       "composition": [
         {
@@ -1065,9 +1061,6 @@
       "enemyCount": 6,
       "spawnIntervalSeconds": 1.2,
       "killGold": 1,
-      "victoryGold": 26,
-      "startBonusGold": 13,
-      "startBonusWindowSeconds": 20,
       "demandResource": "wood",
       "composition": [
         {
@@ -1084,9 +1077,6 @@
       "enemyCount": 8,
       "spawnIntervalSeconds": 1,
       "killGold": 1,
-      "victoryGold": 30,
-      "startBonusGold": 15,
-      "startBonusWindowSeconds": 20,
       "demandResource": "iron",
       "composition": [
         {
@@ -1110,9 +1100,6 @@
       "enemyCount": 10,
       "spawnIntervalSeconds": 0.96,
       "killGold": 1,
-      "victoryGold": 34,
-      "startBonusGold": 17,
-      "startBonusWindowSeconds": 20,
       "demandResource": "ore",
       "composition": [
         {
@@ -1129,9 +1116,6 @@
       "enemyCount": 11,
       "spawnIntervalSeconds": 0.93,
       "killGold": 1,
-      "victoryGold": 38,
-      "startBonusGold": 19,
-      "startBonusWindowSeconds": 20,
       "demandResource": "iron",
       "composition": [
         {
@@ -1156,9 +1140,6 @@
       "enemyCount": 12,
       "spawnIntervalSeconds": 0.9,
       "killGold": 1,
-      "victoryGold": 42,
-      "startBonusGold": 21,
-      "startBonusWindowSeconds": 20,
       "demandResource": "wood",
       "composition": [
         {
@@ -1183,9 +1164,6 @@
       "enemyCount": 14,
       "spawnIntervalSeconds": 0.87,
       "killGold": 1,
-      "victoryGold": 46,
-      "startBonusGold": 23,
-      "startBonusWindowSeconds": 20,
       "demandResource": "crystal",
       "composition": [
         {
@@ -1210,9 +1188,6 @@
       "enemyCount": 15,
       "spawnIntervalSeconds": 0.84,
       "killGold": 1,
-      "victoryGold": 50,
-      "startBonusGold": 25,
-      "startBonusWindowSeconds": 20,
       "demandResource": "iron",
       "composition": [
         {
@@ -1240,9 +1215,6 @@
       "enemyCount": 17,
       "spawnIntervalSeconds": 0.8,
       "killGold": 1,
-      "victoryGold": 54,
-      "startBonusGold": 27,
-      "startBonusWindowSeconds": 20,
       "demandResource": "crystal",
       "composition": [
         {
@@ -1263,9 +1235,6 @@
       "enemyCount": 18,
       "spawnIntervalSeconds": 0.78,
       "killGold": 1,
-      "victoryGold": 58,
-      "startBonusGold": 29,
-      "startBonusWindowSeconds": 20,
       "demandResource": "wood",
       "composition": [
         {
@@ -1290,9 +1259,6 @@
       "enemyCount": 20,
       "spawnIntervalSeconds": 0.75,
       "killGold": 1,
-      "victoryGold": 62,
-      "startBonusGold": 31,
-      "startBonusWindowSeconds": 20,
       "demandResource": "ore",
       "composition": [
         {
@@ -1317,9 +1283,6 @@
       "enemyCount": 21,
       "spawnIntervalSeconds": 0.72,
       "killGold": 1,
-      "victoryGold": 66,
-      "startBonusGold": 33,
-      "startBonusWindowSeconds": 20,
       "demandResource": "iron",
       "composition": [
         {
@@ -1344,9 +1307,6 @@
       "enemyCount": 23,
       "spawnIntervalSeconds": 0.7,
       "killGold": 2,
-      "victoryGold": 70,
-      "startBonusGold": 35,
-      "startBonusWindowSeconds": 20,
       "demandResource": "crystal",
       "composition": [
         {
@@ -1374,9 +1334,6 @@
       "enemyCount": 25,
       "spawnIntervalSeconds": 0.67,
       "killGold": 2,
-      "victoryGold": 74,
-      "startBonusGold": 37,
-      "startBonusWindowSeconds": 20,
       "demandResource": "iron",
       "composition": [
         {
@@ -1401,9 +1358,6 @@
       "enemyCount": 26,
       "spawnIntervalSeconds": 0.65,
       "killGold": 2,
-      "victoryGold": 78,
-      "startBonusGold": 39,
-      "startBonusWindowSeconds": 20,
       "demandResource": "wood",
       "composition": [
         {
@@ -1428,9 +1382,6 @@
       "enemyCount": 28,
       "spawnIntervalSeconds": 0.63,
       "killGold": 2,
-      "victoryGold": 82,
-      "startBonusGold": 41,
-      "startBonusWindowSeconds": 20,
       "demandResource": "crystal",
       "composition": [
         {
@@ -1455,9 +1406,6 @@
       "enemyCount": 30,
       "spawnIntervalSeconds": 0.61,
       "killGold": 2,
-      "victoryGold": 86,
-      "startBonusGold": 43,
-      "startBonusWindowSeconds": 20,
       "demandResource": "ore",
       "composition": [
         {
@@ -1482,9 +1430,6 @@
       "enemyCount": 32,
       "spawnIntervalSeconds": 0.59,
       "killGold": 2,
-      "victoryGold": 90,
-      "startBonusGold": 45,
-      "startBonusWindowSeconds": 20,
       "demandResource": "iron",
       "composition": [
         {
@@ -1512,9 +1457,6 @@
       "enemyCount": 34,
       "spawnIntervalSeconds": 0.57,
       "killGold": 2,
-      "victoryGold": 94,
-      "startBonusGold": 47,
-      "startBonusWindowSeconds": 20,
       "demandResource": "crystal",
       "composition": [
         {
@@ -1543,9 +1485,6 @@
       "enemyCount": 36,
       "spawnIntervalSeconds": 0.55,
       "killGold": 2,
-      "victoryGold": 98,
-      "startBonusGold": 49,
-      "startBonusWindowSeconds": 20,
       "demandResource": "wood",
       "composition": [
         {
@@ -1570,9 +1509,6 @@
       "enemyCount": 38,
       "spawnIntervalSeconds": 0.53,
       "killGold": 2,
-      "victoryGold": 102,
-      "startBonusGold": 51,
-      "startBonusWindowSeconds": 20,
       "demandResource": "ore",
       "composition": [
         {
@@ -1597,9 +1533,6 @@
       "enemyCount": 41,
       "spawnIntervalSeconds": 0.51,
       "killGold": 2,
-      "victoryGold": 106,
-      "startBonusGold": 53,
-      "startBonusWindowSeconds": 20,
       "demandResource": "iron",
       "composition": [
         {
@@ -1624,9 +1557,6 @@
       "enemyCount": 44,
       "spawnIntervalSeconds": 0.5,
       "killGold": 2,
-      "victoryGold": 110,
-      "startBonusGold": 55,
-      "startBonusWindowSeconds": 20,
       "demandResource": "crystal",
       "composition": [
         {

@@ -408,7 +408,6 @@ export function mountUI(state, onStateChanged) {
     fortressBuffsPanel: document.querySelector("#fortressBuffsPanel"),
     fxLayer: document.querySelector("#fxLayer")
     ,
-    fortressGiveUpButton: document.querySelector("#fortressGiveUpButton"),
     waveTelegraph: document.querySelector("#waveTelegraph"),
     fortressFightButton: document.querySelector("#fortressFightButton"),
     fortressMessage: document.querySelector("#fortressMessage"),
@@ -1788,9 +1787,9 @@ export function mountUI(state, onStateChanged) {
       // Show the pulsing prompt whenever there's an unpicked draft and the modal is closed.
       elements.upgradeAvailableButton.hidden = !(hasQueue && !upgradeModalOpen);
       if (hasQueue && queueLen > 1) {
-        elements.upgradeAvailableButton.textContent = `Награда (${queueLen})`;
+        elements.upgradeAvailableButton.textContent = `Reward (${queueLen})`;
       } else {
-        elements.upgradeAvailableButton.textContent = "Награда!";
+        elements.upgradeAvailableButton.textContent = "Reward!";
       }
     }
 
@@ -2039,9 +2038,7 @@ export function mountUI(state, onStateChanged) {
     const matchStarted = streamActive || state.game.isOver;
     elements.fortressFightButton.disabled = matchStarted;
     elements.fortressFightButton.hidden = matchStarted;
-    elements.fortressFightButton.textContent = "Начать";
-    // Stage 1 rework: give-up is disabled during the continuous stream.
-    elements.fortressGiveUpButton.hidden = true;
+    elements.fortressFightButton.textContent = "Start";
     elements.fortressMessage.textContent = state.fortress.message;
     renderEconomyMeta();
     renderBattleMeta();

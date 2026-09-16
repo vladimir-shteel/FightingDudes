@@ -37,8 +37,8 @@ function setSlotPurchased(mine, slotIndex) {
 }
 
 function getProductionMultiplier(state) {
-  // No blanket battle multiplier: non-committed workers mine at their normal rate during battle.
-  // Only committed shift workers get a boost (applied per-worker as shiftMultiplier below).
+  // Every worker mines at the same rate whether or not a battle is active; the worker-shift/rest
+  // system that used to modulate this per-worker during battle has been removed.
   return getFortressResourceMultiplier(state) * getTemporaryProductionMultiplier(state);
 }
 
