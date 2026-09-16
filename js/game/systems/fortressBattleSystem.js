@@ -133,7 +133,11 @@ function ensureEnemyPath(state, enemy, deltaSeconds) {
     return;
   }
   const blocked = getBlockedTileSetForActor(state, targetBuilding.id);
-  const startTile = { x: clamp(Math.round(enemy.x), 0, FORTRESS_WIDTH - 1), y: clamp(Math.round(enemy.y), 0, FORTRESS_HEIGHT - 1) };
+  // Floor, not round: the enemy's continuous position sits at the tile CENTER (x.5, y.5), and
+  // Math.round on that flips to the neighbouring tile every repath (0.4s), which put the first
+  // waypoint back at the tile the enemy just left → chase its own tail forever (most visible on
+  // the bottom row where the vertical clamp holds y ~= 6.4). Floor matches getActorTile for allies.
+  const startTile = { x: clamp(Math.floor(enemy.x), 0, FORTRESS_WIDTH - 1), y: clamp(Math.floor(enemy.y), 0, FORTRESS_HEIGHT - 1) };
   const goalTile = chooseGoalTileForBuilding(targetBuilding);
   const tilePath = findTilePath(
     startTile,
