@@ -37,12 +37,33 @@ export function createFortressState() {
   }
 
   // Base hugs the left edge, vertically centred on the 7-row field (rows 2-4).
+  const draftState = { fortress: { field, buildings: [] } };
   const hq = createFortressBuilding("hq", { x: 0, y: 2 });
-  for (const tile of hq.tiles) {
-    getTile({ fortress: { field } }, tile.x, tile.y).occupant = { buildingId: hq.id };
+  occupyBuilding(draftState, hq);
+  draftState.fortress.buildings.push(hq);
+
+  // Starting loadout: HQ + barracks (support, right next to HQ) + wall (forward blocker, ahead of
+  // the base since enemies march in from the right). Placement uses normalizeFootprint/
+  // canPlaceFortressBuilding so it stays correct if footprints change in config.
+  const startingBuildings = [hq];
+  const barracksOrigin = { x: 2, y: 2 };
+  if (canPlaceFortressBuilding(draftState, "barracks", barracksOrigin)) {
+    const barracks = createFortressBuilding("barracks", barracksOrigin);
+    occupyBuilding(draftState, barracks);
+    draftState.fortress.buildings.push(barracks);
+    startingBuildings.push(barracks);
+  }
+  const wallOrigin = { x: 4, y: 3 };
+  if (canPlaceFortressBuilding(draftState, "wall", wallOrigin)) {
+    const wall = createFortressBuilding("wall", wallOrigin);
+    occupyBuilding(draftState, wall);
+    draftState.fortress.buildings.push(wall);
+    startingBuildings.push(wall);
   }
 
-  const reserved = new Set(hq.tiles.map((tile) => `${tile.x}:${tile.y}`));
+  const reserved = new Set(
+    startingBuildings.flatMap((building) => building.tiles.map((tile) => `${tile.x}:${tile.y}`))
+  );
   const candidates = field.filter((tile) => !reserved.has(`${tile.x}:${tile.y}`));
   for (let index = candidates.length - 1; index > 0; index -= 1) {
     const swapIndex = Math.floor(Math.random() * (index + 1));
@@ -56,11 +77,11 @@ export function createFortressState() {
   return {
     screen: "bottom",
     field,
-    buildings: [hq],
+    buildings: startingBuildings,
     obstacleRemovalCost: getFortressLayoutConfig().obstacleRemovalBaseCost ?? 3,
     movingBuildingId: null,
     waveNumber: 1,
-    message: "Fortress field initialized. Production continues below.",
+    message: "Fortress field initialized. Place buildings, then hit Start.",
     battle: {
       active: false,
       enemies: [],

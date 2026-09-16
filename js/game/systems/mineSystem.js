@@ -374,6 +374,7 @@ export function mergeReserveUnitIntoMineUnit(state, reserveUnitId, mineId, slotI
 }
 
 export function tickMineProduction(state, deltaSeconds) {
+  if (!state?.fortress?.stream?.active) return;
   for (const mine of state.mines) {
     if (!mine.isUnlocked) {
       mine.passiveProgress = 0;
