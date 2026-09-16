@@ -31,11 +31,6 @@
     "refundFraction": 0.4,
     "goldCostPerCopy": 8
   },
-  "fortressCasts": {
-    "repairSeconds": 5,
-    "moveSeconds": 3,
-    "demolishSeconds": 3
-  },
   "abilityCostAccumulation": 1.6,
   "rewardDraftEnabled": false,
   "resourceCaps": {

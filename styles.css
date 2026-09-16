@@ -2564,6 +2564,14 @@ h3 {
   pointer-events: auto;
 }
 
+/* Move-target tiles must stay clickable during battle too — Move/Demolish/Repair are no longer
+   gated by battle.active, so the player needs to be able to tap the destination tile while a wave
+   is in progress (e.g. relocating a building that is currently being attacked). */
+.fortress-field.is-battle-active .fortress-tile.is-valid-target,
+.fortress-field.is-battle-active .fortress-tile.is-invalid-target {
+  pointer-events: auto;
+}
+
 /* Non-rectangular buildings (T / L shapes) span a bounding box larger than their real footprint.
    The empty corners of that box must NOT swallow clicks — otherwise a shaped building overlaps and
    blocks a neighbour placed in one of those corners. So the spanning <button> itself is click-through
@@ -2577,47 +2585,6 @@ h3 {
 .fortress-tile.is-shaped-building .fortress-building-shape-cell,
 .fortress-field.is-battle-active .fortress-tile.is-shaped-building .fortress-building-shape-cell {
   pointer-events: auto;
-}
-
-.fortress-cast-bar {
-  position: absolute;
-  left: 4px;
-  right: 4px;
-  bottom: 3px;
-  height: 4px;
-  z-index: 3;
-  background: rgba(0, 0, 0, 0.35);
-  border-radius: 2px;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-.fortress-cast-bar > i {
-  display: block;
-  height: 100%;
-  background: #66d17a;
-  transition: width 80ms linear;
-}
-
-.fortress-cast-bar[data-cast-kind="move"] > i { background: #5aa9ff; }
-.fortress-cast-bar[data-cast-kind="demolish"] > i { background: #ff6a6a; }
-
-.fortress-tile.is-casting {
-  outline: 2px solid rgba(255, 255, 255, 0.35);
-  outline-offset: -2px;
-}
-
-.fortress-tile.is-casting[data-cast-kind="demolish"] {
-  filter: saturate(0.6) brightness(0.85);
-}
-
-.fortress-tile.is-casting[data-cast-kind="repair"] {
-  box-shadow: 0 0 8px 2px rgba(102, 209, 122, 0.55);
-}
-
-.fortress-popover-cast {
-  color: #66d17a;
-  font-weight: 600;
 }
 
 .fortress-active-indicator {

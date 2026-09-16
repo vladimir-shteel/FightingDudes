@@ -1157,26 +1157,9 @@ export function mountUI(state, onStateChanged) {
     tileEl.classList.toggle("is-hit", isHitFlashing(building));
     tileEl.classList.toggle("is-damaged", building.hp > 0 && building.hp < building.maxHp);
     tileEl.classList.toggle("is-destroyed", building.hp <= 0);
-    tileEl.classList.toggle("is-casting", Boolean(building.casting));
     const hpLine = tileEl.querySelector("small");
     if (hpLine) {
       hpLine.textContent = `Lv ${building.level} · HP ${Math.round(building.hp)}/${building.maxHp}`;
-    }
-    let castBar = tileEl.querySelector(".fortress-cast-bar");
-    if (building.casting) {
-      const castKind = building.casting.kind;
-      const progress = Math.max(0, Math.min(1, 1 - building.casting.remainingSeconds / building.casting.totalSeconds));
-      if (!castBar) {
-        castBar = document.createElement("span");
-        castBar.className = "fortress-cast-bar";
-        castBar.innerHTML = "<i></i>";
-        tileEl.append(castBar);
-      }
-      castBar.dataset.castKind = castKind;
-      const fill = castBar.querySelector("i");
-      if (fill) fill.style.width = `${(progress * 100).toFixed(1)}%`;
-    } else if (castBar) {
-      castBar.remove();
     }
     const indicator = tileEl.querySelector(".fortress-active-indicator");
     if (indicator) {
@@ -1373,18 +1356,11 @@ export function mountUI(state, onStateChanged) {
         tileButton.classList.toggle("is-damaged", building.hp > 0 && building.hp < building.maxHp);
         tileButton.classList.toggle("is-destroyed", building.hp <= 0);
         const activeDefinition = state.fortress.battle.active ? getBuildingActiveDefinition(building) : null;
-        const castKind = building.casting?.kind ?? "";
-        const castProgress = building.casting
-          ? Math.max(0, Math.min(1, 1 - building.casting.remainingSeconds / building.casting.totalSeconds))
-          : 0;
-        tileButton.classList.toggle("is-casting", Boolean(building.casting));
-        if (building.casting) tileButton.dataset.castKind = castKind;
         tileButton.innerHTML = `
           ${isSolidBuilding ? "" : renderFortressBuildingShape(building, buildingBounds)}
           <span class="fortress-tile-icon">${definition.icon}</span>
           <strong>${definition.name}</strong>
           <small>Lv ${building.level} · HP ${Math.round(building.hp)}/${building.maxHp}</small>
-          ${building.casting ? `<span class="fortress-cast-bar" data-cast-kind="${castKind}"><i style="width:${(castProgress * 100).toFixed(1)}%"></i></span>` : ""}
         `;
 
         if (activeDefinition && building.hp > 0) {
@@ -1527,10 +1503,9 @@ export function mountUI(state, onStateChanged) {
       }
       const definition = CONFIG.fortressBuildings[building.type];
       const nextLevel = definition.levels[building.level];
-      const isBusy = Boolean(building.casting);
       const needsRepair = building.hp < building.maxHp && building.type !== "mine";
       const repairCost = needsRepair ? getFortressRepairCost(state, building) : {};
-      const canRepair = !isBusy && needsRepair && canAffordResources(state.resources, repairCost);
+      const canRepair = needsRepair && canAffordResources(state.resources, repairCost);
       const active = getBuildingActiveDefinition(building);
       const activeDescription = describeBuildingActive(active);
       const activeCost = active ? getBuildingActiveCost(state, building) : {};
@@ -1565,29 +1540,22 @@ export function mountUI(state, onStateChanged) {
       const demolishRefund = building.type === "hq" ? {} : getFortressBuildingRefund(state, building);
       const hasRefund = Object.keys(demolishRefund).length > 0;
       const demolishGold = building.type === "hq" ? 0 : getFortressBuildingDemolishGoldCost(state, building);
-      const canDemolish = !isBusy && (state.resources.gold ?? 0) >= demolishGold;
-      const castLabel = isBusy
-        ? (building.casting.kind === "repair" ? "Repairing" : (building.casting.kind === "move" ? "Moving" : "Demolishing"))
-        : "";
-      const castNote = isBusy
-        ? `<span class="fortress-popover-note fortress-popover-cast">${castLabel} (${Math.max(0, building.casting.remainingSeconds).toFixed(1)}s)</span>`
-        : "";
+      const canDemolish = (state.resources.gold ?? 0) >= demolishGold;
       const opButtons = `
         ${needsRepair ? `
           <button class="fortress-popover-action" type="button" data-popup-repair ${canRepair ? "" : "disabled"}>
-            ${isBusy ? "Busy" : `Repair ${renderFortressCost(repairCost)}`}
+            Repair ${renderFortressCost(repairCost)}
           </button>
         ` : ""}
-        <button class="fortress-popover-action" type="button" data-popup-move ${isBusy ? "disabled" : ""}>${isBusy ? "Busy" : "Move / Merge"}</button>
+        <button class="fortress-popover-action" type="button" data-popup-move>Move / Merge</button>
         ${building.type === "hq" ? "" : `
           <button class="fortress-popover-action is-danger" type="button" data-popup-demolish ${canDemolish ? "" : "disabled"}>
-            <span>${isBusy ? "Busy" : `Demolish${demolishGold > 0 ? ` −${demolishGold}${CONFIG.goldIcon ?? "💰"}` : ""}`}</span>${(!isBusy && hasRefund) ? `<span class="fortress-popover-refund">+${renderFortressCost(demolishRefund)}</span>` : ""}
+            <span>Demolish${demolishGold > 0 ? ` −${demolishGold}${CONFIG.goldIcon ?? "💰"}` : ""}</span>${hasRefund ? `<span class="fortress-popover-refund">+${renderFortressCost(demolishRefund)}</span>` : ""}
           </button>
         `}
       `;
       popup.innerHTML = `
         <strong>${definition.name} Lv ${building.level}</strong>
-        ${castNote}
         ${upgradeNote}
         ${activeBlock}
         ${useButton}
