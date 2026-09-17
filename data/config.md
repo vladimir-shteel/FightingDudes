@@ -60,6 +60,8 @@ every archetype's HP converging to one flat number by wave 20.
 | `combat.armorMinFraction` | number (0–1) | Armor damage floor. Effective damage = `max(raw × armorMinFraction, raw − armor)` — a hit is **never** reduced below this fraction of its raw value, however high the target's armor. Keeps armor a soft counter (big hits still land) rather than granting immunity. |
 | `combat.unitAttackPerLevel` | number | Attack bonus per **spawner-building level** for allies it trains — e.g. a level-3 Barracks' Warriors hit harder than a level-1 Barracks' Warriors. Multiplier = `1 + unitAttackPerLevel × (buildingLevel - 1)`. |
 | `combat.unitHpPerLevel` | number | Same idea as `unitAttackPerLevel`, but for the trained unit's HP. |
+| `combat.unitCapBase` | number | Simultaneous-unit cap a spawner building has at level 1 (before any merges). `getBuildingUnitCap` in `fortressBattleSystem.js` reads it with a default of `1` when the key is absent. |
+| `combat.unitCapLevelsPerSlot` | number | Building levels needed to gain one more simultaneous-unit slot: `cap = unitCapBase + floor(level / unitCapLevelsPerSlot)`. Default `3` when absent (slot at L3, L6, L9…). While a spawner is at its cap, its cooldown timer holds and only resumes counting down once a unit dies, freeing a slot. |
 
 ### `combatEngine` — low-level battle-tick tuning
 

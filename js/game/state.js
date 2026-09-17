@@ -40,7 +40,9 @@ export function createInitialState() {
     game: {
       isOver: false,
       result: null
-    }
+    },
+    elapsedSeconds: 0,
+    actionLog: []
   };
 
   syncMineUnlocks(state);

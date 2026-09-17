@@ -377,10 +377,12 @@ function countBuildingAliveUnits(state, buildingId) {
   );
 }
 
-// A new unit slot unlocks every 3 building levels (L3, L6, L9, L12), not every level, so pushing a
-// spawner to its cap requires a deep merge ladder rather than a single upgrade.
+// A new unit slot unlocks every `unitCapLevelsPerSlot` building levels, not every level, so pushing
+// a spawner to its cap requires a deep merge ladder rather than a single upgrade.
 function getBuildingUnitCap(building) {
-  return 1 + Math.floor(building.level / 3);
+  const base = CONFIG.combat?.unitCapBase ?? 1;
+  const perSlot = CONFIG.combat?.unitCapLevelsPerSlot ?? 3;
+  return base + Math.floor(building.level / perSlot);
 }
 
 export function volleyFromBuilding(state, building, count, damage) {

@@ -9,26 +9,26 @@ import {
 } from "./config.js";
 import { formatNumber } from "./utils.js";
 import {
-  buyUnit,
+  buyUnit as _buyUnit,
   getUnitBuyCost,
-  massMergeReserve,
-  mergeReservePair
+  massMergeReserve as _massMergeReserve,
+  mergeReservePair as _mergeReservePair
 } from "./systems/reserveSystem.js";
 import {
   buyMine,
   buyMineSlot,
-  assignReserveUnitToMine,
+  assignReserveUnitToMine as _assignReserveUnitToMine,
   getCurrentWaveDemandResource,
   getMinePurchaseState,
   getMinePurchasedSlotCount,
   getMineSlotState,
   mergeReserveUnitIntoMineUnit,
-  moveMineUnitToMineSlot,
+  moveMineUnitToMineSlot as _moveMineUnitToMineSlot,
   returnMineUnitToReserve
 } from "./systems/mineSystem.js";
 import { startFortressBattle } from "./systems/fortressBattleSystem.js";
 import {
-  buyFortressBuilding,
+  buyFortressBuilding as _buyFortressBuilding,
   canAffordResources,
   canPlaceFortressBuilding,
   canMergeFortressBuildings,
@@ -36,7 +36,7 @@ import {
   findFortressPlacement,
   getBuildingActiveCost,
   getBuildingActiveDefinition,
-  demolishFortressBuilding,
+  demolishFortressBuilding as _demolishFortressBuilding,
   FORTRESS_HEIGHT,
   FORTRESS_WIDTH,
   getFortressBuildingBuyCost,
@@ -45,15 +45,32 @@ import {
   getFortressRepairCost,
   getMergeCrystalCost,
   hasFortressPlacementOrMerge,
-  massMergeFortressBuildings,
-  mergeFortressBuildings,
-  moveFortressBuilding,
+  massMergeFortressBuildings as _massMergeFortressBuildings,
+  mergeFortressBuildings as _mergeFortressBuildings,
+  moveFortressBuilding as _moveFortressBuilding,
   normalizeFootprint,
-  removeFortressObstacle,
-  repairFortressBuilding,
+  removeFortressObstacle as _removeFortressObstacle,
+  repairFortressBuilding as _repairFortressBuilding,
   triggerBuildingActive
 } from "./systems/fortressSystem.js";
 import { attachDrag } from "./dragDrop.js";
+import { withActionLog } from "./actionLogger.js";
+
+// Every player-triggered mutation gets wrapped once here so `state.actionLog` captures a full
+// build-order transcript regardless of which of the ~20 call sites below invokes it — see
+// actionLogger.js for why this is a resource-diffing wrapper rather than per-action bookkeeping.
+const buyUnit = withActionLog("buyUnit", _buyUnit);
+const massMergeReserve = withActionLog("massMergeReserve", _massMergeReserve);
+const mergeReservePair = withActionLog("mergeReservePair", _mergeReservePair);
+const assignReserveUnitToMine = withActionLog("assignReserveUnitToMine", _assignReserveUnitToMine);
+const moveMineUnitToMineSlot = withActionLog("moveMineUnitToMineSlot", _moveMineUnitToMineSlot);
+const buyFortressBuilding = withActionLog("buyFortressBuilding", _buyFortressBuilding);
+const demolishFortressBuilding = withActionLog("demolishFortressBuilding", _demolishFortressBuilding);
+const massMergeFortressBuildings = withActionLog("massMergeFortressBuildings", _massMergeFortressBuildings);
+const mergeFortressBuildings = withActionLog("mergeFortressBuildings", _mergeFortressBuildings);
+const moveFortressBuilding = withActionLog("moveFortressBuilding", _moveFortressBuilding);
+const removeFortressObstacle = withActionLog("removeFortressObstacle", _removeFortressObstacle);
+const repairFortressBuilding = withActionLog("repairFortressBuilding", _repairFortressBuilding);
 import { applyUpgradeChoice } from "./systems/upgradeSystem.js";
 import {
   applyWorkerCapstone,

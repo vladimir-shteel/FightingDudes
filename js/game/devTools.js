@@ -3,6 +3,7 @@
 // unless a button is pressed, so it is safe to ship on the prototype.
 import { syncFortressBuildingUnlocks } from "./systems/fortressSystem.js";
 import { syncMineUnlocks } from "./systems/mineSystem.js";
+import { downloadActionLog } from "./actionLogger.js";
 
 const SPEEDS = [1, 2, 4, 8];
 
@@ -38,7 +39,8 @@ export function createDevTools(state, requestRender, { onOpenConfig } = {}) {
     button("+Res", grantResources),
     button("Win wave", winWave),
     button("+Wave", jumpWave),
-    button("Repair all", repairAll)
+    button("Repair all", repairAll),
+    button("📋 Log", () => downloadActionLog(state))
   );
   if (onOpenConfig) {
     actionRow.append(button("⚙ Config", () => onOpenConfig()));

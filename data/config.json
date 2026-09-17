@@ -5,21 +5,23 @@
   "waveGapSeconds": 10,
   "startingGold": 50,
   "startingResources": {
-    "wood": 130,
-    "ore": 70
+    "wood": 200,
+    "ore": 110
   },
   "unitBuyBaseCost": 4,
   "unitBuyExponent": 1.02,
   "combat": {
-    "hpScalePerWave": 0.045,
-    "attackScalePerWave": 0.022,
+    "hpScalePerWave": 0.02,
+    "attackScalePerWave": 0.01,
     "armorScalePerWave": 0.025,
     "armorMinFraction": 0.15,
     "unitAttackPerLevel": 0.35,
-    "unitHpPerLevel": 0.2
+    "unitHpPerLevel": 0.2,
+    "unitCapBase": 1,
+    "unitCapLevelsPerSlot": 3
   },
   "buildingCostEscalation": {
-    "default": 1.07,
+    "default": 1.02,
     "wall": 1.05,
     "bigWall": 1.06
   },
@@ -347,19 +349,19 @@
       },
       "levels": [
         {
-          "hp": 70
-        },
-        {
-          "hp": 150
+          "hp": 140
         },
         {
           "hp": 300
         },
         {
-          "hp": 560
+          "hp": 600
         },
         {
-          "hp": 920,
+          "hp": 1120
+        },
+        {
+          "hp": 1840,
           "active": {
             "id": "shieldNearby",
             "label": "Shield",
@@ -956,8 +958,8 @@
     "warrior": {
       "name": "Warrior",
       "icon": "🤺",
-      "hp": 90,
-      "attack": 8,
+      "hp": 117,
+      "attack": 10.4,
       "cooldownSeconds": 0.75,
       "rangeTiles": 0.5,
       "speedTilesPerSecond": 0.75
@@ -965,8 +967,8 @@
     "archer": {
       "name": "Archer",
       "icon": "🧝",
-      "hp": 50,
-      "attack": 7,
+      "hp": 65,
+      "attack": 9.1,
       "cooldownSeconds": 1.2,
       "rangeTiles": 2.6,
       "speedTilesPerSecond": 0.62
@@ -974,8 +976,8 @@
     "rider": {
       "name": "Rider",
       "icon": "🏇",
-      "hp": 122,
-      "attack": 12,
+      "hp": 159,
+      "attack": 15.6,
       "cooldownSeconds": 1.1,
       "rangeTiles": 0.45,
       "speedTilesPerSecond": 0.99
@@ -983,8 +985,8 @@
     "mage": {
       "name": "Mage",
       "icon": "🧙",
-      "hp": 37,
-      "attack": 10,
+      "hp": 48,
+      "attack": 13,
       "cooldownSeconds": 1,
       "rangeTiles": 2.4,
       "speedTilesPerSecond": 0.6,

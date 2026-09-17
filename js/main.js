@@ -25,6 +25,7 @@ async function bootstrap() {
     // giant delta, so pathfinding/collisions stay stable while the clock runs faster for playtesting.
     const steps = Math.max(1, Math.round(dev.getSpeed()));
     for (let step = 0; step < steps; step += 1) {
+      state.elapsedSeconds += deltaSeconds;
       tickMineProduction(state, deltaSeconds);
       tickFortressBattle(state, deltaSeconds);
       tickUpgradeEffects(state, deltaSeconds);
