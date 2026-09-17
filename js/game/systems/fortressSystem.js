@@ -441,7 +441,7 @@ export function canMergeFortressBuildings(state, source, target) {
 
 export function mergeFortressBuildings(state, sourceId, targetId) {
   const source = findAnyFortressBuilding(state, sourceId);
-  const target = state.fortress.buildings.find((item) => item.id === targetId);
+  const target = findAnyFortressBuilding(state, targetId);
   if (!source || !target) {
     return { ok: false, reason: "Building not found." };
   }
@@ -490,31 +490,55 @@ export function mergeFortressBuildings(state, sourceId, targetId) {
 }
 
 // Mass merge (mirrors reserveSystem.massMergeReserve): repeatedly merge any same-type + same-level pair
-// until none remain. Merging is adjacency-free (mergeFortressBuildings takes two ids and frees the
-// source tiles), so this collapses the whole field's mergeable pairs in one click. Pairs whose next
-// tier needs crystal you can't afford are skipped (not fatal) — everything else still merges.
+// until none remain. Includes both placed buildings and tray (unplaced) buildings. Prefers consuming
+// a tray building into a placed one so the upgraded result stays on the field. Pairs whose next tier
+// needs crystal you can't afford are skipped (not fatal) — everything else still merges.
 export function massMergeFortressBuildings(state) {
   if (state.fortress.battle.active) {
     return { ok: false, reason: "Cannot merge during battle." };
   }
   let mergedCount = 0;
   let blockedByCrystal = false;
+  const placedSet = new Set(state.fortress.buildings.map((b) => b.id));
   while (true) {
     const groups = new Map();
-    for (const building of state.fortress.buildings) {
+    const allBuildings = [
+      ...state.fortress.buildings,
+      ...(state.fortress.unplacedBuildings ?? []),
+    ];
+    for (const building of allBuildings) {
       if (building.type === "hq") continue;
       const definition = CONFIG.fortressBuildings[building.type];
       if (!definition || !definition.levels[building.level]) continue; // already max tier
       const key = `${building.type}:${building.level}`;
-      if (!groups.has(key)) groups.set(key, []);
-      groups.get(key).push(building.id);
+      if (!groups.has(key)) groups.set(key, { placedIds: [], unplacedIds: [] });
+      const group = groups.get(key);
+      if (placedSet.has(building.id)) {
+        group.placedIds.push(building.id);
+      } else {
+        group.unplacedIds.push(building.id);
+      }
     }
 
     let mergedThisPass = false;
-    for (const ids of groups.values()) {
-      if (ids.length < 2) continue;
-      const result = mergeFortressBuildings(state, ids[0], ids[1]);
+    for (const { placedIds, unplacedIds } of groups.values()) {
+      const total = placedIds.length + unplacedIds.length;
+      if (total < 2) continue;
+      // Prefer: unplaced→placed (consume tray into field), then placed+placed, then unplaced+unplaced
+      let sourceId, targetId;
+      if (unplacedIds.length > 0 && placedIds.length > 0) {
+        sourceId = unplacedIds[0];
+        targetId = placedIds[0];
+      } else if (placedIds.length >= 2) {
+        sourceId = placedIds[0];
+        targetId = placedIds[1];
+      } else {
+        sourceId = unplacedIds[0];
+        targetId = unplacedIds[1];
+      }
+      const result = mergeFortressBuildings(state, sourceId, targetId);
       if (result.ok) {
+        placedSet.delete(sourceId);
         mergedCount += 1;
         mergedThisPass = true;
         break; // rebuild groups (levels changed) before continuing
