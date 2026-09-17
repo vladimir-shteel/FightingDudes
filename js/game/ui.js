@@ -31,6 +31,8 @@ import {
   buyFortressBuilding,
   canAffordResources,
   canPlaceFortressBuilding,
+  canMergeFortressBuildings,
+  findAnyFortressBuilding,
   findFortressPlacement,
   getBuildingActiveCost,
   getBuildingActiveDefinition,
@@ -42,13 +44,16 @@ import {
   getFortressBuildingRefund,
   getFortressRepairCost,
   getMergeCrystalCost,
+  hasFortressPlacementOrMerge,
   massMergeFortressBuildings,
   mergeFortressBuildings,
   moveFortressBuilding,
+  normalizeFootprint,
   removeFortressObstacle,
   repairFortressBuilding,
   triggerBuildingActive
 } from "./systems/fortressSystem.js";
+import { attachDrag } from "./dragDrop.js";
 import { applyUpgradeChoice } from "./systems/upgradeSystem.js";
 import {
   applyWorkerCapstone,
@@ -407,6 +412,7 @@ export function mountUI(state, onStateChanged) {
     fortressMessage: document.querySelector("#fortressMessage"),
     bossHpBar: document.querySelector("#bossHpBar"),
     fortressField: document.querySelector("#fortressField"),
+    unplacedTray: document.querySelector("#unplacedTray"),
     fortressShop: document.querySelector("#fortressShop"),
     fortressMassMergeButton: document.querySelector("#fortressMassMergeButton"),
     upgradeOverlay: document.querySelector("#upgradeOverlay"),
@@ -449,38 +455,6 @@ export function mountUI(state, onStateChanged) {
 
   const mineProgressCache = new Map();
 
-  function getSelectedUnitContext() {
-    const selectedUnitId = state.ui.selectedUnitId;
-    if (!selectedUnitId) {
-      return null;
-    }
-
-    const reserveUnit = state.reserveUnits.find((unit) => unit.id === selectedUnitId);
-    if (reserveUnit) {
-      return { unit: reserveUnit, source: "reserve" };
-    }
-
-    for (const mine of state.mines) {
-      for (let index = 0; index < mine.workerIds.length; index += 1) {
-        const worker = mine.workerIds[index];
-        if (worker?.id === selectedUnitId) {
-          return { unit: worker, source: "mine", mineId: mine.id, slotIndex: index };
-        }
-      }
-    }
-
-    state.ui.selectedUnitId = null;
-    return null;
-  }
-
-  function clearSelectedUnit() {
-    state.ui.selectedUnitId = null;
-  }
-
-  function selectUnit(unitId) {
-    state.ui.selectedUnitId = unitId;
-  }
-
   function openWorkerActionPopup(unitId) {
     state.ui.workerActionPopup = { unitId };
   }
@@ -510,21 +484,13 @@ export function mountUI(state, onStateChanged) {
     return null;
   }
 
-  // First tap on a worker card opens this popover instead of directly entering
-  // move-mode; move-mode itself is entered from the popover's "Move / Merge" button.
   function handleWorkerCardTap(unitId) {
-    const currentSelection = getSelectedUnitContext();
-    if (currentSelection) {
-      // Already mid move/merge — let the existing target-select handlers run.
-      return false;
-    }
     if (state.ui.workerActionPopup?.unitId === unitId) {
       closeWorkerActionPopup();
     } else {
       openWorkerActionPopup(unitId);
     }
     onStateChanged();
-    return true;
   }
 
   function renderWorkerActionPopover() {
@@ -532,7 +498,7 @@ export function mountUI(state, onStateChanged) {
     existing?.remove();
 
     const context = getWorkerActionContext();
-    if (!context || state.ui.selectedUnitId) {
+    if (!context) {
       return;
     }
 
@@ -557,17 +523,10 @@ export function mountUI(state, onStateChanged) {
         <span class="unit-trait unit-trait-yield" title="Yield">Y +${yieldPct}%</span>
       </div>
       ${capstoneEffect ? `<div class="worker-popover-capstone"><strong>★ ${capstoneEffect.label}</strong>${capstoneEffect.description ? `<span>${capstoneEffect.description}</span>` : ""}</div>` : ""}
-      <button class="fortress-popover-action primary-action" type="button" data-popover-move>Move / Merge</button>
       ${unit.pendingCapstone?.length ? `<button class="fortress-popover-action" type="button" data-popover-capstone>Choose Capstone</button>` : ""}
       ${inMine ? `<button class="fortress-popover-action" type="button" data-popover-return>Return to Reserve</button>` : ""}
       <button class="fortress-popover-action" type="button" data-popover-close>Close</button>
     `;
-
-    popover.querySelector("[data-popover-move]").addEventListener("click", () => {
-      selectUnit(unit.id);
-      closeWorkerActionPopup();
-      refreshSelectionOnly();
-    });
 
     popover.querySelector("[data-popover-capstone]")?.addEventListener("click", () => {
       closeWorkerActionPopup();
@@ -583,7 +542,7 @@ export function mountUI(state, onStateChanged) {
 
     popover.querySelector("[data-popover-close]").addEventListener("click", () => {
       closeWorkerActionPopup();
-      refreshSelectionOnly();
+      renderWorkerActionPopover();
     });
 
     document.body.append(popover);
@@ -607,62 +566,11 @@ export function mountUI(state, onStateChanged) {
           return;
         }
         closeWorkerActionPopup();
-        refreshSelectionOnly();
+        renderWorkerActionPopover();
         document.removeEventListener("pointerdown", dismissOnOutsideClick, true);
       };
       document.addEventListener("pointerdown", dismissOnOutsideClick, true);
     }, 0);
-  }
-
-  function renderMoveModeCancelButton() {
-    // Cancel Move button removed — tap the same worker (or the Worker Pile) to abort.
-    document.querySelector(".worker-move-cancel")?.remove();
-  }
-
-  function refreshSelectionOnly() {
-    const selected = getSelectedUnitContext();
-    const selectedId = state.ui.selectedUnitId;
-    const selectedLevel = selected?.unit.level ?? null;
-    const selectedSource = selected?.source ?? null;
-    const inMoveMode = !!selected;
-
-    document.querySelectorAll("#reserveZone .unit-card").forEach((card) => {
-      const uid = card.dataset.unitId;
-      const level = Number(card.dataset.level ?? 0);
-      card.classList.toggle("selection-source", selectedId === uid);
-      card.classList.toggle(
-        "actionable-target",
-        selectedSource === "reserve" && level === selectedLevel && selectedId !== uid
-      );
-    });
-
-    elements.reservePanel?.classList.toggle("actionable-target", selectedSource === "mine");
-
-    document.querySelectorAll(".mines-grid .slot").forEach((slot) => {
-      if (!slot.classList.contains("is-open")) return;
-      const workerCard = slot.querySelector(".unit-card");
-      if (workerCard) {
-        const uid = workerCard.dataset.unitId;
-        const level = Number(workerCard.dataset.level ?? 0);
-        workerCard.classList.toggle("selection-source", selectedId === uid);
-        workerCard.classList.toggle(
-          "actionable-target",
-          inMoveMode && level === selectedLevel && selectedId !== uid
-        );
-        slot.classList.toggle("actionable-target", false);
-      } else {
-        slot.classList.toggle("actionable-target", inMoveMode);
-      }
-    });
-
-    updateSelectionTether();
-    renderWorkerActionPopover();
-  }
-
-  function updateSelectionTether() {
-    // The SELECTED chip this tether pointed to is hidden now that the worker
-    // action popover replaces it — nothing to tether to anymore.
-    elements.fxLayer.querySelector(".selection-tether")?.remove();
   }
 
   elements.buyUnitButton.addEventListener("click", () => {
@@ -674,7 +582,6 @@ export function mountUI(state, onStateChanged) {
   elements.massMergeButton.addEventListener("click", () => {
     const result = massMergeReserve(state);
     state.fortress.message = result.reason;
-    clearSelectedUnit();
     onStateChanged();
   });
 
@@ -779,78 +686,22 @@ export function mountUI(state, onStateChanged) {
 
   function renderReserve() {
     elements.reserveZone.innerHTML = "";
-    const selected = getSelectedUnitContext();
 
     for (const unit of state.reserveUnits) {
       const card = createUnitCard(unit, { origin: "reserve", compact: true });
 
       card.addEventListener("click", () => {
-        const currentSelection = getSelectedUnitContext();
-
-        if (currentSelection?.unit.id === unit.id) {
-          clearSelectedUnit();
-          refreshSelectionOnly();
-          return;
-        }
-
-        if (currentSelection?.source === "reserve") {
-          const result = mergeReservePair(state, currentSelection.unit.id, unit.id);
-          state.fortress.message = result.reason;
-          if (result.ok) {
-            clearSelectedUnit();
-          } else {
-            selectUnit(unit.id);
-          }
-          onStateChanged();
-          return;
-        }
-
-        if (currentSelection) {
-          // Move-mode active but this card isn't a valid target — leave move-mode on.
-          return;
-        }
-
         handleWorkerCardTap(unit.id);
       });
 
-      if (selected?.unit.id === unit.id) {
-        card.classList.add("selection-source");
-      } else if (selected?.source === "reserve" && selected.unit.level === unit.level) {
-        card.classList.add("actionable-target");
-      }
+      attachWorkerDrag(card, { source: "reserve", unitId: unit.id });
 
       elements.reserveZone.append(card);
     }
-
-    elements.reservePanel.onclick = (event) => {
-      if (event.target.closest(".unit-card") || event.target.closest("button")) {
-        return;
-      }
-
-      const currentSelection = getSelectedUnitContext();
-      if (!currentSelection) {
-        return;
-      }
-
-      if (currentSelection.source === "mine") {
-        const result = returnMineUnitToReserve(state, currentSelection.mineId, currentSelection.slotIndex);
-        state.fortress.message = result.reason;
-        if (result.ok) {
-          clearSelectedUnit();
-        }
-      } else {
-        clearSelectedUnit();
-      }
-
-      onStateChanged();
-    };
-
-    elements.reservePanel.classList.toggle("actionable-target", selected?.source === "mine");
   }
 
   function renderMines() {
     elements.minesGrid.innerHTML = "";
-    const selected = getSelectedUnitContext();
     const demandResource = getCurrentWaveDemandResource(state);
 
     for (const mine of state.mines) {
@@ -941,23 +792,7 @@ export function mountUI(state, onStateChanged) {
             });
           }
         } else if (!worker) {
-          slot.innerHTML = `${slotBadge}<div class="slot-placeholder">Tap to place</div>`;
-          slot.classList.toggle("actionable-target", selected?.source === "reserve" || selected?.source === "mine");
-          slot.addEventListener("click", () => {
-            const selected = getSelectedUnitContext();
-            if (!selected) {
-              return;
-            }
-
-            const result = selected.source === "reserve"
-              ? assignReserveUnitToMine(state, selected.unit.id, mine.id, index)
-              : moveMineUnitToMineSlot(state, selected.mineId, selected.slotIndex, mine.id, index);
-            state.fortress.message = result.reason;
-            if (result.ok) {
-              clearSelectedUnit();
-            }
-            onStateChanged();
-          });
+          slot.innerHTML = `${slotBadge}<div class="slot-placeholder">Drag here</div>`;
         } else {
           const slotShell = document.createElement("div");
           slotShell.className = "slot slot-filled is-open";
@@ -971,53 +806,19 @@ export function mountUI(state, onStateChanged) {
           );
           const workerCard = createUnitCard(worker, { origin: "reserve", compact: true });
           workerCard.addEventListener("click", () => {
-            const selected = getSelectedUnitContext();
-
-            if (selected?.unit.id === worker.id) {
-              clearSelectedUnit();
-              refreshSelectionOnly();
-              return;
-            }
-
-            if (selected?.source === "reserve") {
-              const result = mergeReserveUnitIntoMineUnit(state, selected.unit.id, mine.id, index);
-              state.fortress.message = result.reason;
-              if (result.ok) {
-                clearSelectedUnit();
-              } else {
-                selectUnit(worker.id);
-              }
-              onStateChanged();
-              return;
-            }
-
-            if (selected?.source === "mine") {
-              const result = moveMineUnitToMineSlot(state, selected.mineId, selected.slotIndex, mine.id, index);
-              state.fortress.message = result.reason;
-              if (result.ok) {
-                clearSelectedUnit();
-              } else {
-                selectUnit(worker.id);
-              }
-              onStateChanged();
-              return;
-            }
-
             handleWorkerCardTap(worker.id);
+          });
+          attachWorkerDrag(workerCard, {
+            source: "mine",
+            unitId: worker.id,
+            mineId: mine.id,
+            slotIndex: index
           });
           slotShell.append(workerCard);
           slotShell.insertAdjacentHTML(
             "beforeend",
             createMineProgressMarkup(mine.resourceKey, mine.id, index, progress)
           );
-          if (selected?.unit.id === worker.id) {
-            slotShell.classList.add("selection-source");
-          } else if (
-            (selected?.source === "reserve" && selected.unit.level === worker.level) ||
-            selected?.source === "mine"
-          ) {
-            slotShell.classList.add("actionable-target");
-          }
           slots.append(slotShell);
           continue;
         }
@@ -1060,6 +861,350 @@ export function mountUI(state, onStateChanged) {
   function isFortressBuildingSolid(building, bounds) {
     return building.tiles.length === bounds.width * bounds.height;
   }
+
+  // ---------------------------------------------------------------------------
+  // Drag & drop (pointer-based, mouse + touch).
+  //
+  // Every interaction below ends in one of the existing system calls
+  // (moveFortressBuilding / mergeFortressBuildings / assignReserveUnitToMine / …) —
+  // drag is a new INPUT layer, not new rules. Releasing the pointer over nothing
+  // valid cancels silently (unplaced buildings just stay in the tray).
+  // ---------------------------------------------------------------------------
+
+  const isUnplacedFortressBuilding = (buildingId) =>
+    (state.fortress.unplacedBuildings ?? []).some((item) => item.id === buildingId);
+
+  // Drop targets are resolved GEOMETRICALLY (pointer → field rect → tile coords), not via
+  // event.target: battle sprites and the pointer-events:none battle tiles must not break the
+  // hit-test, and mid-drag DOM rebuilds (cheats, config editor) can't leave dangling references.
+  function tileFromPoint(clientX, clientY) {
+    const fieldRect = elements.fortressField.getBoundingClientRect();
+    if (!fieldRect.width || !fieldRect.height) {
+      return null;
+    }
+    const col = Math.floor(((clientX - fieldRect.left) / fieldRect.width) * FORTRESS_WIDTH);
+    const row = Math.floor(((clientY - fieldRect.top) / fieldRect.height) * FORTRESS_HEIGHT);
+    if (col < 0 || col >= FORTRESS_WIDTH || row < 0 || row >= FORTRESS_HEIGHT) {
+      return null;
+    }
+    return state.fortress.field.find((tile) => tile.x === col && tile.y === row) ?? null;
+  }
+
+  let fortressHighlightEls = [];
+  function setFortressDropHighlight(tiles, ok) {
+    for (const el of fortressHighlightEls) {
+      el.classList.remove("drag-drop-ok", "drag-drop-bad");
+    }
+    fortressHighlightEls = [];
+    for (const tile of tiles) {
+      const el = elements.fortressField.querySelector(`[data-x="${tile.x}"][data-y="${tile.y}"]`);
+      if (el) {
+        el.classList.add(ok ? "drag-drop-ok" : "drag-drop-bad");
+        fortressHighlightEls.push(el);
+      }
+    }
+  }
+  function clearFortressDropHighlight() {
+    setFortressDropHighlight([], true);
+  }
+
+  // What would happen if `buildingId` were released on tile (x, y)?
+  // Returns { ok, action, ... } where action is "place" | "merge" | "invalid", or null
+  // when the building no longer exists (drop should be a silent no-op then).
+  function describeFortressDrop(buildingId, x, y) {
+    const building = findAnyFortressBuilding(state, buildingId);
+    if (!building) {
+      return null;
+    }
+    const tile = state.fortress.field.find((item) => item.x === x && item.y === y);
+    if (!tile) {
+      return null;
+    }
+    if (tile.occupant === "obstacle") {
+      return { ok: false, action: "invalid" };
+    }
+    if (!tile.occupant) {
+      const fits = canPlaceFortressBuilding(state, building.type, { x, y }, building.id);
+      return { ok: fits, action: fits ? "place" : "invalid", x, y };
+    }
+    const target = getFortressBuildingForTile(tile);
+    if (target && canMergeFortressBuildings(state, building, target)) {
+      return { ok: true, action: "merge", targetId: target.id };
+    }
+    return { ok: false, action: "invalid" };
+  }
+
+  function highlightFortressDrop(buildingId, x, y) {
+    const descriptor = describeFortressDrop(buildingId, x, y);
+    const building = findAnyFortressBuilding(state, buildingId);
+    if (!descriptor || !building) {
+      clearFortressDropHighlight();
+      return;
+    }
+    if (descriptor.action === "place") {
+      // Show the whole footprint lighting up, not just the tile under the cursor.
+      const tiles = normalizeFootprint(building.type).map((offset) => ({
+        x: x + offset.x,
+        y: y + offset.y
+      }));
+      setFortressDropHighlight(tiles, true);
+    } else {
+      setFortressDropHighlight([{ x, y }], descriptor.ok);
+    }
+  }
+
+  function executeFortressDrop(buildingId, x, y) {
+    const descriptor = describeFortressDrop(buildingId, x, y);
+    if (!descriptor) {
+      return false;
+    }
+    if (descriptor.action === "place") {
+      const result = moveFortressBuilding(state, buildingId, { x, y });
+      state.fortress.message = result.reason;
+      if (result.ok) {
+        state.fortress.movingBuildingId = null;
+      }
+      onStateChanged();
+      return true;
+    }
+    if (descriptor.action === "merge") {
+      const result = mergeFortressBuildings(state, buildingId, descriptor.targetId);
+      state.fortress.message = result.reason;
+      if (result.ok) {
+        state.fortress.movingBuildingId = null;
+      }
+      onStateChanged();
+      return true;
+    }
+    // Valid target missing under the cursor: cancel, nothing moves.
+    state.fortress.message = "Nothing fits there — building stays put.";
+    onStateChanged();
+    return true;
+  }
+
+  function dismissInteractionOverlays() {
+    // Popover DOM lives outside the drag payload; drop it immediately so it doesn't dangle
+    // under the ghost. (State flags are cleared too; the next render re-syncs.)
+    closeFortressPopup();
+    closeWorkerActionPopup();
+    document.querySelector(".fortress-action-popover")?.remove();
+    document.querySelector(".worker-action-popover")?.remove();
+  }
+
+  function attachFortressBuildingDrag(element, buildingId) {
+    attachDrag(element, {
+      getPayload: () => (findAnyFortressBuilding(state, buildingId) ? { buildingId } : null),
+      onDragStart: () => dismissInteractionOverlays(),
+      onDragMove: (payload, event) => {
+        const tile = tileFromPoint(event.clientX, event.clientY);
+        if (tile) {
+          highlightFortressDrop(payload.buildingId, tile.x, tile.y);
+        } else {
+          clearFortressDropHighlight();
+        }
+      },
+      onDragEnd: (payload, event) => {
+        clearFortressDropHighlight();
+        const tile = tileFromPoint(event.clientX, event.clientY);
+        if (tile) {
+          return executeFortressDrop(payload.buildingId, tile.x, tile.y);
+        }
+        // Released off the field: unplaced buildings stay in the tray, placed ones stay put.
+        if (isUnplacedFortressBuilding(payload.buildingId)) {
+          state.fortress.message = "Drop the building on the fortress field to place it.";
+          onStateChanged();
+        }
+        return false;
+      },
+      onDragCancel: () => clearFortressDropHighlight()
+    });
+  }
+
+  // --- worker drag (reserve ⇄ mine slots, merge on matching levels) ---
+
+  let workerHighlightEl = null;
+  function setWorkerDropHighlight(el, ok) {
+    if (workerHighlightEl) {
+      workerHighlightEl.classList.remove("drag-drop-ok", "drag-drop-bad");
+    }
+    workerHighlightEl = el ?? null;
+    if (el) {
+      el.classList.add(ok ? "drag-drop-ok" : "drag-drop-bad");
+    }
+  }
+  function clearWorkerDropHighlight() {
+    setWorkerDropHighlight(null);
+  }
+
+  function findWorkerUnit(payload) {
+    if (payload.source === "reserve") {
+      const unit = state.reserveUnits.find((item) => item.id === payload.unitId);
+      return unit ? { unit, source: "reserve" } : null;
+    }
+    const mine = state.mines.find((item) => item.id === payload.mineId);
+    const unit = mine?.workerIds[payload.slotIndex];
+    return unit && unit.id === payload.unitId
+      ? { unit, source: "mine", mineId: payload.mineId, slotIndex: payload.slotIndex }
+      : null;
+  }
+
+  // Drop resolution for a dragged worker. Returns { ok, action, ... } with action one of
+  // "to-slot" (assign/move/swap), "merge-mine", "merge-reserve", "return", "invalid" —
+  // or null when the drop location is irrelevant (silent cancel).
+  function describeWorkerDrop(payload, targetEl) {
+    const context = findWorkerUnit(payload);
+    if (!context || !targetEl) {
+      return null;
+    }
+
+    const slotEl = targetEl.closest("[data-mine-slot]");
+    if (slotEl && slotEl.classList.contains("is-open")) {
+      const [mineId, slotIndexRaw] = slotEl.dataset.mineSlot.split(":");
+      const slotIndex = Number(slotIndexRaw);
+      const mine = state.mines.find((item) => item.id === mineId);
+      if (mine) {
+        if (payload.source === "mine" && payload.mineId === mineId && payload.slotIndex === slotIndex) {
+          return null; // dropped back into its own slot
+        }
+        const targetUnit = mine.workerIds[slotIndex] ?? null;
+        if (!targetUnit) {
+          return { ok: true, action: "to-slot", mineId, slotIndex };
+        }
+        if (payload.source === "reserve") {
+          const sameLevel = targetUnit.level === context.unit.level;
+          return {
+            ok: sameLevel,
+            action: sameLevel ? "merge-mine" : "invalid",
+            mineId,
+            slotIndex
+          };
+        }
+        // mine → occupied slot: moveMineUnitToMineSlot merges equal levels, swaps otherwise.
+        return { ok: true, action: "to-slot", mineId, slotIndex };
+      }
+    }
+
+    const reserveCard = targetEl.closest("#reserveZone .unit-card[data-unit-id]");
+    if (reserveCard && reserveCard.dataset.unitId !== payload.unitId) {
+      const other = state.reserveUnits.find((item) => item.id === reserveCard.dataset.unitId);
+      if (other) {
+        if (payload.source !== "reserve") {
+          // Mine workers return via the pile itself, not by dropping onto another worker.
+          return { ok: false, action: "invalid" };
+        }
+        const sameLevel = other.level === context.unit.level;
+        return {
+          ok: sameLevel,
+          action: sameLevel ? "merge-reserve" : "invalid",
+          targetUnitId: other.id
+        };
+      }
+    }
+
+    if (targetEl.closest("#reserveZone") || targetEl.closest(".reserve-panel")) {
+      if (payload.source === "mine") {
+        return { ok: true, action: "return" };
+      }
+      return null; // reserve worker dropped on the pile: nothing to do
+    }
+
+    return null;
+  }
+
+  function highlightWorkerDrop(payload, targetEl) {
+    const descriptor = describeWorkerDrop(payload, targetEl);
+    if (!descriptor) {
+      clearWorkerDropHighlight();
+      return;
+    }
+    const el =
+      targetEl.closest("[data-mine-slot]") ??
+      targetEl.closest("#reserveZone .unit-card[data-unit-id]") ??
+      targetEl.closest("#reserveZone") ??
+      targetEl.closest(".reserve-panel");
+    setWorkerDropHighlight(el, descriptor.ok);
+  }
+
+  function executeWorkerDrop(payload, targetEl) {
+    clearWorkerDropHighlight();
+    const descriptor = describeWorkerDrop(payload, targetEl);
+    if (!descriptor) {
+      return false;
+    }
+
+    let result;
+    if (descriptor.action === "to-slot") {
+      result = payload.source === "reserve"
+        ? assignReserveUnitToMine(state, payload.unitId, descriptor.mineId, descriptor.slotIndex)
+        : moveMineUnitToMineSlot(state, payload.mineId, payload.slotIndex, descriptor.mineId, descriptor.slotIndex);
+    } else if (descriptor.action === "merge-mine") {
+      result = mergeReserveUnitIntoMineUnit(state, payload.unitId, descriptor.mineId, descriptor.slotIndex);
+    } else if (descriptor.action === "merge-reserve") {
+      result = mergeReservePair(state, payload.unitId, descriptor.targetUnitId);
+    } else if (descriptor.action === "return") {
+      result = returnMineUnitToReserve(state, payload.mineId, payload.slotIndex);
+    } else {
+      state.fortress.message = "Workers drop onto mine slots or matching workers.";
+      onStateChanged();
+      return true;
+    }
+
+    state.fortress.message = result.reason;
+    onStateChanged();
+    return true;
+  }
+
+  function attachWorkerDrag(element, payload) {
+    attachDrag(element, {
+      getPayload: () => (findWorkerUnit(payload) ? payload : null),
+      onDragStart: () => dismissInteractionOverlays(),
+      onDragMove: (dragPayload, event, targetEl) => highlightWorkerDrop(dragPayload, targetEl),
+      onDragEnd: (dragPayload, event, targetEl) => executeWorkerDrop(dragPayload, targetEl),
+      onDragCancel: () => clearWorkerDropHighlight()
+    });
+  }
+
+  // --- tray for bought-but-unplaced buildings ---
+
+  function renderUnplacedTray() {
+    const tray = elements.unplacedTray;
+    if (!tray) {
+      return;
+    }
+    tray.innerHTML = "";
+    const unplaced = state.fortress.unplacedBuildings ?? [];
+    tray.hidden = unplaced.length === 0;
+
+    for (const building of unplaced) {
+      const definition = CONFIG.fortressBuildings[building.type];
+      const token = document.createElement("button");
+      token.type = "button";
+      token.className = "unplaced-token";
+      token.classList.toggle("is-moving-source", state.fortress.movingBuildingId === building.id);
+      token.innerHTML = `
+        <span class="fortress-tile-icon">${definition.icon}</span>
+        <strong>${definition.name}</strong>
+        <small>Lv ${building.level}</small>
+      `;
+
+      attachFortressBuildingDrag(token, building.id);
+
+      // Tap = classic click-placement (same move-mode the field uses); tap again to cancel.
+      token.addEventListener("click", () => {
+        if (state.fortress.movingBuildingId === building.id) {
+          state.fortress.movingBuildingId = null;
+          state.fortress.message = "Placement cancelled.";
+        } else {
+          state.fortress.movingBuildingId = building.id;
+          state.fortress.message = "Tap a valid free tile to place this building.";
+        }
+        onStateChanged();
+      });
+
+      tray.append(token);
+    }
+  }
+
 
   function renderFortressBuildingShape(building, bounds) {
     return `
@@ -1350,15 +1495,8 @@ export function mountUI(state, onStateChanged) {
 
         const movingBuildingId = state.fortress.movingBuildingId;
         if (movingBuildingId && movingBuildingId !== building.id) {
-          const movingBuilding = state.fortress.buildings.find((item) => item.id === movingBuildingId);
-          const canMerge =
-            movingBuilding &&
-            movingBuilding.hp > 0 &&
-            building.hp > 0 &&
-            movingBuilding.type === building.type &&
-            movingBuilding.type !== "hq" &&
-            movingBuilding.level === building.level &&
-            Boolean(definition.levels[building.level]);
+          const movingBuilding = findAnyFortressBuilding(state, movingBuildingId);
+          const canMerge = canMergeFortressBuildings(state, movingBuilding, building);
           if (canMerge) {
             tileButton.classList.add("is-merge-target");
             tileButton.addEventListener("click", () => {
@@ -1383,8 +1521,10 @@ export function mountUI(state, onStateChanged) {
             onStateChanged();
           });
         }
+
+        attachFortressBuildingDrag(tileButton, building.id);
       } else {
-        const movingBuilding = state.fortress.buildings.find((item) => item.id === state.fortress.movingBuildingId);
+        const movingBuilding = findAnyFortressBuilding(state, state.fortress.movingBuildingId);
         if (movingBuilding) {
           const canMove = canPlaceFortressBuilding(state, movingBuilding.type, tile, movingBuilding.id);
           tileButton.classList.add(canMove ? "is-valid-target" : "is-invalid-target");
@@ -1522,7 +1662,6 @@ export function mountUI(state, onStateChanged) {
             Repair ${renderFortressCost(repairCost)}
           </button>
         ` : ""}
-        <button class="fortress-popover-action" type="button" data-popup-move>Move / Merge</button>
         ${building.type === "hq" ? "" : `
           <button class="fortress-popover-action is-danger" type="button" data-popup-demolish ${canDemolish ? "" : "disabled"}>
             <span>Demolish${demolishGold > 0 ? ` −${demolishGold}${CONFIG.goldIcon ?? "💰"}` : ""}</span>${hasRefund ? `<span class="fortress-popover-refund">+${renderFortressCost(demolishRefund)}</span>` : ""}
@@ -1556,12 +1695,6 @@ export function mountUI(state, onStateChanged) {
         closeFortressPopup();
         onStateChanged();
       });
-      popup.querySelector("[data-popup-move]")?.addEventListener("click", () => {
-        state.fortress.movingBuildingId = building.id;
-        state.fortress.message = "Tap a valid free tile to move this building.";
-        closeFortressPopup();
-        onStateChanged();
-      });
     }
 
     popup.querySelector("[data-popup-close]")?.addEventListener("click", () => {
@@ -1575,8 +1708,10 @@ export function mountUI(state, onStateChanged) {
   function buildFortressShopCard(type, definition) {
     const unlockWave = getFortressBuildingUnlockWave(type);
     const isUnlocked = state.fortress.unlockedBuildingTypes.includes(type);
+    // Manual placement: buying is still only offered when the copy has somewhere to go —
+    // a free tile exists OR an existing same-type pair can absorb it via merge.
+    const hasSpace = hasFortressPlacementOrMerge(state, type);
     const buyCost = getFortressBuildingBuyCost(state, type);
-    const hasSpace = Boolean(findFortressPlacement(state, type));
     const canBuy = isUnlocked && hasSpace && canAffordResources(state.resources, buyCost);
     const maxLevel = definition.levels?.length ?? 1;
     // Top tier gated by crystal? Surface it on the card so the tier ceiling + its cost are legible
@@ -1601,7 +1736,7 @@ export function mountUI(state, onStateChanged) {
     const buy = () => {
       const currentCost = getFortressBuildingBuyCost(state, type);
       const currentlyCanBuy = state.fortress.unlockedBuildingTypes.includes(type) &&
-        Boolean(findFortressPlacement(state, type)) &&
+        hasFortressPlacementOrMerge(state, type) &&
         canAffordResources(state.resources, currentCost);
       if (!currentlyCanBuy) {
         return;
@@ -1634,7 +1769,7 @@ export function mountUI(state, onStateChanged) {
 
       const unlockWave = getFortressBuildingUnlockWave(type);
       const isUnlocked = state.fortress.unlockedBuildingTypes.includes(type);
-      const hasSpace = Boolean(findFortressPlacement(state, type));
+      const hasSpace = hasFortressPlacementOrMerge(state, type);
       const canBuy = isUnlocked &&
         hasSpace &&
         canAffordResources(state.resources, getFortressBuildingBuyCost(state, type));
@@ -1707,6 +1842,24 @@ export function mountUI(state, onStateChanged) {
         requestAnimationFrame(() => { isProgrammaticScroll = false; });
       }
     }, { passive: true });
+
+    // Desktop mouse wheels scroll vertically; without this handler the wheel goes to the PAGE as
+    // soon as the page itself is scrollable (e.g. the unplaced-buildings tray adds height), and
+    // the strip stops responding. Convert vertical wheel to horizontal scroll while hovering the
+    // strip. Shift+wheel / pinch-zoom keep their native handling.
+    shop.addEventListener("wheel", (event) => {
+      if (event.ctrlKey || shop.scrollWidth <= shop.clientWidth + 1) {
+        return;
+      }
+      const delta = event.shiftKey ? 0 : (Math.abs(event.deltaY) >= Math.abs(event.deltaX) ? event.deltaY : event.deltaX);
+      if (!delta) {
+        return;
+      }
+      event.preventDefault();
+      isProgrammaticScroll = true;
+      shop.scrollLeft += delta;
+      requestAnimationFrame(() => { isProgrammaticScroll = false; });
+    }, { passive: false });
   }
   setupFortressShopLoop();
 
@@ -1973,6 +2126,7 @@ export function mountUI(state, onStateChanged) {
     elements.cheatPanel.hidden = !state.ui.isCheatsOpen;
     renderVictoryState();
     renderFortressField();
+    renderUnplacedTray();
     renderFortressShop();
     renderUpgradeChoices();
     renderCapstoneChoices();
@@ -1997,9 +2151,7 @@ export function mountUI(state, onStateChanged) {
     renderReserve();
     renderMines();
     renderMineProgressFrame();
-    updateSelectionTether();
     renderWorkerActionPopover();
-    renderMoveModeCancelButton();
     flushResourceBursts();
   }
 
@@ -2034,8 +2186,6 @@ export function mountUI(state, onStateChanged) {
     lastBattleActive = battleActive;
     renderMineProgressFrame();
     renderActionHints();
-    updateSelectionTether();
-    renderMoveModeCancelButton();
     flushResourceBursts();
   }
 
