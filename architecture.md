@@ -72,7 +72,9 @@ survives a fixed sequence of enemy waves. It replaces an earlier, structurally d
   (`getUnlockedFortressBuildingTypes`), buy (the new copy lands in `fortress.unplacedBuildings` —
   the "unplaced tray" — and the player drops it onto the field via drag or tap-to-place, or drops
   it straight onto a matching building to merge; `moveFortressBuilding`/`mergeFortressBuildings`
-  accept unplaced sources), upgrade, repair, demolish, merge, and move.
+  accept unplaced sources), repair, demolish, merge, and move. There is no separate "upgrade in
+  place" action — a building only gains a level by merging two same-type, same-level copies
+  (`upgradeFortressBuilding`/`upgradeCost` were removed as dead code: no UI button ever called them).
 - **Buy cost escalation** (`getFortressBuildingBuyCost`): scales with the total *invested power* of
   that building type on the field, `Σ 2^(level-1)` over its instances — exactly like the reserve-worker
   buy curve — so both building wide and building tall raise the next copy's price, and merging is
@@ -366,8 +368,9 @@ Top-level keys in `data/config.json`:
 - `fortressBuildings` — one entry per building type: `name`/`icon`/`description`, `footprint` (tile
   offsets), `unlockedByDefault`/`unlockWave`, `buyCost`, optional `crystalMergeGated`, and a `levels[]`
   array where each level carries whatever that building type needs (`hp` always; `cooldownSeconds`+
-  `unit` for trainers; `damage`+`range` for the turret; `upgradeCost` for every non-max level; an
-  `active` ability definition only on the top level).
+  `unit` for trainers; `damage`+`range` for the turret; an `active` ability definition on whichever
+  level it unlocks — `getBuildingActiveDefinition` looks downward from the building's current level,
+  so it stays available above that level too, not just on an exact match).
 - `fortressUnits` — base `hp`/`attack`/`cooldownSeconds`/`rangeTiles`/`speedTilesPerSecond` (and
   optional `splashRadius`) per trainable ally type (warrior/archer/rider/mage).
 - `fortressEnemies` — base stats per enemy archetype, plus an optional `mechanic` block (`aura`,

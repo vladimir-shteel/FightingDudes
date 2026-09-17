@@ -23,7 +23,7 @@ const { tickFortressBattle, startFortressBattle } = await gameModule("js/game/sy
 const { tickMineProduction } = await gameModule("js/game/systems/mineSystem.js");
 const { tickUpgradeEffects } = await gameModule("js/game/systems/upgradeSystem.js");
 const {
-  buyFortressBuilding, upgradeFortressBuilding, mergeFortressBuildings, repairFortressBuilding,
+  buyFortressBuilding, mergeFortressBuildings, repairFortressBuilding,
   removeFortressObstacle, moveFortressBuilding, canPlaceFortressBuilding, getFortressRepairCost,
   findFortressPlacement, canMergeFortressBuildings,
 } = await gameModule("js/game/systems/fortressSystem.js");
@@ -76,10 +76,19 @@ function clearObstacleAt(state, x, y) {
 function placeBuilding(state, type, origin = null) {
   let spot = origin;
   if (spot) {
-    for (const [x, y] of CONFIG.fortressBuildings[type].footprint) {
-      if (!clearObstacleAt(state, spot.x + x, spot.y + y)) return null;
+    const canAffordClear = CONFIG.fortressBuildings[type].footprint.every(
+      ([x, y]) => tile(state, spot.x + x, spot.y + y)?.occupant !== "obstacle"
+        || state.resources.gold >= state.fortress.obstacleRemovalCost
+    );
+    const cleared = canAffordClear
+      && CONFIG.fortressBuildings[type].footprint.every(([x, y]) => clearObstacleAt(state, spot.x + x, spot.y + y));
+    // The 60-65% tree-covered field means a fixed "curtain" coordinate is often sitting on an
+    // obstacle the policy can't yet afford to clear. A real player would just build on the nearest
+    // open tile instead of giving up — fall back to any free spot instead of failing outright.
+    if (!cleared || !canPlaceFortressBuilding(state, type, spot)) {
+      spot = findFortressPlacement(state, type);
+      if (!spot) return null;
     }
-    if (!canPlaceFortressBuilding(state, type, spot)) return null; // another building sits there
   } else {
     if (state.fortress.obstacleRemovalCost && state.resources.gold >= state.fortress.obstacleRemovalCost) {
       // free spot may not exist — clear one obstacle as a fallback (policies pay the gold)

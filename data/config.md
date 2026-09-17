@@ -143,8 +143,7 @@ referenced by `fortressWaves[].composition[].archetype` and `mechanic.archetype`
 ### `fortressBuildings` — object keyed by building type
 
 The object's own key (`wall`, `turret`, `barracks`, …) is the building type referenced by
-`fortressBuildings.*.levels[].unit`, `buyCost`/`upgradeCost` keys elsewhere, and the runtime
-`building.type` field.
+`fortressBuildings.*.levels[].unit`, `buyCost` elsewhere, and the runtime `building.type` field.
 
 | Field | Type | Description |
 |---|---|---|
@@ -165,8 +164,16 @@ The object's own key (`wall`, `turret`, `barracks`, …) is the building type re
 | `unit` | string (enum: any `fortressUnits` key) | trainers | Which unit type this level trains. |
 | `damage` | number | turret, trap mine | Damage dealt per shot (turret) or on trigger (trap mine). |
 | `range` | number (tiles) | turret | Attack range. Falls back to `combatEngine.turretDefaultRange` if omitted. |
-| `upgradeCost` | object `{resourceKey: amount}` | every level except the last | Cost to upgrade **from** this level to the next. The last (max) level has no `upgradeCost`. |
-| `active` | object *(optional)* | only the max level | An ability triggerable during battle. See below. Only the top tier of a building can carry one. |
+| `active` | object *(optional)* | whichever level defines it | An ability triggerable during battle. See below. Placed on the level where it unlocks (currently level 4 for barracks/archery/stables/mageTower, level 5 for turret) — `getBuildingActiveDefinition` scans downward from the building's current level, so it stays available at every higher level too, not just an exact match. |
+
+A building only ever gains a level by merging two same-type, same-level copies into one — there is
+no gold-cost "upgrade in place" action (no UI button for it, and the old `upgradeFortressBuilding`/
+`upgradeCost` data path was removed as dead code).
+
+Trainer buildings (barracks/archery/stables/mageTower) also enforce a **unit cap**: a spawner can
+have at most `1 + floor(level / 3)` of its unit alive on the field at once (a new slot every 3
+levels — L3/L6/L9/L12 → cap 2/3/4/5). While at the cap the spawn cooldown just holds; a kill opens
+a slot back up within one cooldown. See `getBuildingUnitCap` in `fortressBattleSystem.js`.
 
 **`active` fields:**
 
@@ -208,7 +215,7 @@ Per-level `attack`/`hp` bonuses come from `combat.unitAttackPerLevel`/`unitHpPer
 | `buildingCostEscalation.<type>` | number *(optional per type)* | Override growth factor for a specific building type (e.g. `wall`/`bigWall` are shipped lower than default — cheap chaff shouldn't escalate as fast as real defenses). |
 | `demolish.refundFraction` | number (0–1) | Fraction of resources (and any crystal) sunk into a building that's returned when it's demolished. |
 | `demolish.goldCostPerCopy` | number | Gold cost to demolish, per unit of invested power (`2^(level-1)`). |
-| `fortress.obstacleCount` | number | Scenery obstacle (tree) tiles scattered on the field at run start. Purely a gold sink to clear — obstacles don't block enemy pathing. |
+| `fortress.obstaclePercentMin` / `fortress.obstaclePercentMax` | number (0-1) | Fraction of the field's *open* tiles (`FORTRESS_WIDTH × FORTRESS_HEIGHT` minus the HQ and starting barracks/wall footprints) covered in scenery obstacles (trees) at run start, randomized per run between the two and rounded up. Measured against the open tiles, not the full grid, so the number matches what a player actually sees as "the field." Purely a gold sink to clear — obstacles don't block enemy pathing, only building placement. |
 | `fortress.obstacleRemovalBaseCost` | number | Gold cost to clear the first obstacle. |
 | `fortress.obstacleRemovalCostStep` | number | How much the clearing cost rises after each tile cleared. |
 | `fortress.repairFallbackWoodPerLevel` | number | Repair cost (in wood, × building level) used **only** for buildings with an empty `buyCost` — currently just the HQ, which has no normal buy cost to base a repair rate on. |
@@ -286,7 +293,7 @@ not which array it's filed under.
 
 | Field | Type | Description |
 |---|---|---|
-| `key` | string | The resource's identifier — used as the key in `resources`, `startingResources`, every `buyCost`/`upgradeCost` object, and `fortressWaves[].demandResource`. This is the canonical *definition*, not itself a reference — don't expect a dropdown here. |
+| `key` | string | The resource's identifier — used as the key in `resources`, `startingResources`, every `buyCost` object, and `fortressWaves[].demandResource`. This is the canonical *definition*, not itself a reference — don't expect a dropdown here. |
 | `label`, `icon`, `mineName` | string | Display text: resource name, resource icon, and the mine building's own name (e.g. "Lumber Camp" produces `wood`). |
 | `unlockedByDefault` | boolean | If `true`, this mine (and its first slot) starts owned. |
 | `unlockWave` | number | Wave at which the mine becomes purchasable (ignored if `unlockedByDefault`). |

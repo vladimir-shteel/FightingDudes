@@ -70,7 +70,15 @@ export function createFortressState() {
     const swapIndex = Math.floor(Math.random() * (index + 1));
     [candidates[index], candidates[swapIndex]] = [candidates[swapIndex], candidates[index]];
   }
-  const obstacleCount = getFortressLayoutConfig().obstacleCount ?? 10;
+  // Obstacles cover a random 60-65% of the OPEN field each run (rounded up), not a flat count.
+  // Measured against the tiles actually eligible to become a tree (`candidates`), not the full
+  // width×height grid — the HQ and starting buildings are permanently reserved either way, so
+  // counting them toward the total would silently push real tree density well past 65%.
+  const layout = getFortressLayoutConfig();
+  const minFraction = layout.obstaclePercentMin ?? 0.6;
+  const maxFraction = layout.obstaclePercentMax ?? 0.65;
+  const fraction = minFraction + Math.random() * (maxFraction - minFraction);
+  const obstacleCount = Math.ceil(candidates.length * fraction);
   for (const tile of candidates.slice(0, obstacleCount)) {
     tile.occupant = "obstacle";
   }
@@ -132,11 +140,19 @@ export function createFortressBuilding(type, origin) {
 
 export function getBuildingActiveDefinition(building) {
   const definition = CONFIG.fortressBuildings[building.type];
-  if (!definition || building.level !== definition.levels.length) {
+  if (!definition) {
     return null;
   }
-  const maxLevel = definition.levels[definition.levels.length - 1];
-  return maxLevel?.active ?? null;
+  // The active ability unlocks at whichever level defines it (currently level 4) and stays
+  // available at every higher level too — scan downward from the current level for the nearest
+  // `active` block instead of requiring an exact match to the building's max level.
+  for (let level = building.level; level >= 1; level -= 1) {
+    const active = definition.levels[level - 1]?.active;
+    if (active) {
+      return active;
+    }
+  }
+  return null;
 }
 
 export function getBuildingActiveCost(state, building) {
@@ -361,27 +377,6 @@ export function buyFortressBuilding(state, type) {
   }
   state.fortress.unplacedBuildings.push(building);
   return { ok: true, reason: `${definition.name} bought — drag it onto the field, or onto a matching building to merge.` };
-}
-
-export function upgradeFortressBuilding(state, buildingId) {
-  const building = state.fortress.buildings.find((item) => item.id === buildingId);
-  if (!building || building.type === "hq") {
-    return { ok: false, reason: "This building cannot be upgraded." };
-  }
-  const definition = CONFIG.fortressBuildings[building.type];
-  const currentLevel = definition.levels[building.level - 1];
-  const nextLevel = definition.levels[building.level];
-  if (!nextLevel) {
-    return { ok: false, reason: "Building is already max level." };
-  }
-  if (!spendResources(state.resources, currentLevel.upgradeCost)) {
-    return { ok: false, reason: "Not enough resources for upgrade." };
-  }
-  building.level += 1;
-  const bonusHp = getBaseHealthBonus(state);
-  building.maxHp = nextLevel.hp + bonusHp;
-  building.hp = nextLevel.hp + bonusHp;
-  return { ok: true, reason: `${definition.name} upgraded to level ${building.level}.` };
 }
 
 export function getFortressRepairCost(state, building) {

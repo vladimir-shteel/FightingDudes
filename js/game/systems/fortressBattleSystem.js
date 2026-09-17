@@ -355,9 +355,10 @@ export function spawnAllyForBuilding(state, building, unitKey, count) {
   const engineCfg = getCombatEngineConfig();
   const spawnDistance = engineCfg.spawnDistanceFromBuilding ?? 0.65;
   const spacing = engineCfg.squadSpawnSpacing ?? 0.4;
-  // Building unit cap: a spawner never has more simultaneous units on the field than its level.
-  // Active spawnSquad effects top up to the cap instead of exceeding it.
-  const freeSlots = Math.max(0, building.level - countBuildingAliveUnits(state, building.id));
+  // Building unit cap: a spawner's simultaneous-unit cap starts at 1 and gains another slot every
+  // 3 levels (L3, L6, L9, L12 -> cap 2/3/4/5). Active spawnSquad effects top up to the cap instead
+  // of exceeding it.
+  const freeSlots = Math.max(0, getBuildingUnitCap(building) - countBuildingAliveUnits(state, building.id));
   for (let index = 0; index < Math.min(count, freeSlots); index += 1) {
     const offset = (index - (count - 1) / 2) * spacing;
     battle.allies.push(createFortressAlly(
@@ -374,6 +375,12 @@ function countBuildingAliveUnits(state, buildingId) {
     (n, ally) => (ally.hp > 0 && ally.sourceBuildingId === buildingId ? n + 1 : n),
     0
   );
+}
+
+// A new unit slot unlocks every 3 building levels (L3, L6, L9, L12), not every level, so pushing a
+// spawner to its cap requires a deep merge ladder rather than a single upgrade.
+function getBuildingUnitCap(building) {
+  return 1 + Math.floor(building.level / 3);
 }
 
 export function volleyFromBuilding(state, building, count, damage) {
@@ -504,9 +511,9 @@ function tickBuildingActions(state, deltaSeconds) {
     const center = getBuildingCenter(building);
 
     if (level.unit) {
-      // Building unit cap: max simultaneous units on the field = building level. While the cap is
-      // reached the cooldown holds; when a unit dies the replacement arrives within one cooldown.
-      if (countBuildingAliveUnits(state, building.id) >= building.level) {
+      // Building unit cap (see getBuildingUnitCap): while the cap is reached the cooldown holds;
+      // when a unit dies the replacement arrives within one cooldown.
+      if (countBuildingAliveUnits(state, building.id) >= getBuildingUnitCap(building)) {
         continue;
       }
       building.cooldownTimer -= deltaSeconds;
