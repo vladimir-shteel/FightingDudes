@@ -11,16 +11,16 @@
   "unitBuyBaseCost": 4,
   "unitBuyExponent": 1.04,
   "combat": {
-    "hpScalePerWave": 0.07,
-    "attackScalePerWave": 0.04,
-    "armorScalePerWave": 0.035,
+    "hpScalePerWave": 0.045,
+    "attackScalePerWave": 0.022,
+    "armorScalePerWave": 0.025,
     "armorMinFraction": 0.15,
     "unitAttackPerLevel": 0.35,
     "unitHpPerLevel": 0.2
   },
   "buildingCostEscalation": {
-    "default": 1.11,
-    "wall": 1.06,
+    "default": 1.07,
+    "wall": 1.05,
     "bigWall": 1.06
   },
   "demolish": {
@@ -326,7 +326,7 @@
       "buyCost": {},
       "levels": [
         {
-          "hp": 460
+          "hp": 345
         }
       ]
     },
@@ -479,7 +479,7 @@
       },
       "levels": [
         {
-          "hp": 70,
+          "hp": 52,
           "cooldownSeconds": 6,
           "unit": "warrior",
           "upgradeCost": {
@@ -487,7 +487,7 @@
           }
         },
         {
-          "hp": 85,
+          "hp": 64,
           "cooldownSeconds": 4.5,
           "unit": "warrior",
           "upgradeCost": {
@@ -495,7 +495,7 @@
           }
         },
         {
-          "hp": 100,
+          "hp": 75,
           "cooldownSeconds": 3.3,
           "unit": "warrior",
           "upgradeCost": {
@@ -503,7 +503,7 @@
           }
         },
         {
-          "hp": 130,
+          "hp": 98,
           "cooldownSeconds": 1.9,
           "unit": "warrior",
           "active": {
@@ -554,7 +554,7 @@
       },
       "levels": [
         {
-          "hp": 55,
+          "hp": 41,
           "cooldownSeconds": 8,
           "unit": "archer",
           "upgradeCost": {
@@ -563,7 +563,7 @@
           }
         },
         {
-          "hp": 68,
+          "hp": 51,
           "cooldownSeconds": 6.3,
           "unit": "archer",
           "upgradeCost": {
@@ -572,7 +572,7 @@
           }
         },
         {
-          "hp": 82,
+          "hp": 62,
           "cooldownSeconds": 4.8,
           "unit": "archer",
           "upgradeCost": {
@@ -581,7 +581,7 @@
           }
         },
         {
-          "hp": 110,
+          "hp": 82,
           "cooldownSeconds": 2.7,
           "unit": "archer",
           "active": {
@@ -619,7 +619,7 @@
       },
       "levels": [
         {
-          "hp": 50,
+          "hp": 38,
           "damage": 12,
           "cooldownSeconds": 1.2,
           "upgradeCost": {
@@ -629,7 +629,7 @@
           "range": 1.8
         },
         {
-          "hp": 60,
+          "hp": 45,
           "damage": 22,
           "cooldownSeconds": 1,
           "upgradeCost": {
@@ -639,7 +639,7 @@
           "range": 2
         },
         {
-          "hp": 72,
+          "hp": 54,
           "damage": 40,
           "cooldownSeconds": 0.85,
           "upgradeCost": {
@@ -649,7 +649,7 @@
           "range": 2.2
         },
         {
-          "hp": 86,
+          "hp": 64,
           "damage": 72,
           "cooldownSeconds": 0.75,
           "upgradeCost": {
@@ -659,7 +659,7 @@
           "range": 2.4
         },
         {
-          "hp": 100,
+          "hp": 75,
           "damage": 120,
           "cooldownSeconds": 0.65,
           "active": {
@@ -710,7 +710,7 @@
       },
       "levels": [
         {
-          "hp": 80,
+          "hp": 60,
           "cooldownSeconds": 8,
           "unit": "rider",
           "upgradeCost": {
@@ -719,7 +719,7 @@
           }
         },
         {
-          "hp": 95,
+          "hp": 71,
           "cooldownSeconds": 6.3,
           "unit": "rider",
           "upgradeCost": {
@@ -728,7 +728,7 @@
           }
         },
         {
-          "hp": 110,
+          "hp": 82,
           "cooldownSeconds": 4.8,
           "unit": "rider",
           "upgradeCost": {
@@ -737,7 +737,7 @@
           }
         },
         {
-          "hp": 140,
+          "hp": 105,
           "cooldownSeconds": 2.7,
           "unit": "rider",
           "active": {
@@ -787,7 +787,7 @@
       },
       "levels": [
         {
-          "hp": 55,
+          "hp": 41,
           "cooldownSeconds": 9,
           "unit": "mage",
           "upgradeCost": {
@@ -796,7 +796,7 @@
           }
         },
         {
-          "hp": 68,
+          "hp": 51,
           "cooldownSeconds": 7,
           "unit": "mage",
           "upgradeCost": {
@@ -805,7 +805,7 @@
           }
         },
         {
-          "hp": 82,
+          "hp": 62,
           "cooldownSeconds": 5.3,
           "unit": "mage",
           "upgradeCost": {
@@ -814,7 +814,7 @@
           }
         },
         {
-          "hp": 110,
+          "hp": 82,
           "cooldownSeconds": 3,
           "unit": "mage",
           "active": {
@@ -889,38 +889,38 @@
     "warrior": {
       "name": "Warrior",
       "icon": "🤺",
-      "hp": 55,
+      "hp": 90,
       "attack": 8,
       "cooldownSeconds": 0.75,
       "rangeTiles": 0.5,
-      "speedTilesPerSecond": 0.58
+      "speedTilesPerSecond": 0.75
     },
     "archer": {
       "name": "Archer",
       "icon": "🧝",
-      "hp": 31,
+      "hp": 50,
       "attack": 7,
       "cooldownSeconds": 1.2,
       "rangeTiles": 2.6,
-      "speedTilesPerSecond": 0.48
+      "speedTilesPerSecond": 0.62
     },
     "rider": {
       "name": "Rider",
       "icon": "🏇",
-      "hp": 75,
+      "hp": 122,
       "attack": 12,
       "cooldownSeconds": 1.1,
       "rangeTiles": 0.45,
-      "speedTilesPerSecond": 0.76
+      "speedTilesPerSecond": 0.99
     },
     "mage": {
       "name": "Mage",
       "icon": "🧙",
-      "hp": 23,
+      "hp": 37,
       "attack": 10,
       "cooldownSeconds": 1,
       "rangeTiles": 2.4,
-      "speedTilesPerSecond": 0.46,
+      "speedTilesPerSecond": 0.6,
       "splashRadius": 1.5
     }
   },
@@ -929,10 +929,10 @@
       "name": "Grunt",
       "icon": "👹",
       "hp": 36,
-      "attack": 10,
+      "attack": 9,
       "cooldownSeconds": 0.8,
       "rangeTiles": 0.42,
-      "speedTilesPerSecond": 0.38,
+      "speedTilesPerSecond": 0.49,
       "tag": "normal",
       "armor": 0
     },
@@ -943,7 +943,7 @@
       "attack": 6,
       "cooldownSeconds": 0.7,
       "rangeTiles": 0.42,
-      "speedTilesPerSecond": 0.62,
+      "speedTilesPerSecond": 0.81,
       "tag": "fast",
       "armor": 0
     },
@@ -954,9 +954,9 @@
       "attack": 13,
       "cooldownSeconds": 1.1,
       "rangeTiles": 0.42,
-      "speedTilesPerSecond": 0.28,
+      "speedTilesPerSecond": 0.36,
       "tag": "armored",
-      "armor": 12
+      "armor": 6
     },
     "archerE": {
       "name": "Sniper",
@@ -965,7 +965,7 @@
       "attack": 9,
       "cooldownSeconds": 1.4,
       "rangeTiles": 2.4,
-      "speedTilesPerSecond": 0.36,
+      "speedTilesPerSecond": 0.47,
       "tag": "ranged",
       "armor": 0
     },
@@ -976,7 +976,7 @@
       "attack": 18,
       "cooldownSeconds": 1.1,
       "rangeTiles": 0.5,
-      "speedTilesPerSecond": 0.26,
+      "speedTilesPerSecond": 0.34,
       "tag": "boss",
       "armor": 2,
       "mechanic": {
@@ -988,17 +988,17 @@
     "necromancer": {
       "name": "Necromancer",
       "icon": "💀",
-      "hp": 160,
+      "hp": 130,
       "attack": 12,
       "cooldownSeconds": 1.4,
       "rangeTiles": 2,
-      "speedTilesPerSecond": 0.28,
+      "speedTilesPerSecond": 0.36,
       "tag": "boss",
       "armor": 3,
       "mechanic": {
         "kind": "summon",
         "archetype": "grunt",
-        "intervalSeconds": 10
+        "intervalSeconds": 15
       }
     },
     "breacher": {
@@ -1008,7 +1008,7 @@
       "attack": 26,
       "cooldownSeconds": 1.3,
       "rangeTiles": 0.45,
-      "speedTilesPerSecond": 0.22,
+      "speedTilesPerSecond": 0.29,
       "tag": "boss",
       "armor": 6,
       "mechanic": {
@@ -1019,14 +1019,14 @@
   },
   "fortressWaves": [
     {
-      "enemyCount": 4,
+      "enemyCount": 2,
       "spawnIntervalSeconds": 2.4,
-      "killGold": 2,
+      "killGold": 3,
       "demandResource": "wood",
       "composition": [
         {
           "archetype": "grunt",
-          "count": 3
+          "count": 1
         },
         {
           "archetype": "runner",
@@ -1036,14 +1036,14 @@
       "gapSeconds": 15
     },
     {
-      "enemyCount": 4,
+      "enemyCount": 2,
       "spawnIntervalSeconds": 2.3,
-      "killGold": 2,
+      "killGold": 3,
       "demandResource": "ore",
       "composition": [
         {
           "archetype": "grunt",
-          "count": 3
+          "count": 1
         },
         {
           "archetype": "runner",
@@ -1053,14 +1053,14 @@
       "gapSeconds": 14
     },
     {
-      "enemyCount": 4,
+      "enemyCount": 2,
       "spawnIntervalSeconds": 2.2,
-      "killGold": 2,
+      "killGold": 3,
       "demandResource": "wood",
       "composition": [
         {
           "archetype": "grunt",
-          "count": 3
+          "count": 1
         },
         {
           "archetype": "runner",
@@ -1070,14 +1070,14 @@
       "gapSeconds": 13
     },
     {
-      "enemyCount": 5,
+      "enemyCount": 3,
       "spawnIntervalSeconds": 2.1,
-      "killGold": 2,
+      "killGold": 3,
       "demandResource": "ore",
       "composition": [
         {
           "archetype": "grunt",
-          "count": 4
+          "count": 2
         },
         {
           "archetype": "runner",
@@ -1087,14 +1087,14 @@
       "gapSeconds": 11
     },
     {
-      "enemyCount": 5,
+      "enemyCount": 3,
       "spawnIntervalSeconds": 2,
-      "killGold": 2,
+      "killGold": 3,
       "demandResource": "ore",
       "composition": [
         {
           "archetype": "grunt",
-          "count": 4
+          "count": 2
         },
         {
           "archetype": "runner",
@@ -2159,7 +2159,7 @@
     "goldPerSecondPerWorkerLevel": 0,
     "collectionIntervalSeconds": 4,
     "workerProductionByLevel": {
-      "1": 5,
+      "1": 6,
       "2": 8,
       "3": 16,
       "4": 34,

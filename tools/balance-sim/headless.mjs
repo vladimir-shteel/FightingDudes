@@ -25,6 +25,7 @@ const { tickUpgradeEffects } = await gameModule("js/game/systems/upgradeSystem.j
 const {
   buyFortressBuilding, upgradeFortressBuilding, mergeFortressBuildings, repairFortressBuilding,
   removeFortressObstacle, moveFortressBuilding, canPlaceFortressBuilding, getFortressRepairCost,
+  findFortressPlacement, canMergeFortressBuildings,
 } = await gameModule("js/game/systems/fortressSystem.js");
 const { buyUnit, massMergeReserve, getUnitBuyCost } = await gameModule("js/game/systems/reserveSystem.js");
 const { assignReserveUnitToMine, moveMineUnitToMineSlot } = await gameModule("js/game/systems/mineSystem.js");
@@ -68,24 +69,47 @@ function clearObstacleAt(state, x, y) {
   return true;
 }
 // Buy a building and move it to the desired origin (so scripted walls form a line).
+// buyFortressBuilding puts the new copy "in hand" (unplacedBuildings — no auto-placement since
+// the drag-n-drop commit); the sim places it via moveFortressBuilding like a player drop would.
+// A spot is validated BEFORE paying, so resources are never spent on an unplaceable copy.
 // origin=null → place at any free spot (real-game behavior when space is tight).
 function placeBuilding(state, type, origin = null) {
-  if (origin) {
+  let spot = origin;
+  if (spot) {
     for (const [x, y] of CONFIG.fortressBuildings[type].footprint) {
-      if (!clearObstacleAt(state, origin.x + x, origin.y + y)) return null;
+      if (!clearObstacleAt(state, spot.x + x, spot.y + y)) return null;
     }
-  } else if (state.fortress.obstacleRemovalCost && state.resources.gold >= state.fortress.obstacleRemovalCost) {
-    // free spot may not exist — clear one obstacle as a fallback (policies pay the gold)
-    const blocked = state.fortress.field.find((t) => t.occupant === "obstacle");
-    if (blocked) removeFortressObstacle(state, blocked.x, blocked.y);
+    if (!canPlaceFortressBuilding(state, type, spot)) return null; // another building sits there
+  } else {
+    if (state.fortress.obstacleRemovalCost && state.resources.gold >= state.fortress.obstacleRemovalCost) {
+      // free spot may not exist — clear one obstacle as a fallback (policies pay the gold)
+      const blocked = state.fortress.field.find((t) => t.occupant === "obstacle");
+      if (blocked) removeFortressObstacle(state, blocked.x, blocked.y);
+    }
+    spot = findFortressPlacement(state, type);
+    if (!spot) return null;
   }
   const result = buyFortressBuilding(state, type);
   if (!result.ok) return null;
-  const building = state.fortress.buildings[state.fortress.buildings.length - 1];
-  if (origin && canPlaceFortressBuilding(state, type, origin, building.id)) {
-    moveFortressBuilding(state, building.id, origin);
+  const building = state.fortress.unplacedBuildings[state.fortress.unplacedBuildings.length - 1];
+  if (!building) return null;
+  const moved = moveFortressBuilding(state, building.id, spot);
+  return moved.ok ? building : null;
+}
+
+// Get copies stuck "in hand" onto the field: merge onto a matching field building (the real
+// game's drag-onto-building), else drop them on any free spot. Without this, ladder buys made
+// while their target origin was occupied pile up in unplacedBuildings forever.
+function absorbHandCopies(state, type) {
+  const hand = (state.fortress.unplacedBuildings ?? []).filter((b) => b.type === type);
+  for (const copy of hand) {
+    const match = state.fortress.buildings.find(
+      (b) => b.type === type && b.hp > 0 && b.level === copy.level && canMergeFortressBuildings(state, copy, b)
+    );
+    if (match && mergeFortressBuildings(state, copy.id, match.id).ok) continue;
+    const spot = findFortressPlacement(state, type);
+    if (spot) moveFortressBuilding(state, copy.id, spot);
   }
-  return building;
 }
 
 // Merge-only progression (the real game has no upgrade button: a L3 barracks is 8 L1 buys
@@ -188,6 +212,20 @@ function repairIfNeeded(state, othersFraction = 0.7) {
   }
 }
 
+function aliveBuildings(state, type) {
+  return state.fortress.buildings.filter((b) => b.type === type && b.hp > 0);
+}
+function nextFreeSpot(existing, spots) {
+  const used = new Set(existing.map((b) => `${b.tiles[0].x},${b.tiles[0].y}`));
+  return spots.find((s) => !used.has(`${s.x},${s.y}`)) ?? null;
+}
+// placeBuilding returns null when unaffordable/blocked, so every "try*" below is a polite
+// attempt: the policy walks its priority list every tick and buys whatever it can afford,
+// exactly like a player eyeballing their resource bars.
+function tryPlace(state, type, origin = null) {
+  return Boolean(placeBuilding(state, type, origin));
+}
+
 // ---------------------------------------------------------------- policies
 
 const POLICIES = {
@@ -200,69 +238,73 @@ const POLICIES = {
     const R = state.resources;
     manageWorkers(state, Math.min(totalSlots(state), 2 + Math.floor(w / 5)) + 1);
 
-    const walls = state.fortress.buildings.filter((b) => b.type === "wall" && b.hp > 0);
+    const walls = aliveBuildings(state, "wall");
     const wallSpots = [{ x: 6, y: 2 }, { x: 4, y: 5 }, { x: 6, y: 5 }, { x: 7, y: 1 }];
     const wantedWalls = Math.min(1 + Math.floor(w / 8), 4);
     if (walls.length < wantedWalls && R.ore >= 60) {
-      const used = new Set(walls.map((b) => `${b.tiles[0].x},${b.tiles[0].y}`));
-      const spot = wallSpots.find((s) => !used.has(`${s.x},${s.y}`));
+      const spot = nextFreeSpot(walls, wallSpots);
       if (spot) placeBuilding(state, "wall", spot);
     }
-    // turret ladder capped at L2 (two buys + one merge), archery single L1, barracks ladder to L2
-    const turrets = state.fortress.buildings.filter((b) => b.type === "turret" && b.hp > 0);
+    // sloppy players still grab a second garrison once wood piles up (a lone L1 barracks
+    // fields a single warrior under the unit cap), but nothing systematic after that
+    const barracks = aliveBuildings(state, "barracks");
+    if (w >= 4 && barracks.length < 2) ladderStep(state, "barracks", 2, { x: 0, y: 0 });
+    // turret ladder capped at L2 (two buys + one merge), archery single L1
+    const turrets = aliveBuildings(state, "turret");
     if (w >= 5 && turrets.length < 2) ladderStep(state, "turret", 2, { x: 3, y: turrets.length === 0 ? 1 : 5 });
-    if (w >= 3 && !state.fortress.buildings.some((b) => b.type === "archery")) placeBuilding(state, "archery", { x: 2, y: 5 });
-    if (w >= 6) ladderStep(state, "barracks", 2, { x: 0, y: 0 });
+    if (w >= 3 && aliveBuildings(state, "archery").length < 1) tryPlace(state, "archery", { x: 2, y: 5 });
 
     if (state.fortress.stream.phase === "gap") repairIfNeeded(state, 0.5);
   },
 
+  // Strong scripted play under the unit cap. Split by resource lane — ore buys the wall
+  // curtain, wood buys unit throughput, gold buys workers — then walk the wood lane down a
+  // build-order priority list every tick, buying whatever is affordable right now:
+  // second garrison in the opening → merge ladders → turret (anti-armor) → late tech.
   balanced(state) {
     const w = state.fortress.waveNumber;
     const R = state.resources;
     manageWorkers(state, Math.min(totalSlots(state), 2 + Math.floor(w / 3)) + 1);
 
-    // priority: economy → wall curtain → turret (anti-armor) → spawner ladders
-    const walls = state.fortress.buildings.filter((b) => b.type === "wall" && b.hp > 0);
+    // ore lane: wall curtain — only 2 walls until w8 so the turret (wood+ore) lands before
+    // the first boss; second layer from w18
+    const walls = aliveBuildings(state, "wall");
     const wallSpots = [0, 1, 2, 4, 5, 6].map((y) => ({ x: 5, y }))
-      .concat(w >= 18 ? [0, 1, 2, 4, 5, 6].map((y) => ({ x: 4, y })) : []); // second layer late
-    const wantedWalls = Math.min(2 + Math.floor(w / 4) + (w >= 18 ? 6 : 0), 12);
+      .concat(w >= 18 ? [0, 1, 2, 4, 5, 6].map((y) => ({ x: 4, y })) : []);
+    const wantedWalls = Math.min(2 + Math.max(0, Math.floor((w - 6) / 2)) + (w >= 18 ? 6 : 0), 12);
     if (walls.length < wantedWalls && R.ore >= 60) {
-      const used = new Set(walls.map((b) => `${b.tiles[0].x},${b.tiles[0].y}`));
-      const spot = wallSpots.find((s) => !used.has(`${s.x},${s.y}`));
+      const spot = nextFreeSpot(walls, wallSpots);
       if (spot) placeBuilding(state, "wall", spot);
     }
 
-    // turret ladder to L5 (16 buys total; L4/L5 merges eat 30+60 crystal — ladder waits for it).
-    // Turret outranks walls #3+: it's the only anti-armor source before mage/stables.
-    const turrets = state.fortress.buildings.filter((b) => b.type === "turret" && b.hp > 0);
+    // wood lane, priority order (each step is affordability-gated inside):
+    // 1. second garrison immediately — starting wood (130) covers its ~117 cost in wave 1,
+    //    and under the unit cap doubling spawner count is the cheapest DPS double.
+    ladderStep(state, "barracks", 3, { x: 0, y: 0 });
+    // 2. archery ladder behind the curtain (L3 = 3 archers @ 2.6 range).
+    if (w >= 3 && walls.length >= 2) ladderStep(state, "archery", 3, { x: 0, y: 5 });
+    // 3. turret ladder — the only anti-armor source before stables/mage.
+    const turrets = aliveBuildings(state, "turret");
     const turretSpots = w >= 18
       ? [{ x: 2, y: 3 }, { x: 1, y: 5 }, { x: 2, y: 0 }] // deeper once walls get chewed late
       : [{ x: 3, y: 1 }, { x: 3, y: 5 }, { x: 2, y: 0 }];
     if (w >= 5 && walls.length >= 1 && turrets.length < (w >= 26 ? 4 : 2)) {
       ladderStep(state, "turret", 5, turretSpots[turrets.length % turretSpots.length]);
     }
-
-    // spawner ladders (merge-only; second barracks from w16 for late sustain)
-    if (w >= 3 && walls.length >= 2) ladderStep(state, "archery", 3, { x: 0, y: 5 });
-    if (w >= 10) ladderStep(state, "barracks", 3, { x: 0, y: 0 });
-    if (w >= 16) ladderStep(state, "barracks", 3, { x: 2, y: 0 });
-    if (w >= 9 && w < 12 && !state.fortress.buildings.some((b) => b.type === "stables") && R.iron >= 60 && R.wood >= 80) {
-      placeBuilding(state, "stables", { x: 3, y: 4 });
-    }
+    // 4. late tech, single building each, then ladders for the capped squads.
+    if (w >= 9 && aliveBuildings(state, "stables").length < 1) tryPlace(state, "stables", { x: 3, y: 4 });
     if (w >= 15) ladderStep(state, "stables", 2, { x: 3, y: 4 });
-    if (w >= 11 && w < 14 && !state.fortress.buildings.some((b) => b.type === "mageTower") && R.ore >= 85 && R.crystal >= 45) {
-      placeBuilding(state, "mageTower", { x: 3, y: 1 });
-    }
+    if (w >= 11 && aliveBuildings(state, "mageTower").length < 1) tryPlace(state, "mageTower", { x: 3, y: 1 });
+    if (w >= 17) ladderStep(state, "mageTower", 2, { x: 3, y: 1 });
 
-    // late-game: convert surplus resources into spawn throughput — ally regen rate is the real
-    // ceiling once enemy attack out-scales spawner cooldowns
-    const barracksAlive = state.fortress.buildings.filter((b) => b.type === "barracks" && b.hp > 0).length;
-    if (w >= 18 && R.wood > 4000 && barracksAlive < 6) ladderStep(state, "barracks", 3, null);
-    const archeryAlive = state.fortress.buildings.filter((b) => b.type === "archery" && b.hp > 0).length;
-    if (w >= 14 && R.wood > 3000 && archeryAlive < 4) ladderStep(state, "archery", 3, null);
-    if (w >= 20 && R.iron > 1500 && !state.fortress.buildings.some((b) => b.type === "stables")) {
-      placeBuilding(state, "stables", { x: 3, y: 4 });
+    // late-game: convert surplus into more spawner buildings — under the cap, alive-unit
+    // count = Σ levels of alive spawners, so building count is the throughput ceiling.
+    const barracksAlive = aliveBuildings(state, "barracks").length;
+    if (w >= 12 && R.wood > 1500 && barracksAlive < 8) ladderStep(state, "barracks", 3, null);
+    const archeryAlive = aliveBuildings(state, "archery").length;
+    if (w >= 12 && R.wood > 2500 && archeryAlive < 6) ladderStep(state, "archery", 3, null);
+    if (w >= 14 && R.iron > 1200 && aliveBuildings(state, "stables").length < 3) {
+      tryPlace(state, "stables", { x: 3, y: 4 });
     }
 
     // rich strong players repair mid-wave too, not only in gaps
@@ -272,9 +314,10 @@ const POLICIES = {
   economy(state) {
     const w = state.fortress.waveNumber;
     manageWorkers(state, 99); // all-in workers
-    const walls = state.fortress.buildings.filter((b) => b.type === "wall" && b.hp > 0);
+    const walls = aliveBuildings(state, "wall");
     if (walls.length < 2 && state.resources.ore >= 60) placeBuilding(state, "wall", { x: 5, y: 2 });
-    if (w >= 6) ladderStep(state, "barracks", 3, { x: 0, y: 0 });
+    // second garrison in the opening, ladder after — minimal defense otherwise
+    if (w >= 3) ladderStep(state, "barracks", 3, { x: 0, y: 0 });
     if (state.fortress.stream.phase === "gap") repairIfNeeded(state);
   },
 
@@ -282,21 +325,20 @@ const POLICIES = {
     const w = state.fortress.waveNumber;
     manageWorkers(state, Math.min(3, staffedCount(state) + state.reserveUnits.length + 1));
     // full curtain + second layer, turret ladder to L4 (one crystal gate), archery/barracks to L2
-    const walls = state.fortress.buildings.filter((b) => b.type === "wall" && b.hp > 0);
+    const walls = aliveBuildings(state, "wall");
     const wallSpots = [0, 1, 2, 4, 5, 6].map((y) => ({ x: 5, y })).concat([0, 1, 2, 4, 5, 6].map((y) => ({ x: 4, y })));
     const wantedWalls = Math.min(2 + Math.floor(w / 4), 9);
     if (walls.length < wantedWalls && state.resources.ore >= 60) {
-      const used = new Set(walls.map((b) => `${b.tiles[0].x},${b.tiles[0].y}`));
-      const spot = wallSpots.find((s) => !used.has(`${s.x},${s.y}`));
+      const spot = nextFreeSpot(walls, wallSpots);
       if (spot) placeBuilding(state, "wall", spot);
     }
-    const turrets = state.fortress.buildings.filter((b) => b.type === "turret" && b.hp > 0);
+    const turrets = aliveBuildings(state, "turret");
     const turretSpots = [{ x: 3, y: 1 }, { x: 3, y: 5 }, { x: 2, y: 0 }];
     if (w >= 5 && turrets.length < 3) {
       ladderStep(state, "turret", 4, turretSpots[turrets.length % turretSpots.length]);
     }
     if (w >= 3) ladderStep(state, "archery", 2, { x: 0, y: 5 });
-    if (w >= 8) ladderStep(state, "barracks", 2, { x: 0, y: 0 });
+    if (w >= 4) ladderStep(state, "barracks", 2, { x: 0, y: 0 });
     if (state.fortress.stream.phase === "gap") repairIfNeeded(state);
   },
 };
@@ -334,10 +376,10 @@ function run(policyName, { maxSeconds = 3600, quiet = false } = {}) {
   while (!state.game.isOver && state.t < maxSeconds) {
     if (sincePolicy >= 1) {
       sincePolicy = 0;
-      const before = JSON.stringify({ g: Math.floor(state.resources.gold), w: Math.floor(state.resources.wood), o: Math.floor(state.resources.ore), b: state.fortress.buildings.length });
+      const before = JSON.stringify({ g: Math.floor(state.resources.gold), w: Math.floor(state.resources.wood), o: Math.floor(state.resources.ore), b: state.fortress.buildings.length, u: state.fortress.unplacedBuildings?.length ?? 0 });
       policy(state);
       if (debug) {
-        const after = JSON.stringify({ g: Math.floor(state.resources.gold), w: Math.floor(state.resources.wood), o: Math.floor(state.resources.ore), b: state.fortress.buildings.length });
+        const after = JSON.stringify({ g: Math.floor(state.resources.gold), w: Math.floor(state.resources.wood), o: Math.floor(state.resources.ore), b: state.fortress.buildings.length, u: state.fortress.unplacedBuildings?.length ?? 0 });
         if (before !== after) console.log(`[t=${state.t.toFixed(0)}] ${before} -> ${after}`);
       }
     }

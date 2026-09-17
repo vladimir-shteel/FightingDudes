@@ -316,7 +316,7 @@ function expandComposition(wave) {
   return queue;
 }
 
-export function createFortressAlly(type, origin, level = 1) {
+export function createFortressAlly(type, origin, level = 1, sourceBuildingId = null) {
   const base = CONFIG.fortressUnits[type];
   const c = CONFIG.combat ?? {};
   // Spawned-unit power scales with the SPAWNER building's tier (was frozen: only cooldown scaled, so
@@ -329,6 +329,7 @@ export function createFortressAlly(type, origin, level = 1) {
     id: generateId("fortress-ally"),
     type,
     icon: base.icon,
+    sourceBuildingId,
     hp,
     maxHp: hp,
     attack: base.attack * atkMult,
@@ -354,14 +355,25 @@ export function spawnAllyForBuilding(state, building, unitKey, count) {
   const engineCfg = getCombatEngineConfig();
   const spawnDistance = engineCfg.spawnDistanceFromBuilding ?? 0.65;
   const spacing = engineCfg.squadSpawnSpacing ?? 0.4;
-  for (let index = 0; index < count; index += 1) {
+  // Building unit cap: a spawner never has more simultaneous units on the field than its level.
+  // Active spawnSquad effects top up to the cap instead of exceeding it.
+  const freeSlots = Math.max(0, building.level - countBuildingAliveUnits(state, building.id));
+  for (let index = 0; index < Math.min(count, freeSlots); index += 1) {
     const offset = (index - (count - 1) / 2) * spacing;
     battle.allies.push(createFortressAlly(
       unitKey,
       { x: Math.min(FORTRESS_WIDTH, center.x + spawnDistance), y: center.y + offset },
-      building.level
+      building.level,
+      building.id
     ));
   }
+}
+
+function countBuildingAliveUnits(state, buildingId) {
+  return state.fortress.battle.allies.reduce(
+    (n, ally) => (ally.hp > 0 && ally.sourceBuildingId === buildingId ? n + 1 : n),
+    0
+  );
 }
 
 export function volleyFromBuilding(state, building, count, damage) {
@@ -492,10 +504,15 @@ function tickBuildingActions(state, deltaSeconds) {
     const center = getBuildingCenter(building);
 
     if (level.unit) {
+      // Building unit cap: max simultaneous units on the field = building level. While the cap is
+      // reached the cooldown holds; when a unit dies the replacement arrives within one cooldown.
+      if (countBuildingAliveUnits(state, building.id) >= building.level) {
+        continue;
+      }
       building.cooldownTimer -= deltaSeconds;
       if (building.cooldownTimer <= 0) {
         const spawnDistance = getCombatEngineConfig().spawnDistanceFromBuilding ?? 0.65;
-        battle.allies.push(createFortressAlly(level.unit, { x: Math.min(FORTRESS_WIDTH, center.x + spawnDistance), y: center.y }, building.level));
+        battle.allies.push(createFortressAlly(level.unit, { x: Math.min(FORTRESS_WIDTH, center.x + spawnDistance), y: center.y }, building.level, building.id));
         building.cooldownTimer = level.cooldownSeconds;
       }
     }

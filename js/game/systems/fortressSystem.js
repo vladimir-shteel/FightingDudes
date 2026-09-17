@@ -485,6 +485,15 @@ export function mergeFortressBuildings(state, sourceId, targetId) {
     return { ok: false, reason: `Need ${crystalCost} 💎 to merge to level ${target.level + 1}.` };
   }
 
+  // Remap source's alive units to target so the cap tracks correctly after merge.
+  if (state.fortress.battle?.allies) {
+    for (const ally of state.fortress.battle.allies) {
+      if (ally.hp > 0 && ally.sourceBuildingId === source.id) {
+        ally.sourceBuildingId = target.id;
+      }
+    }
+  }
+
   clearBuilding(state, source);
   state.fortress.buildings = state.fortress.buildings.filter((item) => item.id !== source.id);
   // The source may have been a bought-but-unplaced building (merge right after purchase).
