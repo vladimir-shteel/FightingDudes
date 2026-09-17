@@ -24,7 +24,6 @@ export function createInitialState() {
     resources,
     fortress: createFortressState(),
     ui: {
-      selectedUnitId: null,
       dragUnitId: null,
       fortressPopup: null,
       workerActionPopup: null,

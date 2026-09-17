@@ -26,8 +26,14 @@ survives a fixed sequence of enemy waves. It replaces an earlier, structurally d
 - `js/game/devTools.js` — the `` ` ``-toggled playtest panel (speed/cheats) that also opens the config editor.
 - `js/game/factories.js` — builds runtime entities with stable shapes: reserve workers, mines.
 - `js/game/utils.js` — `generateId`, `clamp`, `formatNumber`, `sum`.
+- `js/game/dragDrop.js` — generic pointer-drag helper (`attachDrag`): an 8px movement threshold
+  separates tap from drag, the dragged clone renders in `#fxLayer`, and a real drag swallows the
+  following click so the drop doesn't double-fire as "open popup". It carries no game rules —
+  drop handlers in `ui.js` call the same system functions the click path uses
+  (move/merge/assign/return), so releasing over nothing valid simply cancels.
 - `js/game/systems/*.js` — isolated gameplay rules by domain (see **Main Systems**).
-- `js/game/ui.js` — the DOM renderer and interaction layer (tap/click only, no native drag-and-drop).
+- `js/game/ui.js` — the DOM renderer and interaction layer (tap/click plus the pointer-based drag
+  layer built on `js/game/dragDrop.js`).
   Returns `{ render, renderFrame }`: `render()` does a full rebuild after any discrete state change
   (a purchase, a config edit, a merge…), `renderFrame()` is the cheap per-tick redraw the game loop
   calls for live battle animation.
@@ -63,9 +69,10 @@ survives a fixed sequence of enemy waves. It replaces an earlier, structurally d
 
 ### `fortressSystem.js` — build field, buildings, economy sinks
 - Owns the `FORTRESS_WIDTH`/`FORTRESS_HEIGHT` (9×7) grid and building lifecycle: unlock-by-wave
-  (`getUnlockedFortressBuildingTypes`), buy (auto-places on a random valid empty tile —
-  `findFortressPlacement` — the player repositions afterward via **Move**), upgrade, repair, demolish,
-  merge, and move.
+  (`getUnlockedFortressBuildingTypes`), buy (the new copy lands in `fortress.unplacedBuildings` —
+  the "unplaced tray" — and the player drops it onto the field via drag or tap-to-place, or drops
+  it straight onto a matching building to merge; `moveFortressBuilding`/`mergeFortressBuildings`
+  accept unplaced sources), upgrade, repair, demolish, merge, and move.
 - **Buy cost escalation** (`getFortressBuildingBuyCost`): scales with the total *invested power* of
   that building type on the field, `Σ 2^(level-1)` over its instances — exactly like the reserve-worker
   buy curve — so both building wide and building tall raise the next copy's price, and merging is

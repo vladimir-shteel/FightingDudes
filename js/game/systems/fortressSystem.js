@@ -10,7 +10,8 @@ function costEntries(costs = {}) {
   return Object.entries(costs).filter(([, amount]) => amount > 0);
 }
 
-function normalizeFootprint(type) {
+// Exported for the UI's drag-and-drop footprint highlighting.
+export function normalizeFootprint(type) {
   return (CONFIG.fortressBuildings[type]?.footprint ?? [[0, 0]]).map(([x, y]) => ({ x, y }));
 }
 
@@ -57,6 +58,9 @@ export function createFortressState() {
     screen: "bottom",
     field,
     buildings: [hq],
+    // Bought-but-not-yet-placed buildings live here until the player drops them on the field
+    // (or drops one onto a matching building to merge immediately).
+    unplacedBuildings: [],
     obstacleRemovalCost: getFortressLayoutConfig().obstacleRemovalBaseCost ?? 3,
     movingBuildingId: null,
     waveNumber: 1,
@@ -319,22 +323,21 @@ export function buyFortressBuilding(state, type) {
   }
   const definition = CONFIG.fortressBuildings[type];
   const buyCost = getFortressBuildingBuyCost(state, type);
-  const origin = findFortressPlacement(state, type);
-  if (!origin) {
-    return { ok: false, reason: "No valid space on the fortress grid." };
-  }
   if (!spendResources(state.resources, buyCost)) {
     return { ok: false, reason: "Not enough resources for this building." };
   }
-  const building = createFortressBuilding(type, origin);
+  // No auto-placement: the building is created "in hand" (empty tiles, unplacedBuildings) and the
+  // player decides where it goes — drop it on a free tile, or straight onto a matching building
+  // to merge. createFortressBuilding needs a dummy origin; tiles are re-derived on placement.
+  const building = createFortressBuilding(type, { x: 0, y: 0 });
+  building.tiles = [];
   const bonusHp = getBaseHealthBonus(state);
   if (bonusHp > 0) {
     building.hp += bonusHp;
     building.maxHp += bonusHp;
   }
-  state.fortress.buildings.push(building);
-  occupyBuilding(state, building);
-  return { ok: true, reason: `${definition.name} placed.` };
+  state.fortress.unplacedBuildings.push(building);
+  return { ok: true, reason: `${definition.name} bought — drag it onto the field, or onto a matching building to merge.` };
 }
 
 export function upgradeFortressBuilding(state, buildingId) {
@@ -420,8 +423,24 @@ export function getMergeCrystalCost(type, targetLevel) {
   return table[String(targetLevel)] ?? 0;
 }
 
+// Shared validity rule for a merge attempt, used by the click path AND by drag-and-drop
+// hit-testing/highlighting (must stay in sync with what mergeFortressBuildings actually accepts).
+export function canMergeFortressBuildings(state, source, target) {
+  return Boolean(
+    source &&
+    target &&
+    source.id !== target.id &&
+    source.type !== "hq" &&
+    source.hp > 0 &&
+    target.hp > 0 &&
+    source.type === target.type &&
+    source.level === target.level &&
+    Boolean(CONFIG.fortressBuildings[target.type]?.levels[target.level])
+  );
+}
+
 export function mergeFortressBuildings(state, sourceId, targetId) {
-  const source = state.fortress.buildings.find((item) => item.id === sourceId);
+  const source = findAnyFortressBuilding(state, sourceId);
   const target = state.fortress.buildings.find((item) => item.id === targetId);
   if (!source || !target) {
     return { ok: false, reason: "Building not found." };
@@ -450,6 +469,10 @@ export function mergeFortressBuildings(state, sourceId, targetId) {
 
   clearBuilding(state, source);
   state.fortress.buildings = state.fortress.buildings.filter((item) => item.id !== source.id);
+  // The source may have been a bought-but-unplaced building (merge right after purchase).
+  if (state.fortress.unplacedBuildings?.length) {
+    state.fortress.unplacedBuildings = state.fortress.unplacedBuildings.filter((item) => item.id !== source.id);
+  }
 
   target.level += 1;
   target.damageFloor = 0;
@@ -513,18 +536,58 @@ export function massMergeFortressBuildings(state) {
   };
 }
 
+// Looks in placed buildings first, then in the unplaced (bought, not yet dropped) tray.
+export function findAnyFortressBuilding(state, buildingId) {
+  return (
+    state.fortress.buildings.find((item) => item.id === buildingId) ??
+    state.fortress.unplacedBuildings?.find((item) => item.id === buildingId) ??
+    null
+  );
+}
+
 export function moveFortressBuilding(state, buildingId, origin) {
-  const building = state.fortress.buildings.find((item) => item.id === buildingId);
+  const building = findAnyFortressBuilding(state, buildingId);
   if (!building) {
     return { ok: false, reason: "Building not found." };
   }
   if (!canPlaceFortressBuilding(state, building.type, origin, building.id)) {
     return { ok: false, reason: "That footprint does not fit there." };
   }
+  const wasUnplaced = state.fortress.unplacedBuildings?.some((item) => item.id === buildingId) ?? false;
   clearBuilding(state, building);
   building.tiles = normalizeFootprint(building.type).map((tile) => ({ x: origin.x + tile.x, y: origin.y + tile.y }));
   occupyBuilding(state, building);
+  if (wasUnplaced) {
+    state.fortress.unplacedBuildings = state.fortress.unplacedBuildings.filter((item) => item.id !== buildingId);
+    state.fortress.buildings.push(building);
+    return { ok: true, reason: "Building placed." };
+  }
   return { ok: true, reason: "Building moved." };
+}
+
+// A purchase is only useful if the new copy can go somewhere: a free placement exists,
+// or there is already a same-type + same-level pair on the field/tray to merge it with.
+export function hasFortressMergePair(state, type) {
+  const levelCounts = new Map();
+  const pool = [...state.fortress.buildings, ...(state.fortress.unplacedBuildings ?? [])];
+  for (const building of pool) {
+    if (building.type !== type || building.type === "hq") {
+      continue;
+    }
+    if (!CONFIG.fortressBuildings[type]?.levels[building.level]) {
+      continue; // already max tier
+    }
+    const count = (levelCounts.get(building.level) ?? 0) + 1;
+    if (count >= 2) {
+      return true;
+    }
+    levelCounts.set(building.level, count);
+  }
+  return false;
+}
+
+export function hasFortressPlacementOrMerge(state, type) {
+  return Boolean(findFortressPlacement(state, type)) || hasFortressMergePair(state, type);
 }
 
 // Book value of a building = what it cost to FIELD at its current tier via the (only) upgrade path,
