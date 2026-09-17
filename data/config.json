@@ -488,7 +488,7 @@
         },
         {
           "hp": 64,
-          "cooldownSeconds": 4.5,
+          "cooldownSeconds": 3.6,
           "unit": "warrior",
           "upgradeCost": {
             "wood": 170
@@ -496,7 +496,7 @@
         },
         {
           "hp": 75,
-          "cooldownSeconds": 3.3,
+          "cooldownSeconds": 2.6,
           "unit": "warrior",
           "upgradeCost": {
             "wood": 280
@@ -504,7 +504,7 @@
         },
         {
           "hp": 98,
-          "cooldownSeconds": 1.9,
+          "cooldownSeconds": 1.5,
           "unit": "warrior",
           "active": {
             "id": "spawnSquad",
@@ -564,7 +564,7 @@
         },
         {
           "hp": 51,
-          "cooldownSeconds": 6.3,
+          "cooldownSeconds": 5.0,
           "unit": "archer",
           "upgradeCost": {
             "wood": 150,
@@ -573,7 +573,7 @@
         },
         {
           "hp": 62,
-          "cooldownSeconds": 4.8,
+          "cooldownSeconds": 3.8,
           "unit": "archer",
           "upgradeCost": {
             "wood": 240,
@@ -582,7 +582,7 @@
         },
         {
           "hp": 82,
-          "cooldownSeconds": 2.7,
+          "cooldownSeconds": 2.2,
           "unit": "archer",
           "active": {
             "id": "volley",
@@ -720,7 +720,7 @@
         },
         {
           "hp": 71,
-          "cooldownSeconds": 6.3,
+          "cooldownSeconds": 5.0,
           "unit": "rider",
           "upgradeCost": {
             "wood": 130,
@@ -729,7 +729,7 @@
         },
         {
           "hp": 82,
-          "cooldownSeconds": 4.8,
+          "cooldownSeconds": 3.8,
           "unit": "rider",
           "upgradeCost": {
             "wood": 210,
@@ -738,7 +738,7 @@
         },
         {
           "hp": 105,
-          "cooldownSeconds": 2.7,
+          "cooldownSeconds": 2.2,
           "unit": "rider",
           "active": {
             "id": "charge",
@@ -797,7 +797,7 @@
         },
         {
           "hp": 51,
-          "cooldownSeconds": 7,
+          "cooldownSeconds": 5.6,
           "unit": "mage",
           "upgradeCost": {
             "ore": 175,
@@ -806,7 +806,7 @@
         },
         {
           "hp": 62,
-          "cooldownSeconds": 5.3,
+          "cooldownSeconds": 4.2,
           "unit": "mage",
           "upgradeCost": {
             "ore": 275,
@@ -815,7 +815,7 @@
         },
         {
           "hp": 82,
-          "cooldownSeconds": 3,
+          "cooldownSeconds": 2.4,
           "unit": "mage",
           "active": {
             "id": "frost",
