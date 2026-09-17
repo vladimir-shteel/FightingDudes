@@ -3123,6 +3123,23 @@ h3 {
   box-shadow: 0 0 0 3px rgba(242, 178, 76, 0.35);
 }
 
+.unplaced-token.is-merge-target {
+  border-style: solid;
+  border-color: var(--accent, #5cb85c);
+  animation: none;
+  box-shadow: 0 0 0 3px rgba(92, 184, 92, 0.35);
+}
+
+.tray-actions {
+  display: flex;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.tray-actions[hidden] {
+  display: none;
+}
+
 @keyframes unplaced-token-pulse {
   0%,
   100% {

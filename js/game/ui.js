@@ -413,6 +413,8 @@ export function mountUI(state, onStateChanged) {
     bossHpBar: document.querySelector("#bossHpBar"),
     fortressField: document.querySelector("#fortressField"),
     unplacedTray: document.querySelector("#unplacedTray"),
+    trayActions: document.querySelector("#trayActions"),
+    trayMassMergeButton: document.querySelector("#trayMassMergeButton"),
     fortressShop: document.querySelector("#fortressShop"),
     fortressMassMergeButton: document.querySelector("#fortressMassMergeButton"),
     upgradeOverlay: document.querySelector("#upgradeOverlay"),
@@ -586,6 +588,13 @@ export function mountUI(state, onStateChanged) {
   });
 
   elements.fortressMassMergeButton?.addEventListener("click", () => {
+    const result = massMergeFortressBuildings(state);
+    state.fortress.message = result.reason;
+    closeFortressPopup();
+    onStateChanged();
+  });
+
+  elements.trayMassMergeButton?.addEventListener("click", () => {
     const result = massMergeFortressBuildings(state);
     state.fortress.message = result.reason;
     closeFortressPopup();
@@ -906,6 +915,28 @@ export function mountUI(state, onStateChanged) {
   }
   function clearFortressDropHighlight() {
     setFortressDropHighlight([], true);
+    clearTrayDropHighlight();
+  }
+
+  let trayHighlightEl = null;
+  function clearTrayDropHighlight() {
+    if (trayHighlightEl) {
+      trayHighlightEl.classList.remove("drag-drop-ok");
+      trayHighlightEl = null;
+    }
+  }
+  function setTrayDropHighlight(targetId) {
+    clearTrayDropHighlight();
+    const el = elements.unplacedTray?.querySelector(`[data-building-id="${targetId}"]`);
+    if (el) {
+      el.classList.add("drag-drop-ok");
+      trayHighlightEl = el;
+    }
+  }
+  function trayBuildingIdFromPoint(clientX, clientY) {
+    const token = document.elementFromPoint(clientX, clientY)?.closest("[data-building-id]");
+    if (!token || !token.closest("#unplacedTray")) return null;
+    return token.dataset.buildingId ?? null;
   }
 
   // What would happen if `buildingId` were released on tile (x, y)?
@@ -998,9 +1029,18 @@ export function mountUI(state, onStateChanged) {
       onDragMove: (payload, event) => {
         const tile = tileFromPoint(event.clientX, event.clientY);
         if (tile) {
+          clearTrayDropHighlight();
           highlightFortressDrop(payload.buildingId, tile.x, tile.y);
         } else {
           clearFortressDropHighlight();
+          const trayTargetId = trayBuildingIdFromPoint(event.clientX, event.clientY);
+          if (trayTargetId && trayTargetId !== payload.buildingId) {
+            const source = findAnyFortressBuilding(state, payload.buildingId);
+            const target = findAnyFortressBuilding(state, trayTargetId);
+            if (source && target && canMergeFortressBuildings(state, source, target)) {
+              setTrayDropHighlight(trayTargetId);
+            }
+          }
         }
       },
       onDragEnd: (payload, event) => {
@@ -1008,6 +1048,18 @@ export function mountUI(state, onStateChanged) {
         const tile = tileFromPoint(event.clientX, event.clientY);
         if (tile) {
           return executeFortressDrop(payload.buildingId, tile.x, tile.y);
+        }
+        const trayTargetId = trayBuildingIdFromPoint(event.clientX, event.clientY);
+        if (trayTargetId && trayTargetId !== payload.buildingId) {
+          const source = findAnyFortressBuilding(state, payload.buildingId);
+          const target = findAnyFortressBuilding(state, trayTargetId);
+          if (source && target && canMergeFortressBuildings(state, source, target)) {
+            const result = mergeFortressBuildings(state, payload.buildingId, trayTargetId);
+            state.fortress.message = result.reason;
+            if (result.ok) state.fortress.movingBuildingId = null;
+            onStateChanged();
+            return true;
+          }
         }
         // Released off the field: unplaced buildings stay in the tray, placed ones stay put.
         if (isUnplacedFortressBuilding(payload.buildingId)) {
@@ -1174,12 +1226,16 @@ export function mountUI(state, onStateChanged) {
     tray.innerHTML = "";
     const unplaced = state.fortress.unplacedBuildings ?? [];
     tray.hidden = unplaced.length === 0;
+    if (elements.trayActions) {
+      elements.trayActions.hidden = unplaced.length === 0;
+    }
 
     for (const building of unplaced) {
       const definition = CONFIG.fortressBuildings[building.type];
       const token = document.createElement("button");
       token.type = "button";
       token.className = "unplaced-token";
+      token.dataset.buildingId = building.id;
       token.classList.toggle("is-moving-source", state.fortress.movingBuildingId === building.id);
       token.innerHTML = `
         <span class="fortress-tile-icon">${definition.icon}</span>
