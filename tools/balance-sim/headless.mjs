@@ -537,12 +537,22 @@ const POLICIES = {
     // Zones, not fixed coordinates: `findClearablePlacement` (see above) picks the actual cheapest
     // spot inside each zone on THIS game's real tree layout, preferring ones that border already-
     // open ground — the "scan the map for a couple of trees next to a big empty pocket" behavior.
-    const innerZone = { xMin: 0, xMax: 3, yMin: 0, yMax: 6 }; // next to HQ — barracks, mage tower
+    const w = state.fortress.waveNumber;
+    // Barracks/mage live DEEP behind HQ (x=0-2). Was xMax=3, which let `findClearablePlacement`'s
+    // greedy tree-scoring drop the spawner on the forward corner (3,0)/(3,5) — an exposed tile the
+    // marching enemies reach while the melee warriors are off chasing to the spawn edge. A spawner
+    // killed early and never rebuilt is what actually ended these runs at the first boss.
+    const innerZone = { xMin: 0, xMax: 2, yMin: 0, yMax: 6 }; // next to HQ — barracks, mage tower
     const wallZone = { xMin: 3, xMax: 4, yMin: 0, yMax: 6 }; // 2-3 tiles in front of HQ
     const turretZone = { xMin: 1, xMax: 4, yMin: 0, yMax: 6 };
 
-    // 1. workers: fully staff every unlocked mine slot.
-    manageWorkers(state, totalSlots(state));
+    // 1. workers: flood + merge like the real playtester (action log: ~8 bought wave 1, ~8 more
+    // wave 6, mass-merged each time). Worker yield is exponential in level (L1=6 → L3=16 → L4=34
+    // wood per 8s), so buying only up to `totalSlots` L1s — as this used to — starves the whole run:
+    // no high-level workers, no wood for turrets, not even enough to repair a wrecked barracks
+    // (~105 wood for a dead L2 vs ~60 banked). The excess pile up in reserve and massMergeReserve
+    // walks them up; `manageWorkers` then staffs the highest-level ones into the unlocked slots.
+    manageWorkers(state, Math.min(8 + Math.max(0, w - 1) * 2, 40));
 
     // 2. barracks: one building pushed to L3, merge-as-you-go — naturally leaves the earlier-bought
     // spares unmerged once the target is hit, matching the observed 1×L3 (+ spare L1s) outcome.
@@ -561,13 +571,20 @@ const POLICIES = {
 
     // 5. turrets — from wave 8 (not 12): the actual plan, not a last-minute burst. Bought and merged
     // on sight, since both damage AND range scale with level.
-    if (state.fortress.waveNumber >= 8 && isBuildingUnlocked(state, "turret")) {
+    if (w >= 8 && isBuildingUnlocked(state, "turret")) {
       const spot = findClearablePlacement(state, "turret", turretZone);
       ladderStep(state, "turret", 5, spot);
     }
 
     // 6. kite any turret caught inside a boss's aura back out to a safe sniping distance.
     kiteAuraBoss(state);
+
+    // 7. repair in the gap between waves. SmartAss previously had NO repair step at all — the only
+    // wreck-repair was multiLadder's own-type pass, which the throttled economy could never afford —
+    // so a barracks/wall lost in an early wave stayed a permanent ruin and spawn capacity only
+    // decayed toward the first boss. Repairing during the breather (HQ, then wrecks, then anything
+    // below 60%) is what keeps the ~3-ally defence intact through wave 12, matching the real game.
+    if (state.fortress.stream.phase === "gap") repairIfNeeded(state, 0.6);
   },
 };
 
