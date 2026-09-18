@@ -590,10 +590,29 @@ const POLICIES = {
 
 // ---------------------------------------------------------------- runner
 
+// Two independent RNG streams (LCG), see run() for why they are split.
+function makeRng(seedInt) {
+  let s = seedInt >>> 0;
+  return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296);
+}
+function hashSeed(str) {
+  return [...String(str)].reduce((a, c) => a * 31 + c.charCodeAt(0), 7) >>> 0;
+}
+// Fixed across every run: the bot's own tie-break decisions (placement pick among equally-good
+// tiles, etc.) come from THIS stream, so the policy behaves identically from run to run and does
+// not consume from — and therefore never perturbs — the world stream. That's what lets a sweep
+// isolate the knob under test (starting gold, tree density, …) instead of measuring RNG reshuffle:
+// change gold and the map + spawn positions stay put, only the thing you changed moves.
+const POLICY_SEED = 0x5eed;
+
 function run(policyName, { maxSeconds = 3600, quiet = false, seedSuffix = "" } = {}) {
-  // deterministic runs: seed the engine's Math.random (spawn jitter, obstacle layout, placement)
-  let seed = [...(policyName + seedSuffix)].reduce((a, c) => a * 31 + c.charCodeAt(0), 7) >>> 0;
-  Math.random = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296);
+  // World stream: obstacle layout, enemy spawn positions, engine jitter. Seeded by seedSuffix ONLY
+  // (not the policy name) so every policy — and every config value under test — plays the SAME map
+  // for a given seed. The policy stream (POLICY_SEED) is swapped in only for the duration of each
+  // policy() call below.
+  const worldRandom = makeRng(hashSeed(seedSuffix || "world"));
+  const policyRandom = makeRng(POLICY_SEED);
+  Math.random = worldRandom;
   const state = createInitialState();
   startFortressBattle(state);
   const policy = POLICIES[policyName];
@@ -622,7 +641,10 @@ function run(policyName, { maxSeconds = 3600, quiet = false, seedSuffix = "" } =
     if (sincePolicy >= 1) {
       sincePolicy = 0;
       const before = JSON.stringify({ g: Math.floor(state.resources.gold), w: Math.floor(state.resources.wood), o: Math.floor(state.resources.ore), b: state.fortress.buildings.length, u: state.fortress.unplacedBuildings?.length ?? 0 });
+      // Bot decisions draw from the fixed policy stream; restore the world stream for engine ticks.
+      Math.random = policyRandom;
       policy(state);
+      Math.random = worldRandom;
       if (debug) {
         const after = JSON.stringify({ g: Math.floor(state.resources.gold), w: Math.floor(state.resources.wood), o: Math.floor(state.resources.ore), b: state.fortress.buildings.length, u: state.fortress.unplacedBuildings?.length ?? 0 });
         if (before !== after) console.log(`[t=${state.t.toFixed(0)}] ${before} -> ${after}`);
